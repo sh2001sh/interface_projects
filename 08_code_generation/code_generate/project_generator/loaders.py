@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 
 from project_generator.models import (
+    AggregationSpec,
+    AggregationTypeSpec,
     ChoreographySource,
     ChoreographySpec,
     ChoreographyTarget,
@@ -14,17 +16,21 @@ from project_generator.models import (
     ConstraintSpec,
     ConversionRuntime,
     ConversionSpec,
+    CrcCheckSpec,
     EndpointSpec,
     FetchAttempt,
     JointGroup,
+    LoopConfigSpec,
     MappingRule,
     MappingSpec,
     MatrixSpec,
+    MessageRuleDetailSpec,
     ProtocolVerifySpec,
     ResponseActionSpec,
     RuntimeSpec,
     SourceAlias,
     SourceRuntime,
+    TransportSpec,
     VerifyRuleSpec,
 )
 
@@ -133,6 +139,99 @@ def _load_endpoints(payload: list[dict] | None) -> list[EndpointSpec]:
     return result
 
 
+def _require_port(port_value: object, field_name: str) -> int:
+    """Validates and converts one port value."""
+
+    port = int(port_value)
+    if port < 1 or port > 65535:
+        raise ValueError(f"{field_name} 端口非法: {port}")
+    return port
+
+
+def _load_message_rule_detail(payload: dict) -> MessageRuleDetailSpec:
+    """Loads one runtime message-rule detail item."""
+
+    message_name = str(payload.get("message_name") or payload.get("messageName") or "").strip()
+    if not message_name:
+        raise ValueError("messageRuleDetailList[].messageName 不能为空")
+    filter_payload = payload.get("filterConfig") or payload.get("filter_config") or {}
+    if filter_payload and not isinstance(filter_payload, dict):
+        raise ValueError("messageRuleDetailList[].filterConfig 必须是对象")
+    crc_payload = (
+        payload.get("crc_check")
+        or payload.get("crcCheck")
+        or filter_payload.get("crc_check")
+        or filter_payload.get("crcCheck")
+        or {}
+    )
+    loop_payload = (
+        payload.get("loop_config")
+        or payload.get("loopConfig")
+        or filter_payload.get("loop_config")
+        or filter_payload.get("loopConfig")
+        or {}
+    )
+    aggregation_payload = (
+        payload.get("aggregation")
+        or filter_payload.get("aggregation")
+        or {}
+    )
+    aggregation_type_payload = (
+        payload.get("aggregation_type")
+        or payload.get("aggregationType")
+        or filter_payload.get("aggregation_type")
+        or filter_payload.get("aggregationType")
+        or {}
+    )
+    return MessageRuleDetailSpec(
+        message_name=message_name,
+        delay_requirement=int(payload.get("delay_requirement", payload.get("delayRequirement", 0)) or 0),
+        crc_check=CrcCheckSpec(
+            enabled=bool(crc_payload.get("enabled", False)),
+            bind_element=str(crc_payload.get("bind_element") or crc_payload.get("bindElement") or "").strip() or None,
+        ),
+        loop_config=LoopConfigSpec(
+            type=str(loop_payload.get("type") or "NONE").strip() or "NONE",
+        ),
+        aggregation=AggregationSpec(
+            mode=str(aggregation_payload.get("mode") or "SINGLE").strip() or "SINGLE",
+            count=(None if aggregation_payload.get("count") in (None, "") else int(aggregation_payload.get("count"))),
+            time_ms=(None if aggregation_payload.get("time_ms", aggregation_payload.get("timeMs")) in (None, "") else int(aggregation_payload.get("time_ms", aggregation_payload.get("timeMs")))),
+        ),
+        aggregation_type=AggregationTypeSpec(
+            type=str(aggregation_type_payload.get("type") or "TIME").strip() or "TIME",
+            bind_element=str(aggregation_type_payload.get("bind_element") or aggregation_type_payload.get("bindElement") or "").strip() or None,
+        ),
+    )
+
+
+def _load_transport(payload: dict | None) -> TransportSpec | None:
+    """Loads transport configuration from runtime payload."""
+
+    if not payload:
+        return None
+    message_type = str(payload.get("message_type") or payload.get("messageType") or "").strip() or "bundle"
+    recv_ip = str(payload.get("recv_ip") or payload.get("recvIp") or "127.0.0.1").strip() or "127.0.0.1"
+    send_ip = str(payload.get("send_ip") or payload.get("sendIp") or "127.0.0.1").strip() or "127.0.0.1"
+    recv_port = payload.get("recv_port", payload.get("recvPort"))
+    send_port = payload.get("send_port", payload.get("sendPort"))
+    if recv_port is None:
+        raise ValueError("runtime.transport.recvPort 不能为空")
+    if send_port is None:
+        raise ValueError("runtime.transport.sendPort 不能为空")
+    message_rules_payload = payload.get("message_rules") or payload.get("messageRuleDetailList") or []
+    if not isinstance(message_rules_payload, list):
+        raise ValueError("runtime.transport.messageRuleDetailList 必须是数组")
+    return TransportSpec(
+        message_type=message_type,
+        recv_ip=recv_ip,
+        recv_port=_require_port(recv_port, "recvPort"),
+        send_ip=send_ip,
+        send_port=_require_port(send_port, "sendPort"),
+        message_rules=[_load_message_rule_detail(item) for item in message_rules_payload],
+    )
+
+
 def _load_protocol_verifies(payload: dict | None) -> list[ProtocolVerifySpec]:
     """Loads protocol-level verify/response state-machine settings."""
 
@@ -239,12 +338,14 @@ def load_mappings(path: Path) -> MappingSpec:
             )
         )
     runtime_payload = payload.get("runtime", {})
+    transport = _load_transport(runtime_payload.get("transport"))
     return MappingSpec(
         version=payload.get("version", "1.0"),
         project_name=payload["project_name"],
         conversions=conversions,
         runtime=RuntimeSpec(
             endpoints=_load_endpoints(runtime_payload.get("endpoints")),
+            transport=transport,
             loop_sleep_ms=int(runtime_payload.get("loop_sleep_ms", 2)),
             check_data_interval_ms=int(runtime_payload.get("check_data_interval_ms", 5000)),
             protocol_verifies=_load_protocol_verifies(runtime_payload.get("protocol_verifies")),
