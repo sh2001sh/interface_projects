@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NameSpace>
+<Item  ip="127.0.0.1"  port="3333"   type="udp"  recv="1"  feedBackPort="3333"   name="接收消息IP和端口信息"></Item>
+<Item  ip="127.0.0.1"  port="3336"   type="udp"  recv="0"  feedBackPort="3333"	name="发送数据IP和端口信息"></Item>
+</NameSpace>

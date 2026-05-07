@@ -1,0 +1,94 @@
+#ifndef S0_1_DEF_H
+#define S0_1_DEF_H
+
+class S0_1 {
+public:
+    long var1511111080;
+    long var1511111191;
+    long var1511111242;
+    long var1511111333;
+    long var1511111414;
+    long var1511111505;
+    long var1511111576;
+    long var1511111607;
+    long var1511111688;
+    long var1511111759;
+    long var15111118310;
+    long var15111119011;
+    long var15111119012;
+    long var15111119913;
+    long var15111120614;
+    long var15111121615;
+    long var15111122216;
+    long var15111123117;
+    long var15111123818;
+    long var15111124819;
+    long var15111125520;
+    long var15111126321;
+    long var15111127022;
+    long var15111128023;
+    long var15111128724;
+    long var15111129725;
+    long var15111130326;
+    long var15111135333;
+    long var15111131928;
+    long var15111133330;
+    long var15111133631;
+    long var15111134432;
+    long var15111136034;
+    double var15111136935;
+    long var15111137636;
+    long var15111138437;
+    long var15111145747;
+    long var15111139939;
+    long var15111140040;
+    long var15111140841;
+    long var15111142242;
+    long var15111143244;
+    long var15111144045;
+    long var15111144946;
+    long var15111146548;
+    long var15111147349;
+    long var15111148350;
+    long var15111149051;
+    long var15111149952;
+    long var15111150653;
+    long var15111151654;
+    long var15111152255;
+    long var15111153156;
+    long var15111153857;
+    long var15111154658;
+    long var15111156259;
+    long var15111156660;
+    long var15111157061;
+    long var15111158362;
+    long var15111158863;
+    long var15111159964;
+    long var15111160465;
+    long var15111161066;
+    long var15111162067;
+    long var15111162668;
+    long var15111162769;
+    long var15111162770;
+    long var15111164271;
+    long var15111164272;
+    long var15111165073;
+    long var15111165874;
+    long var15111165875;
+    long var15111165876;
+    long var15111165877;
+    long var15111165878;
+    long var15111169379;
+    long var15111169380;
+    long var15111169381;
+    long var15111169382;
+    long var15111169383;
+    long var15111172284;
+    long var15111172285;
+    long var15111172286;
+    long var15111172287;
+    long var15111172288;
+};
+
+
+#endif

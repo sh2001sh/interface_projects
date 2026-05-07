@@ -1,0 +1,133 @@
+#ifndef S106_DEF_H
+#define S106_DEF_H
+
+class S106 {
+public:
+class Jwh;
+
+class Jwh {
+public:
+    long idd;
+    long ijd;
+    long iwd;
+};
+
+    long ijsptbzhj;
+    long b0zt;
+    long boyxbs;
+    long bomusx;
+    long bosyhly;
+    long boby;
+    long bosyh;
+    long boias;
+    long bosd;
+    long boass;
+    long boshjd;
+    long boxdsj;
+    long bpby;
+    long ihx;
+    long isdu;
+    long bpdlzb;
+    long bpwzlg;
+    long bp87;
+    long ibpx;
+    long bpyfhw;
+    long ibpy;
+    long ibpbyfl;
+    long bphjzl;
+    long imbsl;
+    long ihjlb;
+    long ibc1mylx;
+    long bc1mblx;
+    long ibc1by;
+    long bc1mbxh;
+    long bc1by;
+    long bc1mbbsh;
+    long bc1bzsh;
+    long bc1zsf;
+    long bc2wfwqxt;
+    long bc2wqjzzt;
+    long bc2wmbh;
+    long bc2sysfzbh;
+    long bc2by;
+    long bc2wsfsyh;
+    long bc2cgqlx;
+    long bc3grjlx;
+    long bc3by;
+    long bc3rhlx;
+    long bc3mbbgjs;
+    long bc3fsyprf;
+    long bc3fsyzt;
+    long bc3sjgn;
+    long bc3sj;
+    long bc3fz;
+    long bc3m;
+    long bc3shm;
+    long bc4by;
+    long bc4xjlwzbmq;
+    long bc4cpwzbm;
+    long bc4zzwzbmq;
+    long bc4fwjbqd;
+    long bc4qjbqd;
+    long bc4sdx;
+    long bc4sdbbqdd;
+    long bc4sddbqd;
+    long bc4sdxbqd;
+    long bc5by;
+    long bc5wfbdgl;
+    long bc5dfbdgl;
+    long bc5mhxh1;
+    long bc5mhxh2;
+    long bc5mhxh1gl;
+    long bc5mhxh2gl;
+    long bc6by;
+    long bc6jlsjmsf;
+    long bc6xs;
+    long bc6fzfssk;
+    long bc6m;
+    long bc6hm;
+    long bc6fzjxsk;
+    long bc6msjdasd;
+    long bc6hmsjasidsd;
+    long b0byqq;
+    long bozbs;
+    long hoxxbs;
+    long boxxzbs;
+    long boxxcd;
+    long hpby2;
+    long hpzbs;
+    long hc1by;
+    long hc2by;
+    long hc3by;
+    long hc4by;
+    long hc5by;
+    long hc6by;
+    long hc1zbs;
+    long hc2zbs;
+    long hc3zbs;
+    long hc4zbs;
+    long hc5zbs;
+    long hc6zbs;
+    long hc1jxzbs;
+    long hc2jxzbs;
+    long hc3jxzbsf;
+    long hc4jxzbsf;
+    long hc5jxzbsf;
+    long bc6jxzbsf;
+    Jwh jwh;
+    long var202408231856031;
+    long var202408231856592;
+    long var202408231859244;
+    long var202408231859475;
+    long var202408231900156;
+    long var202408231900407;
+    long var202408231901088;
+    long var2024082319022610;
+    long var2024082319025311;
+    long var2024082319032012;
+    long var2024082319035313;
+    long var2024082319050515;
+};
+
+
+#endif
