@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J23:NameSpace xmlns:J23="J/J23">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J23_Origin:NameSpace xmlns:J23_Origin="J/J23/Origin">
+    <J23_Origin:StructMess name="Label">5</J23_Origin:StructMess>
+    <J23_Origin:StructMess name="Sublabel">3</J23_Origin:StructMess>
+    <J23_Origin:Item name="Elevation">11</J23_Origin:Item>
+  </J23_Origin:NameSpace><J23_Prolong:NameSpace xmlns:J23_Prolong="J/J23/Prolong">
+    <J23_Prolong:Item name="Course">9</J23_Prolong:Item>
+    <J23_Prolong:Item name="Latitude">23</J23_Prolong:Item>
+    <J23_Prolong:Item name="Longitude">24</J23_Prolong:Item>
+    <J23_Prolong:Item name="Speed">11</J23_Prolong:Item>
+    <J23_Prolong:Item name="Spare" defaultValue="0">1</J23_Prolong:Item>
+  </J23_Prolong:NameSpace><J23_Continue2:NameSpace xmlns:J23_Continue2="J/J23/Continue2">
+    <J23_Continue2:Item name="Continuation Word Label">5</J23_Continue2:Item>
+    <J23_Continue2:Item name="Control Channel">7</J23_Continue2:Item>
+    <J23_Continue2:Item name="L4A Ind">1</J23_Continue2:Item>
+    <J23_Continue2:Item name="Link 4A Address">13</J23_Continue2:Item>
+    <J23_Continue2:Item name="VCS Ind">1</J23_Continue2:Item>
+    <J23_Continue2:Item name="Voice Call Sign">24</J23_Continue2:Item>
+    <J23_Continue2:Item name="Voice Frequency/Channel">13</J23_Continue2:Item>
+    <J23_Continue2:Item name="Indicators/Spares" defaultValue="0">4</J23_Continue2:Item>
+  </J23_Continue2:NameSpace><J23_Continue3:NameSpace xmlns:J23_Continue3="J/J23/Continue3">
+    <J23_Continue3:Item name="Beta Angle">15</J23_Continue3:Item>
+    <J23_Continue3:Item name="Continuation Label">5</J23_Continue3:Item>
+    <J23_Continue3:Item name="Relative Azimuth">3</J23_Continue3:Item>
+    <J23_Continue3:Item name="Relative Position Quality">4</J23_Continue3:Item>
+    <J23_Continue3:Item name="U Coordinate">20</J23_Continue3:Item>
+    <J23_Continue3:Item name="V Coordinate">20</J23_Continue3:Item>
+    <J23_Continue3:Item name="Spare" defaultValue="0">1</J23_Continue3:Item>
+  </J23_Continue3:NameSpace>
+</J23:NameSpace>

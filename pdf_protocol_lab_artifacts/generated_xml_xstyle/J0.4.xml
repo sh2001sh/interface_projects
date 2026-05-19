@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J04:NameSpace xmlns:J04="J/J04">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J04_Origin:NameSpace xmlns:J04_Origin="J/J04/Origin">
+    <J04_Origin:Item name="Delta Epoch">3</J04_Origin:Item>
+    <J04_Origin:Item name="Epoch Subdivision">6</J04_Origin:Item>
+    <J04_Origin:Item name="Relay Control Action">3</J04_Origin:Item>
+    <J04_Origin:Item name="Relay Function">3</J04_Origin:Item>
+    <J04_Origin:Item name="Track Number">15</J04_Origin:Item>
+  </J04_Origin:NameSpace><J04_Prolong:NameSpace xmlns:J04_Prolong="J/J04/Prolong">
+    <J04_Prolong:Item name="CVL N1R">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="CYP MDE">1</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number Receive">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number Transmit">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Participation Group">9</J04_Prolong:Item>
+    <J04_Prolong:Item name="PGR Ind">1</J04_Prolong:Item>
+    <J04_Prolong:Item name="Recurrence Rate">4</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Control Action">3</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Delay">5</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Function">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Set">2</J04_Prolong:Item>
+    <J04_Prolong:Item name="Time Slot Number">15</J04_Prolong:Item>
+  </J04_Prolong:NameSpace>
+</J04:NameSpace>

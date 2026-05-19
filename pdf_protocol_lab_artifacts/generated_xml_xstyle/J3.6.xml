@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J36:NameSpace xmlns:J36="J/J36">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+    </PreSeq>
+  </MessCode><J36_Origin:NameSpace xmlns:J36_Origin="J/J36/Origin">
+    <J36_Origin:Item name="Minute">6</J36_Origin:Item>
+    <J36_Origin:Item name="Second">6</J36_Origin:Item>
+    <J36_Origin:Item name="Track Number">19</J36_Origin:Item>
+  </J36_Origin:NameSpace><J36_Prolong:NameSpace xmlns:J36_Prolong="J/J36/Prolong">
+    <J36_Prolong:Item name="Amplification Confidence">3</J36_Prolong:Item>
+    <J36_Prolong:Item name="Boost Indicator">1</J36_Prolong:Item>
+    <J36_Prolong:Item name="Data Indicator">3</J36_Prolong:Item>
+    <J36_Prolong:Item name="Lost Track Indicator">1</J36_Prolong:Item>
+    <J36_Prolong:Item name="Space Amplification">5</J36_Prolong:Item>
+    <J36_Prolong:Item name="X Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="X Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Y Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="Y Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Z Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="Z Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Spare" defaultValue="0">12</J36_Prolong:Item>
+  </J36_Prolong:NameSpace><J36_Continue4:NameSpace xmlns:J36_Continue4="J/J36/Continue4">
+    <J36_Continue4:Item name="Continuation Word Label">5</J36_Continue4:Item>
+  </J36_Continue4:NameSpace>
+</J36:NameSpace>

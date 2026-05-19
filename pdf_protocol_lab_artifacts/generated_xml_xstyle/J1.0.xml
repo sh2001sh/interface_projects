@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J10:NameSpace xmlns:J10="J/J10">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J10_Origin:NameSpace xmlns:J10_Origin="J/J10/Origin">
+    <J10_Origin:Item name="J1.0I Connectivity Interrogation Initial Word">0</J10_Origin:Item>
+  </J10_Origin:NameSpace>
+</J10:NameSpace>

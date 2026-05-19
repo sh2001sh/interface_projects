@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J71:NameSpace xmlns:J71="J/J71">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J71_Origin:NameSpace xmlns:J71_Origin="J/J71/Origin">
+    <J71_Origin:Item name="Action">0</J71_Origin:Item>
+    <J71_Origin:Item name="Covariance Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="Electronic Attack Data Request Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="Electronic Warfare Fixes Data Request Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="ES Data Request Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="Number/Frequency of Updates">0</J71_Origin:Item>
+    <J71_Origin:Item name="Reference Point Data Request Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="Space Ambiguity Matrix Request Indicator">0</J71_Origin:Item>
+    <J71_Origin:Item name="Track Number Addressee 1">0</J71_Origin:Item>
+    <J71_Origin:Item name="Track Number Reference">0</J71_Origin:Item>
+  </J71_Origin:NameSpace><J71_Continue1:NameSpace xmlns:J71_Continue1="J/J71/Continue1">
+    <J71_Continue1:Item name="Continuation Word Label">5</J71_Continue1:Item>
+    <J71_Continue1:Item name="Track Number Addressee 2">15</J71_Continue1:Item>
+    <J71_Continue1:Item name="Track Number Addressee 3">15</J71_Continue1:Item>
+    <J71_Continue1:Item name="Track Number Addressee 4">15</J71_Continue1:Item>
+    <J71_Continue1:Item name="Track Number Addressee 5">15</J71_Continue1:Item>
+    <J71_Continue1:Item name="Spare" defaultValue="0">3</J71_Continue1:Item>
+  </J71_Continue1:NameSpace>
+</J71:NameSpace>

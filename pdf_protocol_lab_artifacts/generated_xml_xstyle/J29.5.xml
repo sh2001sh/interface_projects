@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J295:NameSpace xmlns:J295="J/J295">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J295_Origin:NameSpace xmlns:J295_Origin="J/J295/Origin">
+    <J295_Origin:StructMess name="Label">5</J295_Origin:StructMess>
+    <J295_Origin:StructMess name="Message Length Indicator">3</J295_Origin:StructMess>
+    <J295_Origin:StructMess name="Sublabel">3</J295_Origin:StructMess>
+    <J295_Origin:Item name="Message Len Ind">3</J295_Origin:Item>
+    <J295_Origin:Item name="Proprietary">57</J295_Origin:Item>
+    <J295_Origin:Item name="Proprietary Information">57</J295_Origin:Item>
+  </J295_Origin:NameSpace>
+</J295:NameSpace>

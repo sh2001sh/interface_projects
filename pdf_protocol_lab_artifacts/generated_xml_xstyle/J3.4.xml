@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J34:NameSpace xmlns:J34="J/J34">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J34_Origin:NameSpace xmlns:J34_Origin="J/J34/Origin">
+    <J34_Origin:Item name="payload" defaultValue="0">0</J34_Origin:Item>
+  </J34_Origin:NameSpace><J34_Continue1:NameSpace xmlns:J34_Continue1="J/J34/Continue1">
+    <J34_Continue1:Item name="Continuation Word Label">5</J34_Continue1:Item>
+    <J34_Continue1:Item name="Depth">7</J34_Continue1:Item>
+    <J34_Continue1:Item name="Depth Contact">4</J34_Continue1:Item>
+    <J34_Continue1:Item name="Hour">5</J34_Continue1:Item>
+    <J34_Continue1:Item name="Minute">6</J34_Continue1:Item>
+    <J34_Continue1:Item name="Mode I Code">5</J34_Continue1:Item>
+    <J34_Continue1:Item name="Mode II Code">12</J34_Continue1:Item>
+    <J34_Continue1:Item name="Mode III Code">12</J34_Continue1:Item>
+    <J34_Continue1:Item name="Mode IV Indicator">2</J34_Continue1:Item>
+    <J34_Continue1:Item name="Sensor">5</J34_Continue1:Item>
+    <J34_Continue1:Item name="Time Function">2</J34_Continue1:Item>
+    <J34_Continue1:Item name="Spare" defaultValue="0">3</J34_Continue1:Item>
+  </J34_Continue1:NameSpace>
+</J34:NameSpace>

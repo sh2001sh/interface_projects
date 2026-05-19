@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J134:NameSpace xmlns:J134="J/J134">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J134_Origin:NameSpace xmlns:J134_Origin="J/J134/Origin">
+    <J134_Origin:StructMess name="Label">5</J134_Origin:StructMess>
+    <J134_Origin:StructMess name="Sublabel">3</J134_Origin:StructMess>
+    <J134_Origin:Item name="Message Length">3</J134_Origin:Item>
+    <J134_Origin:Item name="Subsurface Specific Type">12</J134_Origin:Item>
+    <J134_Origin:Item name="Track Number">19</J134_Origin:Item>
+    <J134_Origin:Item name="Spare" defaultValue="0">4</J134_Origin:Item>
+  </J134_Origin:NameSpace>
+</J134:NameSpace>

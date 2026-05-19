@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J80:NameSpace xmlns:J80="J/J80">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J80_Origin:NameSpace xmlns:J80_Origin="J/J80/Origin">
+    <J80_Origin:StructMess name="Label">5</J80_Origin:StructMess>
+    <J80_Origin:StructMess name="Sublabel">3</J80_Origin:StructMess>
+    <J80_Origin:Item name="Assign/Deassign">2</J80_Origin:Item>
+    <J80_Origin:Item name="Message Length">3</J80_Origin:Item>
+    <J80_Origin:Item name="Receipt/Compliance">5</J80_Origin:Item>
+    <J80_Origin:Item name="Recurrence Rate">4</J80_Origin:Item>
+    <J80_Origin:Item name="Track Number">15</J80_Origin:Item>
+    <J80_Origin:Item name="Spare" defaultValue="0">31</J80_Origin:Item>
+  </J80_Origin:NameSpace><J80_Prolong:NameSpace xmlns:J80_Prolong="J/J80/Prolong">
+    <J80_Prolong:Item name="Track Number">19</J80_Prolong:Item>
+    <J80_Prolong:Item name="Unit Designator">48</J80_Prolong:Item>
+    <J80_Prolong:Item name="Spare" defaultValue="0">1</J80_Prolong:Item>
+  </J80_Prolong:NameSpace>
+</J80:NameSpace>

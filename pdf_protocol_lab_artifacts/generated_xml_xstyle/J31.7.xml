@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J317:NameSpace xmlns:J317="J/J317">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J317_Origin:NameSpace xmlns:J317_Origin="J/J317/Origin">
+    <J317_Origin:StructMess name="Label">5</J317_Origin:StructMess>
+    <J317_Origin:StructMess name="Message Length Indicator">3</J317_Origin:StructMess>
+    <J317_Origin:StructMess name="Sublabel">3</J317_Origin:StructMess>
+    <J317_Origin:Item name="LABEL J-SERIES">5</J317_Origin:Item>
+    <J317_Origin:Item name="SUBLABEL J-SERIES">3</J317_Origin:Item>
+    <J317_Origin:Item name="Spare" defaultValue="0">57</J317_Origin:Item>
+  </J317_Origin:NameSpace>
+</J317:NameSpace>

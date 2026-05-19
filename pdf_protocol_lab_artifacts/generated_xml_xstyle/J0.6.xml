@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J06:NameSpace xmlns:J06="J/J06">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J06_Origin:NameSpace xmlns:J06_Origin="J/J06/Origin">
+    <J06_Origin:Item name="payload" defaultValue="0">0</J06_Origin:Item>
+  </J06_Origin:NameSpace><J06_Continue1:NameSpace xmlns:J06_Continue1="J/J06/Continue1">
+    <J06_Continue1:Item name="ACT TSR">0</J06_Continue1:Item>
+    <J06_Continue1:Item name="Continuation Word Label">0</J06_Continue1:Item>
+    <J06_Continue1:Item name="Delta Epoch">0</J06_Continue1:Item>
+    <J06_Continue1:Item name="Participation Group">0</J06_Continue1:Item>
+    <J06_Continue1:Item name="Recurrence Rate">0</J06_Continue1:Item>
+    <J06_Continue1:Item name="SP">0</J06_Continue1:Item>
+  </J06_Continue1:NameSpace><J06_Continue3:NameSpace xmlns:J06_Continue3="J/J06/Continue3">
+    <J06_Continue3:Item name="Action Code">4</J06_Continue3:Item>
+    <J06_Continue3:Item name="Continuation Word Label">5</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label A">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label B">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label C">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label D">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Effective From Hour">5</J06_Continue3:Item>
+    <J06_Continue3:Item name="Effective From Minute">6</J06_Continue3:Item>
+    <J06_Continue3:Item name="Net Number">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Participation Group">9</J06_Continue3:Item>
+    <J06_Continue3:Item name="Spare" defaultValue="0">1</J06_Continue3:Item>
+  </J06_Continue3:NameSpace>
+</J06:NameSpace>

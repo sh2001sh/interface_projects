@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J01:NameSpace xmlns:J01="J/J01">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J01_Origin:NameSpace xmlns:J01_Origin="J/J01/Origin">
+    <J01_Origin:StructMess name="Label">5</J01_Origin:StructMess>
+    <J01_Origin:StructMess name="Message Length Indicator">3</J01_Origin:StructMess>
+    <J01_Origin:StructMess name="Sublabel">3</J01_Origin:StructMess>
+    <J01_Origin:Item name="Spare" defaultValue="0">57</J01_Origin:Item>
+  </J01_Origin:NameSpace><J01_Prolong:NameSpace xmlns:J01_Prolong="J/J01/Prolong">
+    <J01_Prolong:Item name="Test Pattern">68</J01_Prolong:Item>
+  </J01_Prolong:NameSpace>
+</J01:NameSpace>

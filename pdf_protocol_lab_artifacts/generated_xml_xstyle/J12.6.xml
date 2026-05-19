@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J126:NameSpace xmlns:J126="J/J126">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,7</Member>
+    </PreSeq>
+  </MessCode><J126_Origin:NameSpace xmlns:J126_Origin="J/J126/Origin">
+    <J126_Origin:Item name="payload" defaultValue="0">0</J126_Origin:Item>
+  </J126_Origin:NameSpace><J126_Continue1:NameSpace xmlns:J126_Continue1="J/J126/Continue1">
+    <J126_Continue1:Item name="Strength">4</J126_Continue1:Item>
+    <J126_Continue1:Item name="Weapon System">5</J126_Continue1:Item>
+  </J126_Continue1:NameSpace><J126_Continue2:NameSpace xmlns:J126_Continue2="J/J126/Continue2">
+    <J126_Continue2:Item name="CONTINUATION WORD LABEL">5</J126_Continue2:Item>
+    <J126_Continue2:Item name="EMITTER PRF">3</J126_Continue2:Item>
+    <J126_Continue2:Item name="EMITTER STATUS">3</J126_Continue2:Item>
+    <J126_Continue2:Item name="EOTRC">1</J126_Continue2:Item>
+    <J126_Continue2:Item name="FUSION TYPE">1</J126_Continue2:Item>
+    <J126_Continue2:Item name="HUNDREDTHS">7</J126_Continue2:Item>
+    <J126_Continue2:Item name="INDEX NUMBER">6</J126_Continue2:Item>
+    <J126_Continue2:Item name="JAMMER TYPE">3</J126_Continue2:Item>
+    <J126_Continue2:Item name="MINUTE">6</J126_Continue2:Item>
+    <J126_Continue2:Item name="SECOND">6</J126_Continue2:Item>
+    <J126_Continue2:Item name="SENSOR TYPE">4</J126_Continue2:Item>
+    <J126_Continue2:Item name="TIME INDICATOR">3</J126_Continue2:Item>
+    <J126_Continue2:Item name="TRACK NUMBER">15</J126_Continue2:Item>
+    <J126_Continue2:Item name="SPARE" defaultValue="0">5</J126_Continue2:Item>
+  </J126_Continue2:NameSpace><J126_Continue3:NameSpace xmlns:J126_Continue3="J/J126/Continue3">
+    <J126_Continue3:Item name="Continuation Word Label">5</J126_Continue3:Item>
+    <J126_Continue3:Item name="Kinematic Quality Continuation Word including position uncertainty">0</J126_Continue3:Item>
+    <J126_Continue3:Item name="Slant Range Position Uncertainty">4</J126_Continue3:Item>
+    <J126_Continue3:Item name="velocity">0</J126_Continue3:Item>
+  </J126_Continue3:NameSpace><J126_Continue4:NameSpace xmlns:J126_Continue4="J/J126/Continue4">
+    <J126_Continue4:Item name="Ambiguous Type Probabilities">20</J126_Continue4:Item>
+    <J126_Continue4:Item name="Ambiguous Types 1">12</J126_Continue4:Item>
+    <J126_Continue4:Item name="Ambiguous Types 2">12</J126_Continue4:Item>
+    <J126_Continue4:Item name="Ambiguous Types (Space, Air, Surface, Subsurface, Land)">25</J126_Continue4:Item>
+    <J126_Continue4:Item name="Continuation Word Label">5</J126_Continue4:Item>
+    <J126_Continue4:Item name="Prob Enemy">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Prob Own">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Prob Type 1">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Prob Type 2">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Probability of Enemy Forces">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Probability of Own Forces">9</J126_Continue4:Item>
+    <J126_Continue4:Item name="Spare" defaultValue="0">3</J126_Continue4:Item>
+  </J126_Continue4:NameSpace><J126_Continue7:NameSpace xmlns:J126_Continue7="J/J126/Continue7">
+    <J126_Continue7:Item name="Continuation Word Label">5</J126_Continue7:Item>
+    <J126_Continue7:Item name="Dive Angle">8</J126_Continue7:Item>
+    <J126_Continue7:Item name="Spare" defaultValue="0">4</J126_Continue7:Item>
+  </J126_Continue7:NameSpace>
+</J126:NameSpace>

@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J150:NameSpace xmlns:J150="J/J150">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J150_Origin:NameSpace xmlns:J150_Origin="J/J150/Origin">
+    <J150_Origin:Item name="payload" defaultValue="0">0</J150_Origin:Item>
+  </J150_Origin:NameSpace>
+</J150:NameSpace>

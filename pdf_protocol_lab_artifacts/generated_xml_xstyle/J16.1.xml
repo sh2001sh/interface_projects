@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J161:NameSpace xmlns:J161="J/J161">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J161_Origin:NameSpace xmlns:J161_Origin="J/J161/Origin">
+    <J161_Origin:Item name="Hour">0</J161_Origin:Item>
+    <J161_Origin:Item name="Minute">0</J161_Origin:Item>
+    <J161_Origin:Item name="Route Descriptor">0</J161_Origin:Item>
+    <J161_Origin:Item name="Route Number">0</J161_Origin:Item>
+    <J161_Origin:Item name="Route Point Type">0</J161_Origin:Item>
+    <J161_Origin:Item name="Sequence Number">0</J161_Origin:Item>
+    <J161_Origin:Item name="Time Function">0</J161_Origin:Item>
+    <J161_Origin:Item name="Total Points">0</J161_Origin:Item>
+  </J161_Origin:NameSpace><J161_Prolong:NameSpace xmlns:J161_Prolong="J/J161/Prolong">
+    <J161_Prolong:Item name="Altitude">13</J161_Prolong:Item>
+    <J161_Prolong:Item name="Amplification">3</J161_Prolong:Item>
+    <J161_Prolong:Item name="Longitude">24</J161_Prolong:Item>
+    <J161_Prolong:Item name="split into Latitude">23</J161_Prolong:Item>
+  </J161_Prolong:NameSpace>
+</J161:NameSpace>

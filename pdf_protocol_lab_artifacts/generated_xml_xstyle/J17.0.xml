@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J170:NameSpace xmlns:J170="J/J170">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J170_Origin:NameSpace xmlns:J170_Origin="J/J170/Origin">
+    <J170_Origin:Item name="Cloud Cover 1">0</J170_Origin:Item>
+    <J170_Origin:Item name="Cloud Height 1">0</J170_Origin:Item>
+    <J170_Origin:Item name="Index Number">0</J170_Origin:Item>
+    <J170_Origin:Item name="Index Number Third Party">0</J170_Origin:Item>
+    <J170_Origin:Item name="Track Number Index Originator">0</J170_Origin:Item>
+    <J170_Origin:Item name="Track Number Objective">0</J170_Origin:Item>
+    <J170_Origin:Item name="Visibility">0</J170_Origin:Item>
+  </J170_Origin:NameSpace><J170_Prolong:NameSpace xmlns:J170_Prolong="J/J170/Prolong">
+    <J170_Prolong:Item name="Actual Weather">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Cover 4-6">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Height 4-6">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Hour">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Minute">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="QNH">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Wind Direction">0</J170_Prolong:Item>
+    <J170_Prolong:Item name="Wind Speed">0</J170_Prolong:Item>
+  </J170_Prolong:NameSpace><J170_Continue1:NameSpace xmlns:J170_Continue1="J/J170/Continue1">
+    <J170_Continue1:Item name="Contrail Heights">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="En Route Weather">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Height Of Observation">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Icing Heights">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Relative Humidity">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Surrounding Weather Condition">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Weather Amplification">0</J170_Continue1:Item>
+  </J170_Continue1:NameSpace>
+</J170:NameSpace>

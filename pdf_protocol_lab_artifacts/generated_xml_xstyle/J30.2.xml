@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J302:NameSpace xmlns:J302="J/J302">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J302_Origin:NameSpace xmlns:J302_Origin="J/J302/Origin">
+    <J302_Origin:Item name="payload" defaultValue="0">0</J302_Origin:Item>
+  </J302_Origin:NameSpace>
+</J302:NameSpace>

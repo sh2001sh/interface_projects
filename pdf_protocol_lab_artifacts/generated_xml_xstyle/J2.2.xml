@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J22:NameSpace xmlns:J22="J/J22">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J22_Origin:NameSpace xmlns:J22_Origin="J/J22/Origin">
+    <J22_Origin:StructMess name="Label">5</J22_Origin:StructMess>
+    <J22_Origin:StructMess name="Message Length Indicator">3</J22_Origin:StructMess>
+    <J22_Origin:StructMess name="Sublabel">3</J22_Origin:StructMess>
+    <J22_Origin:Item name="Net Number">7</J22_Origin:Item>
+    <J22_Origin:Item name="Strength">4</J22_Origin:Item>
+  </J22_Origin:NameSpace><J22_Continue1:NameSpace xmlns:J22_Continue1="J/J22/Continue1">
+    <J22_Continue1:Item name="Air Activity">7</J22_Continue1:Item>
+    <J22_Continue1:Item name="Air Platform">6</J22_Continue1:Item>
+    <J22_Continue1:Item name="Cont Word Label">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Continuation Word Label">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode I">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode I Code">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode II">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode II Code">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode III">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode III Code">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="SP">1</J22_Continue1:Item>
+    <J22_Continue1:Item name="Spare" defaultValue="0">20</J22_Continue1:Item>
+  </J22_Continue1:NameSpace>
+</J22:NameSpace>

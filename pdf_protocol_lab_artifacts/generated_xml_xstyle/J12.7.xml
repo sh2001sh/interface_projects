@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J127:NameSpace xmlns:J127="J/J127">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J127_Origin:NameSpace xmlns:J127_Origin="J/J127/Origin">
+    <J127_Origin:Item name="payload" defaultValue="0">0</J127_Origin:Item>
+  </J127_Origin:NameSpace><J127_Prolong:NameSpace xmlns:J127_Prolong="J/J127/Prolong">
+    <J127_Prolong:Item name="Altitude">11</J127_Prolong:Item>
+    <J127_Prolong:Item name="Bearing">16</J127_Prolong:Item>
+    <J127_Prolong:Item name="Bearing Angle Rate">9</J127_Prolong:Item>
+    <J127_Prolong:Item name="Bearing Angle Rate Uncertainty">5</J127_Prolong:Item>
+    <J127_Prolong:Item name="Bearing Uncertainty">5</J127_Prolong:Item>
+    <J127_Prolong:Item name="Complete bit layout provided: Word Format">2</J127_Prolong:Item>
+    <J127_Prolong:Item name="Elevation Angle">15</J127_Prolong:Item>
+    <J127_Prolong:Item name="Elevation Angle Rate">9</J127_Prolong:Item>
+    <J127_Prolong:Item name="Elevation Angle Rate Uncertainty">5</J127_Prolong:Item>
+    <J127_Prolong:Item name="Elevation Uncertainty">5</J127_Prolong:Item>
+    <J127_Prolong:Item name="Emitter PRF">3</J127_Prolong:Item>
+    <J127_Prolong:Item name="Emitter Status">3</J127_Prolong:Item>
+    <J127_Prolong:Item name="Exercise Indicator">1</J127_Prolong:Item>
+    <J127_Prolong:Item name="Frequency">10</J127_Prolong:Item>
+    <J127_Prolong:Item name="Frequency Exponent">4</J127_Prolong:Item>
+    <J127_Prolong:Item name="Hundredths">7</J127_Prolong:Item>
+    <J127_Prolong:Item name="Identity">3</J127_Prolong:Item>
+    <J127_Prolong:Item name="Identity Amplifying Descriptor">3</J127_Prolong:Item>
+    <J127_Prolong:Item name="Minute">6</J127_Prolong:Item>
+    <J127_Prolong:Item name="Second">6</J127_Prolong:Item>
+    <J127_Prolong:Item name="Status Info Discrete/Bearing">4</J127_Prolong:Item>
+    <J127_Prolong:Item name="Time Indicator">3</J127_Prolong:Item>
+    <J127_Prolong:Item name="Spare" defaultValue="0">2</J127_Prolong:Item>
+  </J127_Prolong:NameSpace><J127_Continue3:NameSpace xmlns:J127_Continue3="J/J127/Continue3">
+    <J127_Continue3:Item name="Includes Observer Velocity Down">12</J127_Continue3:Item>
+    <J127_Continue3:Item name="Objective">19</J127_Continue3:Item>
+    <J127_Continue3:Item name="Observer Velocity Down">12</J127_Continue3:Item>
+    <J127_Continue3:Item name="Track Number">19</J127_Continue3:Item>
+    <J127_Continue3:Item name="Spare" defaultValue="0">32</J127_Continue3:Item>
+  </J127_Continue3:NameSpace>
+</J127:NameSpace>

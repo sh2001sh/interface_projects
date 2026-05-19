@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J293:NameSpace xmlns:J293="J/J293">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J293_Origin:NameSpace xmlns:J293_Origin="J/J293/Origin">
+    <J293_Origin:StructMess name="Label">5</J293_Origin:StructMess>
+    <J293_Origin:StructMess name="Message Length Indicator">3</J293_Origin:StructMess>
+    <J293_Origin:StructMess name="Sublabel">3</J293_Origin:StructMess>
+    <J293_Origin:Item name="Proprietary Information">57</J293_Origin:Item>
+  </J293_Origin:NameSpace>
+</J293:NameSpace>

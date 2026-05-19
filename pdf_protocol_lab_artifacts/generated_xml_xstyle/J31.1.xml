@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J311:NameSpace xmlns:J311="J/J311">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J311_Origin:NameSpace xmlns:J311_Origin="J/J311/Origin">
+    <J311_Origin:StructMess name="Label">5</J311_Origin:StructMess>
+    <J311_Origin:StructMess name="Sublabel">3</J311_Origin:StructMess>
+    <J311_Origin:Item name="Action Code">4</J311_Origin:Item>
+    <J311_Origin:Item name="Crypto Label">7</J311_Origin:Item>
+    <J311_Origin:Item name="Crypto Part I">18</J311_Origin:Item>
+    <J311_Origin:Item name="DFI 885 Part I">18</J311_Origin:Item>
+    <J311_Origin:Item name="Memory Location">3</J311_Origin:Item>
+    <J311_Origin:Item name="Message Length">3</J311_Origin:Item>
+    <J311_Origin:Item name="Receipt">5</J311_Origin:Item>
+    <J311_Origin:Item name="Recurrence Rate">4</J311_Origin:Item>
+    <J311_Origin:Item name="Track Number">15</J311_Origin:Item>
+  </J311_Origin:NameSpace><J311_Prolong:NameSpace xmlns:J311_Prolong="J/J311/Prolong">
+    <J311_Prolong:Item name="Cryptovariable Part II">68</J311_Prolong:Item>
+    <J311_Prolong:Item name="Cryptovariable Part III">68</J311_Prolong:Item>
+    <J311_Prolong:Item name="DFI 885 Part II">68</J311_Prolong:Item>
+    <J311_Prolong:Item name="DFI 885 Part III">68</J311_Prolong:Item>
+  </J311_Prolong:NameSpace>
+</J311:NameSpace>

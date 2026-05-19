@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J120:NameSpace xmlns:J120="J/J120">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+    </PreSeq>
+  </MessCode><J120_Origin:NameSpace xmlns:J120_Origin="J/J120/Origin">
+    <J120_Origin:StructMess name="LABEL">5</J120_Origin:StructMess>
+    <J120_Origin:StructMess name="SUBLABEL">3</J120_Origin:StructMess>
+    <J120_Origin:Item name="Addressee">15</J120_Origin:Item>
+    <J120_Origin:Item name="Mission Assignment Discrete">6</J120_Origin:Item>
+    <J120_Origin:Item name="TRACK NUMBER">15</J120_Origin:Item>
+  </J120_Origin:NameSpace><J120_Continue1:NameSpace xmlns:J120_Continue1="J/J120/Continue1">
+    <J120_Continue1:Item name="LATITUDE">20</J120_Continue1:Item>
+    <J120_Continue1:Item name="LONGITUDE">21</J120_Continue1:Item>
+    <J120_Continue1:Item name="NUMBER OF ASSOCIATED DMPIS">4</J120_Continue1:Item>
+    <J120_Continue1:Item name="STRENGTH">4</J120_Continue1:Item>
+  </J120_Continue1:NameSpace><J120_Continue2:NameSpace xmlns:J120_Continue2="J/J120/Continue2">
+    <J120_Continue2:Item name="ALTITUDE">11</J120_Continue2:Item>
+    <J120_Continue2:Item name="COURSE">9</J120_Continue2:Item>
+    <J120_Continue2:Item name="METHOD OF FIRE">3</J120_Continue2:Item>
+    <J120_Continue2:Item name="SPEED">11</J120_Continue2:Item>
+  </J120_Continue2:NameSpace><J120_Continue3:NameSpace xmlns:J120_Continue3="J/J120/Continue3">
+    <J120_Continue3:Item name="Continuation Word Label">5</J120_Continue3:Item>
+    <J120_Continue3:Item name="ELEVATION">10</J120_Continue3:Item>
+    <J120_Continue3:Item name="LATITUDE">23</J120_Continue3:Item>
+    <J120_Continue3:Item name="LONGITUDE">24</J120_Continue3:Item>
+    <J120_Continue3:Item name="Point Number">2</J120_Continue3:Item>
+    <J120_Continue3:Item name="POINT TYPE">4</J120_Continue3:Item>
+  </J120_Continue3:NameSpace><J120_Continue4:NameSpace xmlns:J120_Continue4="J/J120/Continue4">
+    <J120_Continue4:Item name="NUMBER OF STORES">6</J120_Continue4:Item>
+    <J120_Continue4:Item name="RUN IN HEADING">9</J120_Continue4:Item>
+    <J120_Continue4:Item name="TARGET DEFENSES">3</J120_Continue4:Item>
+    <J120_Continue4:Item name="TARGET TYPE">5</J120_Continue4:Item>
+  </J120_Continue4:NameSpace><J120_Continue5:NameSpace xmlns:J120_Continue5="J/J120/Continue5">
+    <J120_Continue5:Item name="Continuation Word Label">5</J120_Continue5:Item>
+    <J120_Continue5:Item name="Disused">6</J120_Continue5:Item>
+    <J120_Continue5:Item name="Elevation LSBs">3</J120_Continue5:Item>
+    <J120_Continue5:Item name="HAE ADJUSTMENT">10</J120_Continue5:Item>
+    <J120_Continue5:Item name="Lon/Lat LSB (1 bit each)">0</J120_Continue5:Item>
+    <J120_Continue5:Item name="Second">6</J120_Continue5:Item>
+    <J120_Continue5:Item name="TARGET BEARING">16</J120_Continue5:Item>
+    <J120_Continue5:Item name="TIME WINDOW">5</J120_Continue5:Item>
+  </J120_Continue5:NameSpace>
+</J120:NameSpace>

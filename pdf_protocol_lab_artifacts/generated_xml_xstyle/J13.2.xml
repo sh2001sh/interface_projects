@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J132:NameSpace xmlns:J132="J/J132">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J132_Origin:NameSpace xmlns:J132_Origin="J/J132/Origin">
+    <J132_Origin:StructMess name="Label">5</J132_Origin:StructMess>
+    <J132_Origin:StructMess name="Message Length Indicator">3</J132_Origin:StructMess>
+    <J132_Origin:StructMess name="Sublabel">3</J132_Origin:StructMess>
+    <J132_Origin:Item name="Fuel">12</J132_Origin:Item>
+    <J132_Origin:Item name="Hour">5</J132_Origin:Item>
+    <J132_Origin:Item name="Minute">6</J132_Origin:Item>
+    <J132_Origin:Item name="Operational Capability">2</J132_Origin:Item>
+    <J132_Origin:Item name="Radar Channel">6</J132_Origin:Item>
+    <J132_Origin:Item name="Time Report Function">3</J132_Origin:Item>
+    <J132_Origin:Item name="Track Number">19</J132_Origin:Item>
+    <J132_Origin:Item name="Spare" defaultValue="0">2</J132_Origin:Item>
+  </J132_Origin:NameSpace><J132_Continue3:NameSpace xmlns:J132_Continue3="J/J132/Continue3">
+    <J132_Continue3:Item name="AMC System Type">3</J132_Continue3:Item>
+    <J132_Continue3:Item name="NAS">2</J132_Continue3:Item>
+    <J132_Continue3:Item name="NR">2</J132_Continue3:Item>
+    <J132_Continue3:Item name="RADAR WATCH ALTITUDE">9</J132_Continue3:Item>
+  </J132_Continue3:NameSpace>
+</J132:NameSpace>

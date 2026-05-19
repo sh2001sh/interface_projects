@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J271:NameSpace xmlns:J271="J/J271">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J271_Origin:NameSpace xmlns:J271_Origin="J/J271/Origin">
+    <J271_Origin:StructMess name="Label">5</J271_Origin:StructMess>
+    <J271_Origin:StructMess name="Message Length Indicator">3</J271_Origin:StructMess>
+    <J271_Origin:StructMess name="Sublabel">3</J271_Origin:StructMess>
+    <J271_Origin:Item name="Message Len">3</J271_Origin:Item>
+    <J271_Origin:Item name="Message Length">3</J271_Origin:Item>
+    <J271_Origin:Item name="Message Length Ind">3</J271_Origin:Item>
+    <J271_Origin:Item name="Proprietary">52</J271_Origin:Item>
+    <J271_Origin:Item name="Proprietary Info">52</J271_Origin:Item>
+    <J271_Origin:Item name="Proprietary Information">52</J271_Origin:Item>
+    <J271_Origin:Item name="Sub-Sublabel">5</J271_Origin:Item>
+  </J271_Origin:NameSpace>
+</J271:NameSpace>

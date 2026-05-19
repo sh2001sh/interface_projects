@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J77:NameSpace xmlns:J77="J/J77">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+    </PreSeq>
+  </MessCode><J77_Origin:NameSpace xmlns:J77_Origin="J/J77/Origin">
+    <J77_Origin:Item name="Action">0</J77_Origin:Item>
+    <J77_Origin:Item name="Associated">0</J77_Origin:Item>
+    <J77_Origin:Item name="Association; Track Number">0</J77_Origin:Item>
+    <J77_Origin:Item name="Subject; Track Number">0</J77_Origin:Item>
+  </J77_Origin:NameSpace><J77_Continue1:NameSpace xmlns:J77_Continue1="J/J77/Continue1">
+    <J77_Continue1:Item name="Associated 2; Track Number">0</J77_Continue1:Item>
+    <J77_Continue1:Item name="Associated 3; Track Number">0</J77_Continue1:Item>
+    <J77_Continue1:Item name="Associated 4">0</J77_Continue1:Item>
+    <J77_Continue1:Item name="Track Number">0</J77_Continue1:Item>
+  </J77_Continue1:NameSpace><J77_Continue2:NameSpace xmlns:J77_Continue2="J/J77/Continue2">
+    <J77_Continue2:Item name="Associated 5; Track Number">0</J77_Continue2:Item>
+    <J77_Continue2:Item name="Associated 6; Track Number">0</J77_Continue2:Item>
+    <J77_Continue2:Item name="Associated 7">0</J77_Continue2:Item>
+    <J77_Continue2:Item name="Track Number">0</J77_Continue2:Item>
+  </J77_Continue2:NameSpace><J77_Continue4:NameSpace xmlns:J77_Continue4="J/J77/Continue4">
+    <J77_Continue4:Item name="Continuation Word Label">5</J77_Continue4:Item>
+    <J77_Continue4:Item name="Track Number Associated 11">19</J77_Continue4:Item>
+    <J77_Continue4:Item name="Track Number Associated 12">24</J77_Continue4:Item>
+    <J77_Continue4:Item name="Track Number Associated 13">19</J77_Continue4:Item>
+    <J77_Continue4:Item name="Spare" defaultValue="0">6</J77_Continue4:Item>
+  </J77_Continue4:NameSpace><J77_Continue5:NameSpace xmlns:J77_Continue5="J/J77/Continue5">
+    <J77_Continue5:Item name="Continuation Word Label">5</J77_Continue5:Item>
+    <J77_Continue5:Item name="Track Number Associated 14">19</J77_Continue5:Item>
+    <J77_Continue5:Item name="Track Number Associated 15">19</J77_Continue5:Item>
+    <J77_Continue5:Item name="Spare" defaultValue="0">25</J77_Continue5:Item>
+  </J77_Continue5:NameSpace>
+</J77:NameSpace>

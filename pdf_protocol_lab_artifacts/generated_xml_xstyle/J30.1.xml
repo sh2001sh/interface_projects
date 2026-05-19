@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J301:NameSpace xmlns:J301="J/J301">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J301_Origin:NameSpace xmlns:J301_Origin="J/J301/Origin">
+    <J301_Origin:StructMess name="Label">5</J301_Origin:StructMess>
+    <J301_Origin:StructMess name="Sublabel">3</J301_Origin:StructMess>
+    <J301_Origin:Item name="Length Indicator">3</J301_Origin:Item>
+    <J301_Origin:Item name="Proprietary Information">57</J301_Origin:Item>
+  </J301_Origin:NameSpace>
+</J301:NameSpace>

@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J75:NameSpace xmlns:J75="J/J75">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J75_Origin:NameSpace xmlns:J75_Origin="J/J75/Origin">
+    <J75_Origin:Item name="Action">0</J75_Origin:Item>
+    <J75_Origin:Item name="Mode I/II/III Code">0</J75_Origin:Item>
+    <J75_Origin:Item name="Mode I/II/III Code Applicability">0</J75_Origin:Item>
+    <J75_Origin:Item name="Mode IV Indicator">0</J75_Origin:Item>
+    <J75_Origin:Item name="Mode IV Indicator Applicability">0</J75_Origin:Item>
+    <J75_Origin:Item name="Track Number">0</J75_Origin:Item>
+  </J75_Origin:NameSpace>
+</J75:NameSpace>

@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J142:NameSpace xmlns:J142="J/J142">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,7</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,8</Member>
+    </PreSeq>
+  </MessCode><J142_Origin:NameSpace xmlns:J142_Origin="J/J142/Origin">
+    <J142_Origin:Item name="payload" defaultValue="0">0</J142_Origin:Item>
+  </J142_Origin:NameSpace><J142_Continue2:NameSpace xmlns:J142_Continue2="J/J142/Continue2">
+    <J142_Continue2:Item name="Area Major Axis">6</J142_Continue2:Item>
+    <J142_Continue2:Item name="Area Minor Axis">6</J142_Continue2:Item>
+    <J142_Continue2:Item name="Axis Orientation">8</J142_Continue2:Item>
+    <J142_Continue2:Item name="Continuation Word Label">5</J142_Continue2:Item>
+    <J142_Continue2:Item name="Latitude">21</J142_Continue2:Item>
+    <J142_Continue2:Item name="Longitude">22</J142_Continue2:Item>
+  </J142_Continue2:NameSpace><J142_Continue4:NameSpace xmlns:J142_Continue4="J/J142/Continue4">
+    <J142_Continue4:Item name="Label">5</J142_Continue4:Item>
+    <J142_Continue4:Item name="Continuation Word Label">5</J142_Continue4:Item>
+    <J142_Continue4:Item name="Frequency 1">20</J142_Continue4:Item>
+    <J142_Continue4:Item name="Frequency 2">20</J142_Continue4:Item>
+    <J142_Continue4:Item name="Frequency Multiplier">4</J142_Continue4:Item>
+    <J142_Continue4:Item name="Multiplier 1">4</J142_Continue4:Item>
+    <J142_Continue4:Item name="Multiplier 2">4</J142_Continue4:Item>
+    <J142_Continue4:Item name="Spare" defaultValue="0">14</J142_Continue4:Item>
+  </J142_Continue4:NameSpace><J142_Continue5:NameSpace xmlns:J142_Continue5="J/J142/Continue5">
+    <J142_Continue5:Item name="Activity">7</J142_Continue5:Item>
+    <J142_Continue5:Item name="Environment">3</J142_Continue5:Item>
+    <J142_Continue5:Item name="J14.2C5 word structure">0</J142_Continue5:Item>
+    <J142_Continue5:Item name="Local Discrete ID">12</J142_Continue5:Item>
+    <J142_Continue5:Item name="Nationality">8</J142_Continue5:Item>
+    <J142_Continue5:Item name="Space/Air/Surface/Subsurface/Land Platform">6</J142_Continue5:Item>
+    <J142_Continue5:Item name="Specific Type">12</J142_Continue5:Item>
+    <J142_Continue5:Item name="Spare" defaultValue="0">8</J142_Continue5:Item>
+  </J142_Continue5:NameSpace><J142_Continue7:NameSpace xmlns:J142_Continue7="J/J142/Continue7">
+    <J142_Continue7:Item name="Callsign Observed">60</J142_Continue7:Item>
+    <J142_Continue7:Item name="Continuation Word Label">5</J142_Continue7:Item>
+    <J142_Continue7:Item name="Spare" defaultValue="0">3</J142_Continue7:Item>
+  </J142_Continue7:NameSpace><J142_Continue8:NameSpace xmlns:J142_Continue8="J/J142/Continue8">
+    <J142_Continue8:Item name="Continuation Word Label">5</J142_Continue8:Item>
+    <J142_Continue8:Item name="PRF or PRI value">23</J142_Continue8:Item>
+    <J142_Continue8:Item name="PRF/PRI Indicator">1</J142_Continue8:Item>
+    <J142_Continue8:Item name="PRI">23</J142_Continue8:Item>
+    <J142_Continue8:Item name="PRI IND">1</J142_Continue8:Item>
+    <J142_Continue8:Item name="Spare" defaultValue="0">39</J142_Continue8:Item>
+  </J142_Continue8:NameSpace>
+</J142:NameSpace>

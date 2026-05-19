@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J91:NameSpace xmlns:J91="J/J91">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J91_Origin:NameSpace xmlns:J91_Origin="J/J91/Origin">
+    <J91_Origin:StructMess name="Label">5</J91_Origin:StructMess>
+    <J91_Origin:StructMess name="Sublabel">3</J91_Origin:StructMess>
+    <J91_Origin:Item name="Method of Fire">3</J91_Origin:Item>
+    <J91_Origin:Item name="Summary list includes Word Format">2</J91_Origin:Item>
+  </J91_Origin:NameSpace>
+</J91:NameSpace>

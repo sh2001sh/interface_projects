@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J102:NameSpace xmlns:J102="J/J102">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J102_Origin:NameSpace xmlns:J102_Origin="J/J102/Origin">
+    <J102_Origin:StructMess name="Label">5</J102_Origin:StructMess>
+    <J102_Origin:StructMess name="Message Length Indicator">3</J102_Origin:StructMess>
+    <J102_Origin:StructMess name="Sublabel">3</J102_Origin:StructMess>
+    <J102_Origin:Item name="Track Number Reference">0</J102_Origin:Item>
+    <J102_Origin:Item name="Track Number Target">0</J102_Origin:Item>
+    <J102_Origin:Item name="Weapon Engagement Status">0</J102_Origin:Item>
+    <J102_Origin:Item name="Weapon System">0</J102_Origin:Item>
+  </J102_Origin:NameSpace><J102_Continue1:NameSpace xmlns:J102_Continue1="J/J102/Continue1">
+    <J102_Continue1:Item name="Continuation Word Label">5</J102_Continue1:Item>
+    <J102_Continue1:Item name="Status A">4</J102_Continue1:Item>
+    <J102_Continue1:Item name="Status B">4</J102_Continue1:Item>
+    <J102_Continue1:Item name="Track Number A">19</J102_Continue1:Item>
+    <J102_Continue1:Item name="Track Number B">19</J102_Continue1:Item>
+    <J102_Continue1:Item name="Track Number Target A">19</J102_Continue1:Item>
+    <J102_Continue1:Item name="Track Number Target B">19</J102_Continue1:Item>
+    <J102_Continue1:Item name="Spare" defaultValue="0">17</J102_Continue1:Item>
+  </J102_Continue1:NameSpace><J102_Continue2:NameSpace xmlns:J102_Continue2="J/J102/Continue2">
+    <J102_Continue2:Item name="Continuation Word Label">5</J102_Continue2:Item>
+    <J102_Continue2:Item name="Minute">6</J102_Continue2:Item>
+    <J102_Continue2:Item name="Second">10</J102_Continue2:Item>
+    <J102_Continue2:Item name="Second Tenths">0</J102_Continue2:Item>
+    <J102_Continue2:Item name="Time Function">3</J102_Continue2:Item>
+    <J102_Continue2:Item name="Time Function 1">0</J102_Continue2:Item>
+    <J102_Continue2:Item name="Track Number">19</J102_Continue2:Item>
+    <J102_Continue2:Item name="Track Number Friendly Weapon">0</J102_Continue2:Item>
+    <J102_Continue2:Item name="Spare" defaultValue="0">25</J102_Continue2:Item>
+  </J102_Continue2:NameSpace>
+</J102:NameSpace>

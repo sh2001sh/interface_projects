@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J73:NameSpace xmlns:J73="J/J73">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J73_Origin:NameSpace xmlns:J73_Origin="J/J73/Origin">
+    <J73_Origin:Item name="Action">0</J73_Origin:Item>
+    <J73_Origin:Item name="Latitude">0</J73_Origin:Item>
+    <J73_Origin:Item name="Longitude">0</J73_Origin:Item>
+    <J73_Origin:Item name="Text Indicator">0</J73_Origin:Item>
+    <J73_Origin:Item name="Track Number 1">0</J73_Origin:Item>
+  </J73_Origin:NameSpace><J73_Continue1:NameSpace xmlns:J73_Continue1="J/J73/Continue1">
+    <J73_Continue1:Item name="Addressee 2">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 3">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 4">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 5">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Continuation Word Label">5</J73_Continue1:Item>
+    <J73_Continue1:Item name="Track Numbers for Addressees 2-5">0</J73_Continue1:Item>
+    <J73_Continue1:Item name="Spare" defaultValue="0">3</J73_Continue1:Item>
+  </J73_Continue1:NameSpace><J73_Continue2:NameSpace xmlns:J73_Continue2="J/J73/Continue2">
+    <J73_Continue2:Item name="Label">5</J73_Continue2:Item>
+    <J73_Continue2:Item name="Character #1 through #10. Default value 32 (Blank)">0</J73_Continue2:Item>
+    <J73_Continue2:Item name="Format">2</J73_Continue2:Item>
+    <J73_Continue2:Item name="Spare" defaultValue="0">3</J73_Continue2:Item>
+  </J73_Continue2:NameSpace><J73_Continue3:NameSpace xmlns:J73_Continue3="J/J73/Continue3">
+    <J73_Continue3:Item name="Character #11 through #20. Default value 32 (Blank)">0</J73_Continue3:Item>
+    <J73_Continue3:Item name="Continuation Word Label">5</J73_Continue3:Item>
+    <J73_Continue3:Item name="Spare" defaultValue="0">3</J73_Continue3:Item>
+  </J73_Continue3:NameSpace>
+</J73:NameSpace>

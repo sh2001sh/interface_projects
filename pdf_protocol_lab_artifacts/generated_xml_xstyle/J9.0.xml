@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J90:NameSpace xmlns:J90="J/J90">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J90_Origin:NameSpace xmlns:J90_Origin="J/J90/Origin">
+    <J90_Origin:Item name="payload" defaultValue="0">0</J90_Origin:Item>
+  </J90_Origin:NameSpace><J90_Continue1:NameSpace xmlns:J90_Continue1="J/J90/Continue1">
+    <J90_Continue1:Item name="Continuation Word Label">5</J90_Continue1:Item>
+    <J90_Continue1:Item name="Control Channel">7</J90_Continue1:Item>
+    <J90_Continue1:Item name="Method of Fire">3</J90_Continue1:Item>
+    <J90_Continue1:Item name="Voice Call Sign">24</J90_Continue1:Item>
+    <J90_Continue1:Item name="Voice Frequency/Channel">13</J90_Continue1:Item>
+    <J90_Continue1:Item name="Spare" defaultValue="0">14</J90_Continue1:Item>
+  </J90_Continue1:NameSpace><J90_Continue2:NameSpace xmlns:J90_Continue2="J/J90/Continue2">
+    <J90_Continue2:Item name="Label">5</J90_Continue2:Item>
+    <J90_Continue2:Item name="Hour">5</J90_Continue2:Item>
+    <J90_Continue2:Item name="Minute">6</J90_Continue2:Item>
+    <J90_Continue2:Item name="Number of Missiles">3</J90_Continue2:Item>
+    <J90_Continue2:Item name="Second">6</J90_Continue2:Item>
+    <J90_Continue2:Item name="Spare" defaultValue="0">43</J90_Continue2:Item>
+  </J90_Continue2:NameSpace>
+</J90:NameSpace>

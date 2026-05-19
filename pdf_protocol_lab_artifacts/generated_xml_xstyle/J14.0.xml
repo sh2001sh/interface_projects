@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J140:NameSpace xmlns:J140="J/J140">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,6</Member>
+    </PreSeq>
+  </MessCode><J140_Origin:NameSpace xmlns:J140_Origin="J/J140/Origin">
+    <J140_Origin:StructMess name="Label">0</J140_Origin:StructMess>
+    <J140_Origin:StructMess name="Message Length Indicator">0</J140_Origin:StructMess>
+    <J140_Origin:StructMess name="Sublabel">0</J140_Origin:StructMess>
+    <J140_Origin:Item name="Agile Emitter">0</J140_Origin:Item>
+    <J140_Origin:Item name="Bearing Origin">0</J140_Origin:Item>
+    <J140_Origin:Item name="Environment">0</J140_Origin:Item>
+    <J140_Origin:Item name="Fix or Bearing Descriptor">0</J140_Origin:Item>
+    <J140_Origin:Item name="Hour">0</J140_Origin:Item>
+    <J140_Origin:Item name="Index Number">0</J140_Origin:Item>
+    <J140_Origin:Item name="Lock-On">0</J140_Origin:Item>
+    <J140_Origin:Item name="Minute">0</J140_Origin:Item>
+    <J140_Origin:Item name="Request Number">0</J140_Origin:Item>
+    <J140_Origin:Item name="Second">0</J140_Origin:Item>
+    <J140_Origin:Item name="SPI">0</J140_Origin:Item>
+    <J140_Origin:Item name="Square/Circle Switch">0</J140_Origin:Item>
+    <J140_Origin:Item name="Threat Evaluation">0</J140_Origin:Item>
+    <J140_Origin:Item name="Track Number">0</J140_Origin:Item>
+  </J140_Origin:NameSpace><J140_Prolong:NameSpace xmlns:J140_Prolong="J/J140/Prolong">
+    <J140_Prolong:Item name="F/R Indicator">1</J140_Prolong:Item>
+    <J140_Prolong:Item name="Frequency 1">20</J140_Prolong:Item>
+    <J140_Prolong:Item name="Frequency 2">20</J140_Prolong:Item>
+    <J140_Prolong:Item name="Frequency Multiplier 1">4</J140_Prolong:Item>
+    <J140_Prolong:Item name="Frequency Multiplier 2">4</J140_Prolong:Item>
+    <J140_Prolong:Item name="Origin">19</J140_Prolong:Item>
+    <J140_Prolong:Item name="Track Number">19</J140_Prolong:Item>
+  </J140_Prolong:NameSpace><J140_Continue4:NameSpace xmlns:J140_Continue4="J/J140/Continue4">
+    <J140_Continue4:Item name="Antenna Scan Period">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Antenna Scan Rate">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Antenna Scan Rate/Period Indicator">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Jammer Received Signal Level">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Jitter">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Polarization">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="PRI">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Pulse Width">0</J140_Continue4:Item>
+    <J140_Continue4:Item name="Scan Type">0</J140_Continue4:Item>
+  </J140_Continue4:NameSpace><J140_Continue5:NameSpace xmlns:J140_Continue5="J/J140/Continue5">
+    <J140_Continue5:Item name="Activity">0</J140_Continue5:Item>
+    <J140_Continue5:Item name="Continuation Word Label">5</J140_Continue5:Item>
+    <J140_Continue5:Item name="Local Discrete Identifier">0</J140_Continue5:Item>
+    <J140_Continue5:Item name="Nationality/Alliance">7</J140_Continue5:Item>
+    <J140_Continue5:Item name="Nationality/Alliance of Track">0</J140_Continue5:Item>
+    <J140_Continue5:Item name="Platform Evaluation Confidence">3</J140_Continue5:Item>
+    <J140_Continue5:Item name="Space/Air/Surface/Subsurface/Land Platform">0</J140_Continue5:Item>
+    <J140_Continue5:Item name="Specific Type">0</J140_Continue5:Item>
+    <J140_Continue5:Item name="Spare" defaultValue="0">0</J140_Continue5:Item>
+  </J140_Continue5:NameSpace><J140_Continue6:NameSpace xmlns:J140_Continue6="J/J140/Continue6">
+    <J140_Continue6:Item name="Callsign Observed">60</J140_Continue6:Item>
+    <J140_Continue6:Item name="Continuation Word Label">2</J140_Continue6:Item>
+    <J140_Continue6:Item name="Spare" defaultValue="0">3</J140_Continue6:Item>
+  </J140_Continue6:NameSpace>
+</J140:NameSpace>
