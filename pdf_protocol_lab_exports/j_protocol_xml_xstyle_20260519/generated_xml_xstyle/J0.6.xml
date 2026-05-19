@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J06:NameSpace xmlns:J06="J/J06">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+    </PreSeq>
+  </MessCode><J06_Origin:NameSpace xmlns:J06_Origin="J/J06/Origin">
+    <J06_Origin:StructMess name="Label">5</J06_Origin:StructMess>
+    <J06_Origin:StructMess name="Message Length Indicator">3</J06_Origin:StructMess>
+    <J06_Origin:StructMess name="Sublabel">3</J06_Origin:StructMess>
+    <J06_Origin:Item name="4-bit">4</J06_Origin:Item>
+    <J06_Origin:Item name="ACT">2</J06_Origin:Item>
+    <J06_Origin:Item name="Action">4</J06_Origin:Item>
+    <J06_Origin:Item name="CANTPRO">5</J06_Origin:Item>
+    <J06_Origin:Item name="Delta Epoch, 1">2</J06_Origin:Item>
+    <J06_Origin:Item name="Participation Group">9</J06_Origin:Item>
+    <J06_Origin:Item name="Participation Group, 1">9</J06_Origin:Item>
+    <J06_Origin:Item name="R/C">3</J06_Origin:Item>
+    <J06_Origin:Item name="Recurrence Rate">10</J06_Origin:Item>
+    <J06_Origin:Item name="Recurrence Rate, 1">16</J06_Origin:Item>
+    <J06_Origin:Item name="Relay Function">3</J06_Origin:Item>
+    <J06_Origin:Item name="Sublabel J-Series Request">3</J06_Origin:Item>
+    <J06_Origin:Item name="Time Slot Request Action">1</J06_Origin:Item>
+    <J06_Origin:Item name="Track Number">19</J06_Origin:Item>
+    <J06_Origin:Item name="Transmission Termination Designator">0</J06_Origin:Item>
+  </J06_Origin:NameSpace><J06_Continue1:NameSpace xmlns:J06_Continue1="J/J06/Continue1">
+    <J06_Continue1:Item name="2-bit">2</J06_Continue1:Item>
+    <J06_Continue1:Item name="Action Time Slot Request">1</J06_Continue1:Item>
+    <J06_Continue1:Item name="Action Time Slot Request, Participation Group">3</J06_Continue1:Item>
+    <J06_Continue1:Item name="Continuation Word Label">5</J06_Continue1:Item>
+    <J06_Continue1:Item name="Delta Epoch">3</J06_Continue1:Item>
+    <J06_Continue1:Item name="Delta Epoch (1-4)">2</J06_Continue1:Item>
+    <J06_Continue1:Item name="Participation Group">9</J06_Continue1:Item>
+    <J06_Continue1:Item name="Participation Group (1-4)">9</J06_Continue1:Item>
+    <J06_Continue1:Item name="Recurrence Rate">3</J06_Continue1:Item>
+    <J06_Continue1:Item name="Recurrence Rate (1-4)">16</J06_Continue1:Item>
+    <J06_Continue1:Item name="Spare Bit" defaultValue="0">1</J06_Continue1:Item>
+  </J06_Continue1:NameSpace><J06_Continue2:NameSpace xmlns:J06_Continue2="J/J06/Continue2">
+    <J06_Continue2:Item name="3-bit">3</J06_Continue2:Item>
+    <J06_Continue2:Item name="4-bit">4</J06_Continue2:Item>
+    <J06_Continue2:Item name="8-bit">8</J06_Continue2:Item>
+    <J06_Continue2:Item name="Participation Group">9</J06_Continue2:Item>
+  </J06_Continue2:NameSpace><J06_Continue3:NameSpace xmlns:J06_Continue3="J/J06/Continue3">
+    <J06_Continue3:Item name="Action">4</J06_Continue3:Item>
+    <J06_Continue3:Item name="Action Code">4</J06_Continue3:Item>
+    <J06_Continue3:Item name="Continuation Word Label">5</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label A">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label B">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label C">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Crypto Label D">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Effective From Hour">5</J06_Continue3:Item>
+    <J06_Continue3:Item name="Effective From Minute">6</J06_Continue3:Item>
+    <J06_Continue3:Item name="Net Number">7</J06_Continue3:Item>
+    <J06_Continue3:Item name="Participation Group">9</J06_Continue3:Item>
+    <J06_Continue3:Item name="Spare" defaultValue="0">1</J06_Continue3:Item>
+  </J06_Continue3:NameSpace><J06_Continue4:NameSpace xmlns:J06_Continue4="J/J06/Continue4">
+    <J06_Continue4:Item name="Action">4</J06_Continue4:Item>
+    <J06_Continue4:Item name="Action Code">4</J06_Continue4:Item>
+    <J06_Continue4:Item name="Cryptovariable Logical Label">7</J06_Continue4:Item>
+    <J06_Continue4:Item name="Net Number">7</J06_Continue4:Item>
+    <J06_Continue4:Item name="Net Number 1">7</J06_Continue4:Item>
+    <J06_Continue4:Item name="Net Number 3">7</J06_Continue4:Item>
+  </J06_Continue4:NameSpace>
+</J06:NameSpace>

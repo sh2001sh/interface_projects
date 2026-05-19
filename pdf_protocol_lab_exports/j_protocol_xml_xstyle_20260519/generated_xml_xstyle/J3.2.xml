@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J32:NameSpace xmlns:J32="J/J32">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+    </PreSeq>
+  </MessCode><J32_Origin:NameSpace xmlns:J32_Origin="J/J32/Origin">
+    <J32_Origin:Item name="Altitude">13</J32_Origin:Item>
+    <J32_Origin:Item name="Altitude Source">13</J32_Origin:Item>
+    <J32_Origin:Item name="AST IND">1</J32_Origin:Item>
+    <J32_Origin:Item name="Emergency">1</J32_Origin:Item>
+    <J32_Origin:Item name="Emergency Indicator">1</J32_Origin:Item>
+    <J32_Origin:Item name="Exercise Indicator">1</J32_Origin:Item>
+    <J32_Origin:Item name="Force Tell">1</J32_Origin:Item>
+    <J32_Origin:Item name="Force Tell Indicator">1</J32_Origin:Item>
+    <J32_Origin:Item name="Identity">3</J32_Origin:Item>
+    <J32_Origin:Item name="Identity Difference">1</J32_Origin:Item>
+    <J32_Origin:Item name="PPLI Track Number">1</J32_Origin:Item>
+    <J32_Origin:Item name="PPLI Track Number Indicator">1</J32_Origin:Item>
+    <J32_Origin:Item name="Simulation">1</J32_Origin:Item>
+    <J32_Origin:Item name="Simulation Indicator">1</J32_Origin:Item>
+    <J32_Origin:Item name="Strength">4</J32_Origin:Item>
+    <J32_Origin:Item name="Track Number">1</J32_Origin:Item>
+    <J32_Origin:Item name="Track Quality">4</J32_Origin:Item>
+  </J32_Origin:NameSpace><J32_Prolong:NameSpace xmlns:J32_Prolong="J/J32/Prolong">
+    <J32_Prolong:Item name="Course">9</J32_Prolong:Item>
+    <J32_Prolong:Item name="Disused">1</J32_Prolong:Item>
+    <J32_Prolong:Item name="Latitude">21</J32_Prolong:Item>
+    <J32_Prolong:Item name="Longitude">22</J32_Prolong:Item>
+    <J32_Prolong:Item name="PAS/ACT">1</J32_Prolong:Item>
+    <J32_Prolong:Item name="Passive/Active Indicator">1</J32_Prolong:Item>
+    <J32_Prolong:Item name="Speed">11</J32_Prolong:Item>
+    <J32_Prolong:Item name="Spare" defaultValue="0">2</J32_Prolong:Item>
+  </J32_Prolong:NameSpace><J32_Continue1:NameSpace xmlns:J32_Continue1="J/J32/Continue1">
+    <J32_Continue1:Item name="Air Activity">7</J32_Continue1:Item>
+    <J32_Continue1:Item name="Air-Air Missiles">11</J32_Continue1:Item>
+    <J32_Continue1:Item name="Air Platform">6</J32_Continue1:Item>
+    <J32_Continue1:Item name="Air Specific Type">11</J32_Continue1:Item>
+    <J32_Continue1:Item name="Air Specific Type Indicator">11</J32_Continue1:Item>
+    <J32_Continue1:Item name="Continuation Word Label">5</J32_Continue1:Item>
+    <J32_Continue1:Item name="Hour">5</J32_Continue1:Item>
+    <J32_Continue1:Item name="Minute">6</J32_Continue1:Item>
+    <J32_Continue1:Item name="Mode I">7</J32_Continue1:Item>
+    <J32_Continue1:Item name="Mode I Code">5</J32_Continue1:Item>
+    <J32_Continue1:Item name="Mode II">13</J32_Continue1:Item>
+    <J32_Continue1:Item name="Mode III">13</J32_Continue1:Item>
+    <J32_Continue1:Item name="PPLI IFF/SIF">2</J32_Continue1:Item>
+    <J32_Continue1:Item name="PPLI IFF/SIF Indicator">2</J32_Continue1:Item>
+  </J32_Continue1:NameSpace><J32_Continue2:NameSpace xmlns:J32_Continue2="J/J32/Continue2">
+    <J32_Continue2:Item name="Continuation Word Label">5</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance XX">8</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance XY">9</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance XZ">9</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance YY">9</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance YZ">7</J32_Continue2:Item>
+    <J32_Continue2:Item name="Variance ZZ">8</J32_Continue2:Item>
+    <J32_Continue2:Item name="Spare" defaultValue="0">12</J32_Continue2:Item>
+  </J32_Continue2:NameSpace><J32_Continue3:NameSpace xmlns:J32_Continue3="J/J32/Continue3">
+    <J32_Continue3:Item name="DIVE ANGLE">8</J32_Continue3:Item>
+  </J32_Continue3:NameSpace><J32_Continue4:NameSpace xmlns:J32_Continue4="J/J32/Continue4">
+    <J32_Continue4:Item name="Callsign">54</J32_Continue4:Item>
+    <J32_Continue4:Item name="Callsign encoding">6</J32_Continue4:Item>
+    <J32_Continue4:Item name="Callsign Published">54</J32_Continue4:Item>
+    <J32_Continue4:Item name="Continuation Word Label">5</J32_Continue4:Item>
+    <J32_Continue4:Item name="Spare" defaultValue="0">9</J32_Continue4:Item>
+  </J32_Continue4:NameSpace>
+</J32:NameSpace>

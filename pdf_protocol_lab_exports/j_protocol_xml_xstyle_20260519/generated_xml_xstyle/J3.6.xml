@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J36:NameSpace xmlns:J36="J/J36">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,6</Member>
+    </PreSeq>
+  </MessCode><J36_Origin:NameSpace xmlns:J36_Origin="J/J36/Origin">
+    <J36_Origin:Item name="Data Indicator">3</J36_Origin:Item>
+    <J36_Origin:Item name="Field 769 002">5</J36_Origin:Item>
+    <J36_Origin:Item name="Lost Track Indicator">1</J36_Origin:Item>
+    <J36_Origin:Item name="Minute">6</J36_Origin:Item>
+    <J36_Origin:Item name="Second">6</J36_Origin:Item>
+    <J36_Origin:Item name="Space Specific Type Indicator">1</J36_Origin:Item>
+    <J36_Origin:Item name="Track Number">19</J36_Origin:Item>
+  </J36_Origin:NameSpace><J36_Prolong:NameSpace xmlns:J36_Prolong="J/J36/Prolong">
+    <J36_Prolong:Item name="Amplification Confidence">3</J36_Prolong:Item>
+    <J36_Prolong:Item name="Boost Indicator">1</J36_Prolong:Item>
+    <J36_Prolong:Item name="Data Indicator">3</J36_Prolong:Item>
+    <J36_Prolong:Item name="Enum values for Amplification Confidence">3</J36_Prolong:Item>
+    <J36_Prolong:Item name="Lost Track Indicator">1</J36_Prolong:Item>
+    <J36_Prolong:Item name="Space Amplification">5</J36_Prolong:Item>
+    <J36_Prolong:Item name="X Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="X Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Y Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="Y Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Z Position">23</J36_Prolong:Item>
+    <J36_Prolong:Item name="Z Velocity">14</J36_Prolong:Item>
+    <J36_Prolong:Item name="Spare" defaultValue="0">12</J36_Prolong:Item>
+  </J36_Prolong:NameSpace><J36_Continue1:NameSpace xmlns:J36_Continue1="J/J36/Continue1">
+    <J36_Continue1:Item name="ABSOLUTE">4</J36_Continue1:Item>
+    <J36_Continue1:Item name="Covariance">10</J36_Continue1:Item>
+    <J36_Continue1:Item name="Sign of Covariance 23">1</J36_Continue1:Item>
+  </J36_Continue1:NameSpace><J36_Continue2:NameSpace xmlns:J36_Continue2="J/J36/Continue2">
+    <J36_Continue2:Item name="Abs Cov 24">10</J36_Continue2:Item>
+    <J36_Continue2:Item name="Abs Cov 34">10</J36_Continue2:Item>
+    <J36_Continue2:Item name="Cov Data Elem 44">10</J36_Continue2:Item>
+    <J36_Continue2:Item name="Sign Cov 14">69</J36_Continue2:Item>
+    <J36_Continue2:Item name="Sign Cov 24">37</J36_Continue2:Item>
+    <J36_Continue2:Item name="Sign Cov 34">48</J36_Continue2:Item>
+  </J36_Continue2:NameSpace><J36_Continue3:NameSpace xmlns:J36_Continue3="J/J36/Continue3">
+    <J36_Continue3:Item name="BETA">18</J36_Continue3:Item>
+  </J36_Continue3:NameSpace><J36_Continue4:NameSpace xmlns:J36_Continue4="J/J36/Continue4">
+    <J36_Continue4:Item name="Absolute value">10</J36_Continue4:Item>
+    <J36_Continue4:Item name="Continuation Word Label">5</J36_Continue4:Item>
+    <J36_Continue4:Item name="Sign of Covariance 26">1</J36_Continue4:Item>
+  </J36_Continue4:NameSpace><J36_Continue5:NameSpace xmlns:J36_Continue5="J/J36/Continue5">
+    <J36_Continue5:Item name="Sigma X/Y/Z Velocity">14</J36_Continue5:Item>
+    <J36_Continue5:Item name="Velocity Covariance Data Elements 22">10</J36_Continue5:Item>
+  </J36_Continue5:NameSpace><J36_Continue6:NameSpace xmlns:J36_Continue6="J/J36/Continue6">
+    <J36_Continue6:Item name="-007 are">5</J36_Continue6:Item>
+    <J36_Continue6:Item name="Amplification Confidence Ambiguity">5</J36_Continue6:Item>
+    <J36_Continue6:Item name="Amplification Confidence Ambiguity 1">5</J36_Continue6:Item>
+    <J36_Continue6:Item name="DUIs 006-008 are">5</J36_Continue6:Item>
+    <J36_Continue6:Item name="Space Amplification Ambiguity">5</J36_Continue6:Item>
+    <J36_Continue6:Item name="Space Amplification Ambiguity 1">5</J36_Continue6:Item>
+  </J36_Continue6:NameSpace>
+</J36:NameSpace>

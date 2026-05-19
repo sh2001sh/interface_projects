@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J150:NameSpace xmlns:J150="J/J150">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J150_Origin:NameSpace xmlns:J150_Origin="J/J150/Origin">
+    <J150_Origin:StructMess name="Label">5</J150_Origin:StructMess>
+    <J150_Origin:StructMess name="Sublabel">3</J150_Origin:StructMess>
+    <J150_Origin:Item name="4-bit, 16">4</J150_Origin:Item>
+    <J150_Origin:Item name="5-4-J15">2</J150_Origin:Item>
+    <J150_Origin:Item name="Exercise Ind">1</J150_Origin:Item>
+    <J150_Origin:Item name="Exercise Indicator">1</J150_Origin:Item>
+    <J150_Origin:Item name="Message Length">3</J150_Origin:Item>
+    <J150_Origin:Item name="Strength">4</J150_Origin:Item>
+    <J150_Origin:Item name="Strength enum">4</J150_Origin:Item>
+    <J150_Origin:Item name="Threat Posture">3</J150_Origin:Item>
+    <J150_Origin:Item name="Threat Posture enum">3</J150_Origin:Item>
+    <J150_Origin:Item name="Threat Type">4</J150_Origin:Item>
+    <J150_Origin:Item name="Threat Weapon">5</J150_Origin:Item>
+    <J150_Origin:Item name="Track Number">15</J150_Origin:Item>
+    <J150_Origin:Item name="Track Number range allocations">19</J150_Origin:Item>
+    <J150_Origin:Item name="Spare" defaultValue="0">4</J150_Origin:Item>
+  </J150_Origin:NameSpace><J150_Prolong:NameSpace xmlns:J150_Prolong="J/J150/Prolong">
+    <J150_Prolong:Item name="Latitude">21</J150_Prolong:Item>
+    <J150_Prolong:Item name="Latitude/Longitude specific">22</J150_Prolong:Item>
+    <J150_Prolong:Item name="Longitude">22</J150_Prolong:Item>
+    <J150_Prolong:Item name="Track Number Targeted">19</J150_Prolong:Item>
+  </J150_Prolong:NameSpace><J150_Continue1:NameSpace xmlns:J150_Continue1="J/J150/Continue1">
+    <J150_Continue1:Item name="Air Specific Type enum">8</J150_Continue1:Item>
+    <J150_Continue1:Item name="Altitude">13</J150_Continue1:Item>
+    <J150_Continue1:Item name="Course">9</J150_Continue1:Item>
+    <J150_Continue1:Item name="Environment">3</J150_Continue1:Item>
+    <J150_Continue1:Item name="Space Specific Type enum">12</J150_Continue1:Item>
+    <J150_Continue1:Item name="Speed">11</J150_Continue1:Item>
+    <J150_Continue1:Item name="Threat Fuel">5</J150_Continue1:Item>
+  </J150_Continue1:NameSpace>
+</J150:NameSpace>

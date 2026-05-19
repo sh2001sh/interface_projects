@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J160:NameSpace xmlns:J160="J/J160">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J160_Origin:NameSpace xmlns:J160_Origin="J/J160/Origin">
+    <J160_Origin:StructMess name="Message Length Indicator">3</J160_Origin:StructMess>
+    <J160_Origin:Item name="Action">1</J160_Origin:Item>
+    <J160_Origin:Item name="Action Code">3</J160_Origin:Item>
+    <J160_Origin:Item name="Action Code, Image">3</J160_Origin:Item>
+    <J160_Origin:Item name="ACTION DUI 003">3</J160_Origin:Item>
+    <J160_Origin:Item name="Image Packet Number">16</J160_Origin:Item>
+    <J160_Origin:Item name="Packet Number">16</J160_Origin:Item>
+    <J160_Origin:Item name="Protocol Type">1</J160_Origin:Item>
+    <J160_Origin:Item name="Track Number">15</J160_Origin:Item>
+  </J160_Origin:NameSpace><J160_Prolong:NameSpace xmlns:J160_Prolong="J/J160/Prolong">
+    <J160_Prolong:Item name="Action Code Image">3</J160_Prolong:Item>
+    <J160_Prolong:Item name="E0 Word">7</J160_Prolong:Item>
+    <J160_Prolong:Item name="Header Word">2</J160_Prolong:Item>
+    <J160_Prolong:Item name="Header Word, Track Number Source, Initial Word, Track Number Addressee 1, Action">2</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Data">68</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Data 1">0</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Data, 2">68</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Data Type">0</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Packet Number">16</J160_Prolong:Item>
+    <J160_Prolong:Item name="Image Transfer Protocol">0</J160_Prolong:Item>
+    <J160_Prolong:Item name="Initial Word">2</J160_Prolong:Item>
+    <J160_Prolong:Item name="Missed Packet Data">68</J160_Prolong:Item>
+    <J160_Prolong:Item name="Missed Packet Data 1">0</J160_Prolong:Item>
+    <J160_Prolong:Item name="Missed Packet Data, 2">68</J160_Prolong:Item>
+    <J160_Prolong:Item name="Number of Valid Image Data Bytes">3</J160_Prolong:Item>
+    <J160_Prolong:Item name="Track Number Addressee 1">2</J160_Prolong:Item>
+    <J160_Prolong:Item name="Track Number Source">2</J160_Prolong:Item>
+  </J160_Prolong:NameSpace><J160_Continue1:NameSpace xmlns:J160_Continue1="J/J160/Continue1">
+    <J160_Continue1:Item name="Continuation Word Label">5</J160_Continue1:Item>
+    <J160_Continue1:Item name="Track Number Addressee 2">15</J160_Continue1:Item>
+    <J160_Continue1:Item name="Track Number Addressee 3">15</J160_Continue1:Item>
+    <J160_Continue1:Item name="Track Number Addressee 4">15</J160_Continue1:Item>
+    <J160_Continue1:Item name="Track Number Addressee 5">15</J160_Continue1:Item>
+    <J160_Continue1:Item name="Spare" defaultValue="0">3</J160_Continue1:Item>
+  </J160_Continue1:NameSpace>
+</J160:NameSpace>

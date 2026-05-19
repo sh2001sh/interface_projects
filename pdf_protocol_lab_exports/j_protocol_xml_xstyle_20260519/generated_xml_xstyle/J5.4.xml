@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J54:NameSpace xmlns:J54="J/J54">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J54_Origin:NameSpace xmlns:J54_Origin="J/J54/Origin">
+    <J54_Origin:StructMess name="SUBLABEL">3</J54_Origin:StructMess>
+    <J54_Origin:Item name="Audio enum">1</J54_Origin:Item>
+    <J54_Origin:Item name="Bearing Drift enum">2</J54_Origin:Item>
+    <J54_Origin:Item name="Bearing Report Type">2</J54_Origin:Item>
+    <J54_Origin:Item name="Bit counts provided for elements like LABEL">5</J54_Origin:Item>
+    <J54_Origin:Item name="BRT">2</J54_Origin:Item>
+    <J54_Origin:Item name="Doppler enum">2</J54_Origin:Item>
+    <J54_Origin:Item name="Exercise Indicator">1</J54_Origin:Item>
+    <J54_Origin:Item name="Field 769">5</J54_Origin:Item>
+    <J54_Origin:Item name="Hour enum">5</J54_Origin:Item>
+    <J54_Origin:Item name="Minute enum">6</J54_Origin:Item>
+    <J54_Origin:Item name="Subsurface Platform enum">6</J54_Origin:Item>
+    <J54_Origin:Item name="TRACK NUMBER">19</J54_Origin:Item>
+  </J54_Origin:NameSpace><J54_Prolong:NameSpace xmlns:J54_Prolong="J/J54/Prolong">
+    <J54_Prolong:Item name="Bearing 1">8</J54_Prolong:Item>
+    <J54_Prolong:Item name="Bearing Report Type">2</J54_Prolong:Item>
+    <J54_Prolong:Item name="BEARING REPORT TYPE enum">2</J54_Prolong:Item>
+    <J54_Prolong:Item name="Bit counts provided for elements like LATITUDE">21</J54_Prolong:Item>
+    <J54_Prolong:Item name="E0">7</J54_Prolong:Item>
+    <J54_Prolong:Item name="Frequency">15</J54_Prolong:Item>
+    <J54_Prolong:Item name="Latitude">21</J54_Prolong:Item>
+    <J54_Prolong:Item name="LONGITUDE">22</J54_Prolong:Item>
+  </J54_Prolong:NameSpace><J54_Continue1:NameSpace xmlns:J54_Continue1="J/J54/Continue1">
+    <J54_Continue1:Item name="Bearing 2">8</J54_Continue1:Item>
+    <J54_Continue1:Item name="Bearing 2 ASW">8</J54_Continue1:Item>
+    <J54_Continue1:Item name="Bearing Accuracy">4</J54_Continue1:Item>
+    <J54_Continue1:Item name="Bearing Accuracy ASW">4</J54_Continue1:Item>
+    <J54_Continue1:Item name="Bit counts provided for elements like RANGE">11</J54_Continue1:Item>
+    <J54_Continue1:Item name="BRD SP BND">3</J54_Continue1:Item>
+    <J54_Continue1:Item name="Broadband">1</J54_Continue1:Item>
+    <J54_Continue1:Item name="BROADBAND enum">1</J54_Continue1:Item>
+    <J54_Continue1:Item name="Continuation Label">5</J54_Continue1:Item>
+    <J54_Continue1:Item name="Continuation Word Label">5</J54_Continue1:Item>
+    <J54_Continue1:Item name="FREQUENCY">15</J54_Continue1:Item>
+    <J54_Continue1:Item name="Frequency 1">15</J54_Continue1:Item>
+    <J54_Continue1:Item name="Frequency 2">15</J54_Continue1:Item>
+    <J54_Continue1:Item name="Frequency Assoc Acoustic 1">15</J54_Continue1:Item>
+    <J54_Continue1:Item name="Frequency Assoc Acoustic 2">15</J54_Continue1:Item>
+    <J54_Continue1:Item name="Range">11</J54_Continue1:Item>
+    <J54_Continue1:Item name="Range Accuracy">4</J54_Continue1:Item>
+    <J54_Continue1:Item name="Range Accuracy ASW">4</J54_Continue1:Item>
+    <J54_Continue1:Item name="Sensor Indicator">3</J54_Continue1:Item>
+    <J54_Continue1:Item name="Total">70</J54_Continue1:Item>
+    <J54_Continue1:Item name="Total 70 bits">70</J54_Continue1:Item>
+    <J54_Continue1:Item name="Spare" defaultValue="0">1</J54_Continue1:Item>
+  </J54_Continue1:NameSpace><J54_Continue2:NameSpace xmlns:J54_Continue2="J/J54/Continue2">
+    <J54_Continue2:Item name="Bit counts provided for elements like DEPTH CONTACT">4</J54_Continue2:Item>
+    <J54_Continue2:Item name="Depth">7</J54_Continue2:Item>
+    <J54_Continue2:Item name="Depth Above/Below Layer">2</J54_Continue2:Item>
+    <J54_Continue2:Item name="Depth Contact">4</J54_Continue2:Item>
+    <J54_Continue2:Item name="Depth Sensor">7</J54_Continue2:Item>
+    <J54_Continue2:Item name="Sound Propagation Path">4</J54_Continue2:Item>
+    <J54_Continue2:Item name="Sound Propagation Path 4-bit">4</J54_Continue2:Item>
+    <J54_Continue2:Item name="Subsurface Activity">7</J54_Continue2:Item>
+    <J54_Continue2:Item name="Track Number">19</J54_Continue2:Item>
+    <J54_Continue2:Item name="TRACK NUMBER ORIGIN">19</J54_Continue2:Item>
+  </J54_Continue2:NameSpace>
+</J54:NameSpace>

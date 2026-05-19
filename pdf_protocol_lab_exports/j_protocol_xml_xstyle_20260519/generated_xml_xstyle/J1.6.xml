@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J16:NameSpace xmlns:J16="J/J16">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J16_Origin:NameSpace xmlns:J16_Origin="J/J16/Origin">
+    <J16_Origin:Item name="CANTPRO">5</J16_Origin:Item>
+    <J16_Origin:Item name="Path Quality Monitoring">2</J16_Origin:Item>
+    <J16_Origin:Item name="Receipt/Compliance">4</J16_Origin:Item>
+  </J16_Origin:NameSpace><J16_Prolong:NameSpace xmlns:J16_Prolong="J/J16/Prolong">
+    <J16_Prolong:Item name="2-bit">2</J16_Prolong:Item>
+    <J16_Prolong:Item name="Participation Group 1">9</J16_Prolong:Item>
+  </J16_Prolong:NameSpace>
+</J16:NameSpace>

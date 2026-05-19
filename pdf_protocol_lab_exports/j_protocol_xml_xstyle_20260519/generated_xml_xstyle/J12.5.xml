@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J125:NameSpace xmlns:J125="J/J125">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J125_Origin:NameSpace xmlns:J125_Origin="J/J125/Origin">
+    <J125_Origin:Item name="Bit 0">1</J125_Origin:Item>
+    <J125_Origin:Item name="Correlated">1</J125_Origin:Item>
+    <J125_Origin:Item name="Correlation Indicator A">1</J125_Origin:Item>
+    <J125_Origin:Item name="Correlation Indicator (F">1</J125_Origin:Item>
+    <J125_Origin:Item name="D">7</J125_Origin:Item>
+    <J125_Origin:Item name="Decorrelated">1</J125_Origin:Item>
+    <J125_Origin:Item name="G)">15</J125_Origin:Item>
+    <J125_Origin:Item name="ID/Strength Indicator">2</J125_Origin:Item>
+    <J125_Origin:Item name="Index Number A">6</J125_Origin:Item>
+    <J125_Origin:Item name="Index Number (F">6</J125_Origin:Item>
+    <J125_Origin:Item name="N">0</J125_Origin:Item>
+    <J125_Origin:Item name="Track Number">19</J125_Origin:Item>
+    <J125_Origin:Item name="Track Number (G). Usage codes: R">15</J125_Origin:Item>
+    <J125_Origin:Item name="Track Number Objective">19</J125_Origin:Item>
+  </J125_Origin:NameSpace><J125_Prolong:NameSpace xmlns:J125_Prolong="J/J125/Prolong">
+    <J125_Prolong:Item name="Correlation Indicator">1</J125_Prolong:Item>
+    <J125_Prolong:Item name="Correlation Indicator E">1</J125_Prolong:Item>
+    <J125_Prolong:Item name="Index E">6</J125_Prolong:Item>
+    <J125_Prolong:Item name="Index F">6</J125_Prolong:Item>
+    <J125_Prolong:Item name="Index G">6</J125_Prolong:Item>
+    <J125_Prolong:Item name="Index Number">6</J125_Prolong:Item>
+    <J125_Prolong:Item name="Track E">15</J125_Prolong:Item>
+    <J125_Prolong:Item name="Track F">15</J125_Prolong:Item>
+    <J125_Prolong:Item name="Track G">15</J125_Prolong:Item>
+    <J125_Prolong:Item name="Track Number">15</J125_Prolong:Item>
+    <J125_Prolong:Item name="Spare" defaultValue="0">2</J125_Prolong:Item>
+  </J125_Prolong:NameSpace><J125_Continue2:NameSpace xmlns:J125_Continue2="J/J125/Continue2">
+    <J125_Continue2:Item name="Correlation Indicator">1</J125_Continue2:Item>
+  </J125_Continue2:NameSpace>
+</J125:NameSpace>

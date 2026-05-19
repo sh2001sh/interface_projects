@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J00:NameSpace xmlns:J00="J/J00">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J00_Origin:NameSpace xmlns:J00_Origin="J/J00/Origin">
+    <J00_Origin:StructMess name="LABEL">5</J00_Origin:StructMess>
+    <J00_Origin:StructMess name="MESSAGE LENGTH INDICATOR">3</J00_Origin:StructMess>
+    <J00_Origin:StructMess name="SUBLABEL">3</J00_Origin:StructMess>
+    <J00_Origin:Item name="ACCESS RATE PPLI B">4</J00_Origin:Item>
+    <J00_Origin:Item name="ACCESS RATE RTT-B">4</J00_Origin:Item>
+    <J00_Origin:Item name="DISUSED">7</J00_Origin:Item>
+    <J00_Origin:Item name="J0.0C1 words with fields like RTT Reply Status Indicator">1</J00_Origin:Item>
+    <J00_Origin:Item name="J0.0E0">0</J00_Origin:Item>
+    <J00_Origin:Item name="J0.0I">0</J00_Origin:Item>
+    <J00_Origin:Item name="OFFSET VOICE B">5</J00_Origin:Item>
+    <J00_Origin:Item name="RECURRENCE RATE RTT-B">4</J00_Origin:Item>
+    <J00_Origin:Item name="RECURRENCE RATE VOICE A">4</J00_Origin:Item>
+    <J00_Origin:Item name="RTT REPLY STATUS INDICATOR">1</J00_Origin:Item>
+    <J00_Origin:Item name="SLOT ASSIGN INDEX NUMBER">4</J00_Origin:Item>
+    <J00_Origin:Item name="TIME QUALITY">4</J00_Origin:Item>
+    <J00_Origin:Item name="TIME SLOT NUMBER RTT-B">5</J00_Origin:Item>
+    <J00_Origin:Item name="TIME SLOT NUMBER VOICE A">4</J00_Origin:Item>
+    <J00_Origin:Item name="TIME SLOT SET RTT-B">2</J00_Origin:Item>
+    <J00_Origin:Item name="TIME SLOT SET VOICE A">2</J00_Origin:Item>
+    <J00_Origin:Item name="SPARE" defaultValue="0">3</J00_Origin:Item>
+  </J00_Origin:NameSpace><J00_Prolong:NameSpace xmlns:J00_Prolong="J/J00/Prolong">
+    <J00_Prolong:Item name="034, 035, 036 are">7</J00_Prolong:Item>
+    <J00_Prolong:Item name="ACCESS RATE PPLI A">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="J0.0C1 words with fields like RTT Reply Status Indicator">1</J00_Prolong:Item>
+    <J00_Prolong:Item name="J0.0E0">0</J00_Prolong:Item>
+    <J00_Prolong:Item name="J0.0I">0</J00_Prolong:Item>
+    <J00_Prolong:Item name="RECURRENCE RATE CONTROL">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="RECURRENCE RATE PPLI A">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="RECURRENCE RATE PPLI B 1">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="RECURRENCE RATE PPLI B 2">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="RELAY DELAY CONTROL">5</J00_Prolong:Item>
+    <J00_Prolong:Item name="RELAY DELAY PPLI A">5</J00_Prolong:Item>
+    <J00_Prolong:Item name="Slot Assign Index Number">4</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT NUMBER CONTROL">7</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT NUMBER PPLI A">7</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT NUMBER PPLI B 1">7</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT NUMBER PPLI B 2">7</J00_Prolong:Item>
+    <J00_Prolong:Item name="Time Slot Set">2</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT SET CONTROL">2</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT SET PPLI A">2</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT SET PPLI B 1">2</J00_Prolong:Item>
+    <J00_Prolong:Item name="TIME SLOT SET PPLI B 2">2</J00_Prolong:Item>
+    <J00_Prolong:Item name="SPARE" defaultValue="0">2</J00_Prolong:Item>
+  </J00_Prolong:NameSpace><J00_Continue1:NameSpace xmlns:J00_Continue1="J/J00/Continue1">
+    <J00_Continue1:Item name="CONTINUATION WORD LABEL">5</J00_Continue1:Item>
+    <J00_Continue1:Item name="Epoch Count">7</J00_Continue1:Item>
+    <J00_Continue1:Item name="EPOCH COUNT CURRENT">7</J00_Continue1:Item>
+    <J00_Continue1:Item name="J0.0C1 words with fields like RTT Reply Status Indicator">1</J00_Continue1:Item>
+    <J00_Continue1:Item name="J0.0E0">0</J00_Continue1:Item>
+    <J00_Continue1:Item name="J0.0I">0</J00_Continue1:Item>
+    <J00_Continue1:Item name="Slot Assign Index Number">4</J00_Continue1:Item>
+    <J00_Continue1:Item name="TIME SLOT NUMBER CURRENT">15</J00_Continue1:Item>
+    <J00_Continue1:Item name="Time Slot Set">2</J00_Continue1:Item>
+    <J00_Continue1:Item name="TIME SLOT SET CURRENT">2</J00_Continue1:Item>
+    <J00_Continue1:Item name="SPARE" defaultValue="0">10</J00_Continue1:Item>
+  </J00_Continue1:NameSpace>
+</J00:NameSpace>

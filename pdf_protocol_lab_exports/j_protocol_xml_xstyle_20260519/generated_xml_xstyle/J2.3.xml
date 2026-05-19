@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J23:NameSpace xmlns:J23="J/J23">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J23_Origin:NameSpace xmlns:J23_Origin="J/J23/Origin">
+    <J23_Origin:StructMess name="Label">5</J23_Origin:StructMess>
+    <J23_Origin:StructMess name="Sublabel">3</J23_Origin:StructMess>
+    <J23_Origin:Item name="Active Relay Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Command">5</J23_Origin:Item>
+    <J23_Origin:Item name="Control Channel">7</J23_Origin:Item>
+    <J23_Origin:Item name="Control Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Elevation">11</J23_Origin:Item>
+    <J23_Origin:Item name="Elevation Quality">4</J23_Origin:Item>
+    <J23_Origin:Item name="Emergency Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Exercise Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Force Tell Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Geodetic Position Quality">4</J23_Origin:Item>
+    <J23_Origin:Item name="Mission Correlator">8</J23_Origin:Item>
+    <J23_Origin:Item name="Network Participation Status">3</J23_Origin:Item>
+    <J23_Origin:Item name="Network Participation Status Indicator">3</J23_Origin:Item>
+    <J23_Origin:Item name="NPSI">3</J23_Origin:Item>
+    <J23_Origin:Item name="RTT Reply Status Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Simulation Indicator">1</J23_Origin:Item>
+    <J23_Origin:Item name="Source Track Number">2</J23_Origin:Item>
+    <J23_Origin:Item name="Strength">4</J23_Origin:Item>
+    <J23_Origin:Item name="Surface Activity">7</J23_Origin:Item>
+    <J23_Origin:Item name="Time Quality">4</J23_Origin:Item>
+    <J23_Origin:Item name="Voice Call Sign">24</J23_Origin:Item>
+    <J23_Origin:Item name="Voice Frequency/Channel">13</J23_Origin:Item>
+  </J23_Origin:NameSpace><J23_Prolong:NameSpace xmlns:J23_Prolong="J/J23/Prolong">
+    <J23_Prolong:Item name="Course">9</J23_Prolong:Item>
+    <J23_Prolong:Item name="Latitude">23</J23_Prolong:Item>
+    <J23_Prolong:Item name="Latitude, 25-49 Longitude, 50-59 Course, 60-69 Speed">24</J23_Prolong:Item>
+    <J23_Prolong:Item name="Longitude">24</J23_Prolong:Item>
+    <J23_Prolong:Item name="Speed">11</J23_Prolong:Item>
+    <J23_Prolong:Item name="Spare" defaultValue="0">1</J23_Prolong:Item>
+  </J23_Prolong:NameSpace><J23_Continue1:NameSpace xmlns:J23_Continue1="J/J23/Continue1">
+    <J23_Continue1:Item name="MODE I">7</J23_Continue1:Item>
+    <J23_Continue1:Item name="MODE II">13</J23_Continue1:Item>
+    <J23_Continue1:Item name="MODE III">13</J23_Continue1:Item>
+    <J23_Continue1:Item name="Surface Activity">7</J23_Continue1:Item>
+  </J23_Continue1:NameSpace><J23_Continue2:NameSpace xmlns:J23_Continue2="J/J23/Continue2">
+    <J23_Continue2:Item name="Continuation Word Label">5</J23_Continue2:Item>
+    <J23_Continue2:Item name="Control Channel">7</J23_Continue2:Item>
+    <J23_Continue2:Item name="L4A Ind">1</J23_Continue2:Item>
+    <J23_Continue2:Item name="Link 4A Address">13</J23_Continue2:Item>
+    <J23_Continue2:Item name="VCS Ind">1</J23_Continue2:Item>
+    <J23_Continue2:Item name="Voice Call Sign">24</J23_Continue2:Item>
+    <J23_Continue2:Item name="Voice Frequency/Channel">13</J23_Continue2:Item>
+    <J23_Continue2:Item name="Indicators/Spares" defaultValue="0">4</J23_Continue2:Item>
+  </J23_Continue2:NameSpace><J23_Continue3:NameSpace xmlns:J23_Continue3="J/J23/Continue3">
+    <J23_Continue3:Item name="Beta Angle">15</J23_Continue3:Item>
+    <J23_Continue3:Item name="Continuation Label">5</J23_Continue3:Item>
+    <J23_Continue3:Item name="Relative Azimuth">3</J23_Continue3:Item>
+    <J23_Continue3:Item name="Relative Position Quality">4</J23_Continue3:Item>
+    <J23_Continue3:Item name="U Coordinate">20</J23_Continue3:Item>
+    <J23_Continue3:Item name="V Coordinate">20</J23_Continue3:Item>
+    <J23_Continue3:Item name="Spare" defaultValue="0">1</J23_Continue3:Item>
+  </J23_Continue3:NameSpace>
+</J23:NameSpace>

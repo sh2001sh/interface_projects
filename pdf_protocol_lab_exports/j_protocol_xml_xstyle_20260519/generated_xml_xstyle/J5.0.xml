@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J50:NameSpace xmlns:J50="J/J50">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J50_Origin:NameSpace xmlns:J50_Origin="J/J50/Origin">
+    <J50_Origin:StructMess name="Word Format">2</J50_Origin:StructMess>
+    <J50_Origin:StructMess name="Label">5</J50_Origin:StructMess>
+    <J50_Origin:StructMess name="Sublabel">3</J50_Origin:StructMess>
+    <J50_Origin:StructMess name="Message Length Indicator">3</J50_Origin:StructMess>
+  </J50_Origin:NameSpace>
+</J50:NameSpace>

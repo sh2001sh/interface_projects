@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J103:NameSpace xmlns:J103="J/J103">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J103_Origin:NameSpace xmlns:J103_Origin="J/J103/Origin">
+    <J103_Origin:StructMess name="Message Length Indicator">3</J103_Origin:StructMess>
+    <J103_Origin:Item name="Cancellation Indicator">0</J103_Origin:Item>
+    <J103_Origin:Item name="Control Channel">7</J103_Origin:Item>
+    <J103_Origin:Item name="Header Word">2</J103_Origin:Item>
+    <J103_Origin:Item name="Header Word, Track Number Source, Track Number Addressee, Track Number Reference, Request for Assume Control, Cancellation Indicator, Receipt/Compliance, Recurrence Rate, Track Number Objective, Link 4A Address, Voice Call Sign, Control Channel, Voice Frequency/Channel, Link 4A Frequency, Mode III">1</J103_Origin:Item>
+    <J103_Origin:Item name="Link 4A Address">13</J103_Origin:Item>
+    <J103_Origin:Item name="Link 4A Frequency">13</J103_Origin:Item>
+    <J103_Origin:Item name="Mission Correlator">8</J103_Origin:Item>
+    <J103_Origin:Item name="Mode III Code 1">12</J103_Origin:Item>
+    <J103_Origin:Item name="R/C">5</J103_Origin:Item>
+    <J103_Origin:Item name="Radio Type">3</J103_Origin:Item>
+    <J103_Origin:Item name="Receipt/Compliance">3</J103_Origin:Item>
+    <J103_Origin:Item name="Recurrence Rate">4</J103_Origin:Item>
+    <J103_Origin:Item name="Request for Assume Control">1</J103_Origin:Item>
+    <J103_Origin:Item name="Secure Radio Indicator">0</J103_Origin:Item>
+    <J103_Origin:Item name="Squawk Flash Indicator">0</J103_Origin:Item>
+    <J103_Origin:Item name="Track Number">19</J103_Origin:Item>
+    <J103_Origin:Item name="Track Number Addressee">17</J103_Origin:Item>
+    <J103_Origin:Item name="Track Number Objective">19</J103_Origin:Item>
+    <J103_Origin:Item name="Track Number Source">2</J103_Origin:Item>
+    <J103_Origin:Item name="Voice Call Sign">24</J103_Origin:Item>
+    <J103_Origin:Item name="Voice Frequency/Channel">13</J103_Origin:Item>
+    <J103_Origin:Item name="Voice Frequency/Channel legal">13</J103_Origin:Item>
+  </J103_Origin:NameSpace><J103_Prolong:NameSpace xmlns:J103_Prolong="J/J103/Prolong">
+    <J103_Prolong:Item name="Voice Call Sign mapping">6</J103_Prolong:Item>
+  </J103_Prolong:NameSpace><J103_Continue1:NameSpace xmlns:J103_Continue1="J/J103/Continue1">
+    <J103_Continue1:Item name="Continuation Word Label">5</J103_Continue1:Item>
+    <J103_Continue1:Item name="Control Channel">7</J103_Continue1:Item>
+    <J103_Continue1:Item name="DUD">1</J103_Continue1:Item>
+    <J103_Continue1:Item name="Link 4A Frequency">13</J103_Continue1:Item>
+    <J103_Continue1:Item name="Mode III Code">12</J103_Continue1:Item>
+    <J103_Continue1:Item name="Mode III Code, 1">12</J103_Continue1:Item>
+    <J103_Continue1:Item name="Radio Type">3</J103_Continue1:Item>
+    <J103_Continue1:Item name="SEC/IND">1</J103_Continue1:Item>
+    <J103_Continue1:Item name="SQK/FLS">1</J103_Continue1:Item>
+    <J103_Continue1:Item name="Voice Frequency/Channel">13</J103_Continue1:Item>
+    <J103_Continue1:Item name="Spare" defaultValue="0">12</J103_Continue1:Item>
+  </J103_Continue1:NameSpace><J103_Continue2:NameSpace xmlns:J103_Continue2="J/J103/Continue2">
+    <J103_Continue2:Item name="Continuation Word Label">3</J103_Continue2:Item>
+    <J103_Continue2:Item name="Continuation Word Label (2-6)">5</J103_Continue2:Item>
+    <J103_Continue2:Item name="Mission Correlator">8</J103_Continue2:Item>
+    <J103_Continue2:Item name="Mission Correlator (7-14)">8</J103_Continue2:Item>
+  </J103_Continue2:NameSpace>
+</J103:NameSpace>

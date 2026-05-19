@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J14:NameSpace xmlns:J14="J/J14">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J14_Origin:NameSpace xmlns:J14_Origin="J/J14/Origin">
+    <J14_Origin:StructMess name="Label">5</J14_Origin:StructMess>
+    <J14_Origin:StructMess name="Sublabel">3</J14_Origin:StructMess>
+    <J14_Origin:Item name="Community">4</J14_Origin:Item>
+    <J14_Origin:Item name="Community Designator">4</J14_Origin:Item>
+    <J14_Origin:Item name="Connectivity">2</J14_Origin:Item>
+    <J14_Origin:Item name="Fixed bit">4</J14_Origin:Item>
+    <J14_Origin:Item name="Fixed bit fields: Word Format">4</J14_Origin:Item>
+    <J14_Origin:Item name="Message Len">3</J14_Origin:Item>
+    <J14_Origin:Item name="Message Recv">1</J14_Origin:Item>
+    <J14_Origin:Item name="Net Ctrl Seq">1</J14_Origin:Item>
+    <J14_Origin:Item name="Net Num">7</J14_Origin:Item>
+    <J14_Origin:Item name="Own Net Ctrl Status">2</J14_Origin:Item>
+    <J14_Origin:Item name="Receipt">5</J14_Origin:Item>
+    <J14_Origin:Item name="Relay Level">4</J14_Origin:Item>
+    <J14_Origin:Item name="Time Slot">7</J14_Origin:Item>
+    <J14_Origin:Item name="Track Num">15</J14_Origin:Item>
+    <J14_Origin:Item name="Spare" defaultValue="0">1</J14_Origin:Item>
+  </J14_Origin:NameSpace><J14_Prolong:NameSpace xmlns:J14_Prolong="J/J14/Prolong">
+    <J14_Prolong:Item name="Connectivity Quality">2</J14_Prolong:Item>
+    <J14_Prolong:Item name="Fields are">2</J14_Prolong:Item>
+    <J14_Prolong:Item name="Report Format Indicator">2</J14_Prolong:Item>
+    <J14_Prolong:Item name="RFI">2</J14_Prolong:Item>
+  </J14_Prolong:NameSpace>
+</J14:NameSpace>

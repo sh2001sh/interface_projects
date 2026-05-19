@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J135:NameSpace xmlns:J135="J/J135">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J135_Origin:NameSpace xmlns:J135_Origin="J/J135/Origin">
+    <J135_Origin:Item name="Hour">5</J135_Origin:Item>
+    <J135_Origin:Item name="Minute">6</J135_Origin:Item>
+    <J135_Origin:Item name="Missile Type">4</J135_Origin:Item>
+    <J135_Origin:Item name="Operational Capability">2</J135_Origin:Item>
+    <J135_Origin:Item name="Operational Capability default">1</J135_Origin:Item>
+    <J135_Origin:Item name="Operational Missile Inventory">2</J135_Origin:Item>
+    <J135_Origin:Item name="SAM Mode State">3</J135_Origin:Item>
+    <J135_Origin:Item name="Site Type">6</J135_Origin:Item>
+    <J135_Origin:Item name="Time Function">3</J135_Origin:Item>
+    <J135_Origin:Item name="Track Number">19</J135_Origin:Item>
+  </J135_Origin:NameSpace><J135_Continue1:NameSpace xmlns:J135_Continue1="J/J135/Continue1">
+    <J135_Continue1:Item name="Cold Inventory">7</J135_Continue1:Item>
+    <J135_Continue1:Item name="Communications Impairment">3</J135_Continue1:Item>
+    <J135_Continue1:Item name="Link Status">5</J135_Continue1:Item>
+    <J135_Continue1:Item name="NATO Link 1 Status">2</J135_Continue1:Item>
+    <J135_Continue1:Item name="Operational Impairment">5</J135_Continue1:Item>
+    <J135_Continue1:Item name="Time Function">3</J135_Continue1:Item>
+  </J135_Continue1:NameSpace><J135_Continue3:NameSpace xmlns:J135_Continue3="J/J135/Continue3">
+    <J135_Continue3:Item name="Missile Type">6</J135_Continue3:Item>
+    <J135_Continue3:Item name="Missile Type 1">5</J135_Continue3:Item>
+    <J135_Continue3:Item name="Operational Missile Inventory">7</J135_Continue3:Item>
+  </J135_Continue3:NameSpace>
+</J135:NameSpace>

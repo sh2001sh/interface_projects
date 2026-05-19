@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J124:NameSpace xmlns:J124="J/J124">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J124_Origin:NameSpace xmlns:J124_Origin="J/J124/Origin">
+    <J124_Origin:Item name="Control Change Indicator">3</J124_Origin:Item>
+    <J124_Origin:Item name="Control Channel">7</J124_Origin:Item>
+    <J124_Origin:Item name="R/C">3</J124_Origin:Item>
+    <J124_Origin:Item name="Receipt/Compliance">5</J124_Origin:Item>
+    <J124_Origin:Item name="Voice Frequency/Channel legal">13</J124_Origin:Item>
+  </J124_Origin:NameSpace><J124_Prolong:NameSpace xmlns:J124_Prolong="J/J124/Prolong">
+    <J124_Prolong:Item name="B">13</J124_Prolong:Item>
+    <J124_Prolong:Item name="Link 4A Frequency">13</J124_Prolong:Item>
+    <J124_Prolong:Item name="Mode III">7</J124_Prolong:Item>
+    <J124_Prolong:Item name="Mode III Code">12</J124_Prolong:Item>
+    <J124_Prolong:Item name="Mode III Code is 12-bit octal">13</J124_Prolong:Item>
+    <J124_Prolong:Item name="SQK FLS">56</J124_Prolong:Item>
+    <J124_Prolong:Item name="Voice Call Sign">24</J124_Prolong:Item>
+    <J124_Prolong:Item name="Voice Frequency">13</J124_Prolong:Item>
+  </J124_Prolong:NameSpace>
+</J124:NameSpace>

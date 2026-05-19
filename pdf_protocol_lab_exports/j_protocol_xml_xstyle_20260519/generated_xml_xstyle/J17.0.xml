@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J170:NameSpace xmlns:J170="J/J170">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J170_Origin:NameSpace xmlns:J170_Origin="J/J170/Origin">
+    <J170_Origin:StructMess name="LABEL">5</J170_Origin:StructMess>
+    <J170_Origin:StructMess name="MESSAGE LENGTH INDICATOR">3</J170_Origin:StructMess>
+    <J170_Origin:StructMess name="SUBLABEL">3</J170_Origin:StructMess>
+    <J170_Origin:Item name="CLOUD COVER">2</J170_Origin:Item>
+    <J170_Origin:Item name="Cloud Cover 1">2</J170_Origin:Item>
+    <J170_Origin:Item name="CLOUD HEIGHT">6</J170_Origin:Item>
+    <J170_Origin:Item name="Cloud Height 1">6</J170_Origin:Item>
+    <J170_Origin:Item name="Default">7</J170_Origin:Item>
+    <J170_Origin:Item name="DISUSED">1</J170_Origin:Item>
+    <J170_Origin:Item name="INDEX NUMBER">6</J170_Origin:Item>
+    <J170_Origin:Item name="Index Number Third Party">6</J170_Origin:Item>
+    <J170_Origin:Item name="TRACK NUMBER">19</J170_Origin:Item>
+    <J170_Origin:Item name="TRACK NUMBER INDEX ORIGINATOR">15</J170_Origin:Item>
+    <J170_Origin:Item name="Track Number Objective">19</J170_Origin:Item>
+    <J170_Origin:Item name="VISIBILITY">7</J170_Origin:Item>
+    <J170_Origin:Item name="SPARE" defaultValue="0">1</J170_Origin:Item>
+  </J170_Origin:NameSpace><J170_Prolong:NameSpace xmlns:J170_Prolong="J/J170/Prolong">
+    <J170_Prolong:Item name="ACTUAL WEATHER">5</J170_Prolong:Item>
+    <J170_Prolong:Item name="ACTUAL WEATHER DESCRIPTOR">3</J170_Prolong:Item>
+    <J170_Prolong:Item name="ACTUAL WEATHER INTENSITY/PROXIMITY">3</J170_Prolong:Item>
+    <J170_Prolong:Item name="CC4">2</J170_Prolong:Item>
+    <J170_Prolong:Item name="CC5">2</J170_Prolong:Item>
+    <J170_Prolong:Item name="CC6">2</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Cover">2</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Height">6</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Height 4">6</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Height 5">6</J170_Prolong:Item>
+    <J170_Prolong:Item name="Cloud Height 6">6</J170_Prolong:Item>
+    <J170_Prolong:Item name="HOUR">5</J170_Prolong:Item>
+    <J170_Prolong:Item name="MINUTE">6</J170_Prolong:Item>
+    <J170_Prolong:Item name="QNH">7</J170_Prolong:Item>
+    <J170_Prolong:Item name="WIND DIRECTION">7</J170_Prolong:Item>
+    <J170_Prolong:Item name="WIND SPEED">7</J170_Prolong:Item>
+    <J170_Prolong:Item name="SPARE" defaultValue="0">1</J170_Prolong:Item>
+  </J170_Prolong:NameSpace><J170_Continue1:NameSpace xmlns:J170_Continue1="J/J170/Continue1">
+    <J170_Continue1:Item name="Actual Weather">5</J170_Continue1:Item>
+    <J170_Continue1:Item name="C1 Word">0</J170_Continue1:Item>
+    <J170_Continue1:Item name="Cloud Cover">2</J170_Continue1:Item>
+    <J170_Continue1:Item name="Cloud Height">6</J170_Continue1:Item>
+    <J170_Continue1:Item name="CONTINUATION WORD LABEL">5</J170_Continue1:Item>
+    <J170_Continue1:Item name="CONTRAIL HEIGHT LOWER LIMIT">9</J170_Continue1:Item>
+    <J170_Continue1:Item name="CONTRAIL HEIGHT UPPER LIMIT">9</J170_Continue1:Item>
+    <J170_Continue1:Item name="EN ROUTE WEATHER">2</J170_Continue1:Item>
+    <J170_Continue1:Item name="HEIGHT OF OBSERVATION">9</J170_Continue1:Item>
+    <J170_Continue1:Item name="ICING/FREEZING RAIN HEIGHT LOWER LIMIT">9</J170_Continue1:Item>
+    <J170_Continue1:Item name="ICING/FREEZING RAIN HEIGHT UPPER LIMIT">9</J170_Continue1:Item>
+    <J170_Continue1:Item name="RELATIVE HUMIDITY">4</J170_Continue1:Item>
+    <J170_Continue1:Item name="SURROUNDING WEATHER CONDITION">3</J170_Continue1:Item>
+    <J170_Continue1:Item name="WEATHER AMPLIFICATION">4</J170_Continue1:Item>
+    <J170_Continue1:Item name="Weather Conditions">3</J170_Continue1:Item>
+    <J170_Continue1:Item name="SPARE" defaultValue="0">5</J170_Continue1:Item>
+  </J170_Continue1:NameSpace>
+</J170:NameSpace>

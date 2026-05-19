@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J291:NameSpace xmlns:J291="J/J291">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J291_Origin:NameSpace xmlns:J291_Origin="J/J291/Origin">
+    <J291_Origin:StructMess name="Message Length Indicator">3</J291_Origin:StructMess>
+    <J291_Origin:Item name="Bit 0">1</J291_Origin:Item>
+    <J291_Origin:Item name="Header Word">2</J291_Origin:Item>
+    <J291_Origin:Item name="Index Number">6</J291_Origin:Item>
+    <J291_Origin:Item name="Message Originator's Index Number">1</J291_Origin:Item>
+    <J291_Origin:Item name="Origin of Index Number">6</J291_Origin:Item>
+    <J291_Origin:Item name="Status)">5</J291_Origin:Item>
+    <J291_Origin:Item name="Third Party Index Number">1</J291_Origin:Item>
+    <J291_Origin:Item name="Track Number Index Originator">15</J291_Origin:Item>
+    <J291_Origin:Item name="Track Number Objective">19</J291_Origin:Item>
+  </J291_Origin:NameSpace>
+</J291:NameSpace>

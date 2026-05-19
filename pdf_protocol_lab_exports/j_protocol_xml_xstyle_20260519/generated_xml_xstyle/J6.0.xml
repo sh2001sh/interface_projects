@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J60:NameSpace xmlns:J60="J/J60">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J60_Origin:NameSpace xmlns:J60_Origin="J/J60/Origin">
+    <J60_Origin:Item name="Fields listed">2</J60_Origin:Item>
+    <J60_Origin:Item name="Land Specific Type">12</J60_Origin:Item>
+    <J60_Origin:Item name="Local Discrete Identifier">12</J60_Origin:Item>
+    <J60_Origin:Item name="Nationality/Alliance">7</J60_Origin:Item>
+    <J60_Origin:Item name="Nationality/Alliance of Track">6</J60_Origin:Item>
+    <J60_Origin:Item name="Operational Status enum">4</J60_Origin:Item>
+    <J60_Origin:Item name="SAM/SSM Type">0</J60_Origin:Item>
+    <J60_Origin:Item name="Threat Fuel">5</J60_Origin:Item>
+    <J60_Origin:Item name="Threat Type">4</J60_Origin:Item>
+    <J60_Origin:Item name="Threat Weapon">5</J60_Origin:Item>
+    <J60_Origin:Item name="Track Number">5</J60_Origin:Item>
+    <J60_Origin:Item name="Track Number Controlling Agency">19</J60_Origin:Item>
+    <J60_Origin:Item name="Track Number Objective">19</J60_Origin:Item>
+    <J60_Origin:Item name="Type Modification">5</J60_Origin:Item>
+  </J60_Origin:NameSpace><J60_Prolong:NameSpace xmlns:J60_Prolong="J/J60/Prolong">
+    <J60_Prolong:Item name="Air Specific Type">8</J60_Prolong:Item>
+    <J60_Prolong:Item name="Land Specific Type">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Local Discrete Identifier">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Local Discrete Identifier (38-49)">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Locally Amplifying Data">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Space Specific Type">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Space Specific Type (2-13)">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Subsurface Specific Type">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Surface Specific Type">12</J60_Prolong:Item>
+    <J60_Prolong:Item name="Track Number Controlling">19</J60_Prolong:Item>
+    <J60_Prolong:Item name="Track Number Controlling (51-69)">19</J60_Prolong:Item>
+    <J60_Prolong:Item name="Track Number Controlling Agency">19</J60_Prolong:Item>
+    <J60_Prolong:Item name="Track Number Objective">19</J60_Prolong:Item>
+    <J60_Prolong:Item name="Track Number Objective (19-37)">19</J60_Prolong:Item>
+    <J60_Prolong:Item name="Type Modification">5</J60_Prolong:Item>
+    <J60_Prolong:Item name="Type Modification (14-18)">5</J60_Prolong:Item>
+    <J60_Prolong:Item name="Spare" defaultValue="0">50</J60_Prolong:Item>
+  </J60_Prolong:NameSpace><J60_Continue1:NameSpace xmlns:J60_Continue1="J/J60/Continue1">
+    <J60_Continue1:Item name="4-bit, 16">4</J60_Continue1:Item>
+    <J60_Continue1:Item name="9 bits, enum list">7</J60_Continue1:Item>
+    <J60_Continue1:Item name="Nationality/Alliance of Track 1">6</J60_Continue1:Item>
+    <J60_Continue1:Item name="Nationality/Alliance of Track enum">8</J60_Continue1:Item>
+    <J60_Continue1:Item name="SAM/SSM Type">0</J60_Continue1:Item>
+    <J60_Continue1:Item name="Threat Fuel">5</J60_Continue1:Item>
+    <J60_Continue1:Item name="Threat Type">4</J60_Continue1:Item>
+    <J60_Continue1:Item name="Threat Weapon">5</J60_Continue1:Item>
+  </J60_Continue1:NameSpace>
+</J60:NameSpace>

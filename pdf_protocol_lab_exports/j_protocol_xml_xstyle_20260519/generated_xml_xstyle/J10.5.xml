@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J105:NameSpace xmlns:J105="J/J105">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J105_Origin:NameSpace xmlns:J105_Origin="J/J105/Origin">
+    <J105_Origin:StructMess name="Label">5</J105_Origin:StructMess>
+    <J105_Origin:StructMess name="Sublabel">3</J105_Origin:StructMess>
+    <J105_Origin:Item name="Controlling Unit Status">5</J105_Origin:Item>
+    <J105_Origin:Item name="Handover Indicator">1</J105_Origin:Item>
+    <J105_Origin:Item name="Header Word">2</J105_Origin:Item>
+    <J105_Origin:Item name="Message Length Ind">3</J105_Origin:Item>
+    <J105_Origin:Item name="Mission Correlator">8</J105_Origin:Item>
+    <J105_Origin:Item name="Track Number">19</J105_Origin:Item>
+    <J105_Origin:Item name="Track Number (M)">19</J105_Origin:Item>
+    <J105_Origin:Item name="Track Number Source">19</J105_Origin:Item>
+    <J105_Origin:Item name="Voice Call Sign">24</J105_Origin:Item>
+    <J105_Origin:Item name="Voice Call Sign (T)">24</J105_Origin:Item>
+    <J105_Origin:Item name="Spare" defaultValue="0">3</J105_Origin:Item>
+  </J105_Origin:NameSpace>
+</J105:NameSpace>

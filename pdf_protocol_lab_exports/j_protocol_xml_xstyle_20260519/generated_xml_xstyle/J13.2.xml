@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J132:NameSpace xmlns:J132="J/J132">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,6</Member>
+    </PreSeq>
+  </MessCode><J132_Origin:NameSpace xmlns:J132_Origin="J/J132/Origin">
+    <J132_Origin:StructMess name="Label">5</J132_Origin:StructMess>
+    <J132_Origin:StructMess name="Message Length Indicator">3</J132_Origin:StructMess>
+    <J132_Origin:StructMess name="Sublabel">3</J132_Origin:StructMess>
+    <J132_Origin:Item name="Enumerations for Radar Channel">6</J132_Origin:Item>
+    <J132_Origin:Item name="Fuel">12</J132_Origin:Item>
+    <J132_Origin:Item name="Fuel Function">1</J132_Origin:Item>
+    <J132_Origin:Item name="Hour">5</J132_Origin:Item>
+    <J132_Origin:Item name="Minute">6</J132_Origin:Item>
+    <J132_Origin:Item name="Operational Capability">2</J132_Origin:Item>
+    <J132_Origin:Item name="Radar Channel">6</J132_Origin:Item>
+    <J132_Origin:Item name="Radar Channel Indicator">1</J132_Origin:Item>
+    <J132_Origin:Item name="Time Report">3</J132_Origin:Item>
+    <J132_Origin:Item name="Time Report Function">3</J132_Origin:Item>
+    <J132_Origin:Item name="Track Number">19</J132_Origin:Item>
+    <J132_Origin:Item name="Spare" defaultValue="0">2</J132_Origin:Item>
+  </J132_Origin:NameSpace><J132_Continue1:NameSpace xmlns:J132_Continue1="J/J132/Continue1">
+    <J132_Continue1:Item name="0=NO STATEMENT">4</J132_Continue1:Item>
+    <J132_Continue1:Item name="Aircraft Model">0</J132_Continue1:Item>
+    <J132_Continue1:Item name="Autopilot">1</J132_Continue1:Item>
+    <J132_Continue1:Item name="DUIs">3</J132_Continue1:Item>
+    <J132_Continue1:Item name="Infrared Status">5</J132_Continue1:Item>
+    <J132_Continue1:Item name="Laser Status">5</J132_Continue1:Item>
+    <J132_Continue1:Item name="Missile Channel">0</J132_Continue1:Item>
+    <J132_Continue1:Item name="Not Reporting All">1</J132_Continue1:Item>
+    <J132_Continue1:Item name="Radar Status">5</J132_Continue1:Item>
+    <J132_Continue1:Item name="Radio Types/Status">5</J132_Continue1:Item>
+    <J132_Continue1:Item name="TV Status">5</J132_Continue1:Item>
+  </J132_Continue1:NameSpace><J132_Continue2:NameSpace xmlns:J132_Continue2="J/J132/Continue2">
+    <J132_Continue2:Item name="Codes 0-130 for Type of Stores">3</J132_Continue2:Item>
+    <J132_Continue2:Item name="Continuation Word Label">3</J132_Continue2:Item>
+    <J132_Continue2:Item name="Continuation Word Label (2-6)">3</J132_Continue2:Item>
+    <J132_Continue2:Item name="Gun Capable">64</J132_Continue2:Item>
+    <J132_Continue2:Item name="IFF/SIF Status">4</J132_Continue2:Item>
+    <J132_Continue2:Item name="IFF Status">4</J132_Continue2:Item>
+    <J132_Continue2:Item name="IFF Status (65-68)">4</J132_Continue2:Item>
+    <J132_Continue2:Item name="Number of Stores (8-13">6</J132_Continue2:Item>
+    <J132_Continue2:Item name="Number/Type of Stores (1-4)">6</J132_Continue2:Item>
+    <J132_Continue2:Item name="Summation Indicator">7</J132_Continue2:Item>
+    <J132_Continue2:Item name="Summation Indicator, Number/Type of Stores">3</J132_Continue2:Item>
+    <J132_Continue2:Item name="Type of Stores (14-21">0</J132_Continue2:Item>
+    <J132_Continue2:Item name="Spare" defaultValue="0">69</J132_Continue2:Item>
+  </J132_Continue2:NameSpace><J132_Continue3:NameSpace xmlns:J132_Continue3="J/J132/Continue3">
+    <J132_Continue3:Item name="AMC System Type">3</J132_Continue3:Item>
+    <J132_Continue3:Item name="Multiple 2-bit inventory DUIs">9</J132_Continue3:Item>
+    <J132_Continue3:Item name="NAS">2</J132_Continue3:Item>
+    <J132_Continue3:Item name="NR">2</J132_Continue3:Item>
+    <J132_Continue3:Item name="RADAR WATCH ALTITUDE">9</J132_Continue3:Item>
+  </J132_Continue3:NameSpace><J132_Continue4:NameSpace xmlns:J132_Continue4="J/J132/Continue4">
+    <J132_Continue4:Item name="Decoy CHAFF/IR">0</J132_Continue4:Item>
+    <J132_Continue4:Item name="EA Frequency Band A-M">15</J132_Continue4:Item>
+    <J132_Continue4:Item name="ES Frequency Band A-M">15</J132_Continue4:Item>
+    <J132_Continue4:Item name="HF/VHF/UHF Direction Finder">0</J132_Continue4:Item>
+  </J132_Continue4:NameSpace><J132_Continue5:NameSpace xmlns:J132_Continue5="J/J132/Continue5">
+    <J132_Continue5:Item name="3-bit enum for COM IMP">3</J132_Continue5:Item>
+    <J132_Continue5:Item name="LINK 16 STATUS">3</J132_Continue5:Item>
+    <J132_Continue5:Item name="Status">5</J132_Continue5:Item>
+  </J132_Continue5:NameSpace><J132_Continue6:NameSpace xmlns:J132_Continue6="J/J132/Continue6">
+    <J132_Continue6:Item name="Decoy EA">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="Def Jammer">2</J132_Continue6:Item>
+    <J132_Continue6:Item name="Defensive Jammer 1/2">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="GPS">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="Laser Spot">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="Link 16/4A/4C Status">3</J132_Continue6:Item>
+    <J132_Continue6:Item name="LINK 16 CONTROL STATUS">2</J132_Continue6:Item>
+    <J132_Continue6:Item name="Missile Warning">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="Recce">3</J132_Continue6:Item>
+    <J132_Continue6:Item name="Refueling Stations">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="Telemetry">0</J132_Continue6:Item>
+    <J132_Continue6:Item name="VMF Status">5</J132_Continue6:Item>
+    <J132_Continue6:Item name="Voice Group A/B">13</J132_Continue6:Item>
+  </J132_Continue6:NameSpace>
+</J132:NameSpace>

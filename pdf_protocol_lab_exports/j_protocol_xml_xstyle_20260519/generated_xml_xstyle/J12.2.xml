@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J122:NameSpace xmlns:J122="J/J122">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J122_Origin:NameSpace xmlns:J122_Origin="J/J122/Origin">
+    <J122_Origin:StructMess name="Label">5</J122_Origin:StructMess>
+    <J122_Origin:StructMess name="Message Length Indicator">3</J122_Origin:StructMess>
+    <J122_Origin:StructMess name="Sublabel">3</J122_Origin:StructMess>
+    <J122_Origin:Item name="Autopilot Control Bit">1</J122_Origin:Item>
+    <J122_Origin:Item name="Drop Discrete">1</J122_Origin:Item>
+    <J122_Origin:Item name="Lateral Control Command">9</J122_Origin:Item>
+    <J122_Origin:Item name="Lateral Error">7</J122_Origin:Item>
+    <J122_Origin:Item name="Precision Aircraft Direction Discrete">4</J122_Origin:Item>
+    <J122_Origin:Item name="Time-To-Go">5</J122_Origin:Item>
+    <J122_Origin:Item name="Track Number">15</J122_Origin:Item>
+    <J122_Origin:Item name="Vertical Control Command">9</J122_Origin:Item>
+    <J122_Origin:Item name="Vertical Error">6</J122_Origin:Item>
+  </J122_Origin:NameSpace>
+</J122:NameSpace>

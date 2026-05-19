@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J91:NameSpace xmlns:J91="J/J91">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J91_Origin:NameSpace xmlns:J91_Origin="J/J91/Origin">
+    <J91_Origin:StructMess name="Label">5</J91_Origin:StructMess>
+    <J91_Origin:StructMess name="Sublabel">3</J91_Origin:StructMess>
+    <J91_Origin:Item name="ACTION">3</J91_Origin:Item>
+    <J91_Origin:Item name="CANTPRO">5</J91_Origin:Item>
+    <J91_Origin:Item name="ECAV">3</J91_Origin:Item>
+    <J91_Origin:Item name="Engagement Coordination">3</J91_Origin:Item>
+    <J91_Origin:Item name="Engagement Coordination Action">3</J91_Origin:Item>
+    <J91_Origin:Item name="Header Word">2</J91_Origin:Item>
+    <J91_Origin:Item name="Initial Word">2</J91_Origin:Item>
+    <J91_Origin:Item name="Method of Fire">3</J91_Origin:Item>
+    <J91_Origin:Item name="MOF">0</J91_Origin:Item>
+    <J91_Origin:Item name="Objective Track Number">19</J91_Origin:Item>
+    <J91_Origin:Item name="Pk">0</J91_Origin:Item>
+    <J91_Origin:Item name="Probability of Kill">0</J91_Origin:Item>
+    <J91_Origin:Item name="Receipt/Compliance">5</J91_Origin:Item>
+    <J91_Origin:Item name="Recurrence Rate">4</J91_Origin:Item>
+    <J91_Origin:Item name="Source Track Number">2</J91_Origin:Item>
+    <J91_Origin:Item name="Summary list Word Format">2</J91_Origin:Item>
+    <J91_Origin:Item name="Track Number (Addressee/Objective)">19</J91_Origin:Item>
+    <J91_Origin:Item name="Track Number Source">2</J91_Origin:Item>
+    <J91_Origin:Item name="Tracking Status">5</J91_Origin:Item>
+  </J91_Origin:NameSpace>
+</J91:NameSpace>

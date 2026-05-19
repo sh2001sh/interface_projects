@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J22:NameSpace xmlns:J22="J/J22">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+    </PreSeq>
+  </MessCode><J22_Origin:NameSpace xmlns:J22_Origin="J/J22/Origin">
+    <J22_Origin:StructMess name="Label">5</J22_Origin:StructMess>
+    <J22_Origin:StructMess name="Message Length Indicator">3</J22_Origin:StructMess>
+    <J22_Origin:StructMess name="Sublabel">3</J22_Origin:StructMess>
+    <J22_Origin:Item name="1 bit, binary enum">1</J22_Origin:Item>
+    <J22_Origin:Item name="Active Relay Indicator">1</J22_Origin:Item>
+    <J22_Origin:Item name="Air Activity">7</J22_Origin:Item>
+    <J22_Origin:Item name="Control Channel">7</J22_Origin:Item>
+    <J22_Origin:Item name="Emergency Indicator">1</J22_Origin:Item>
+    <J22_Origin:Item name="Exercise Indicator">1</J22_Origin:Item>
+    <J22_Origin:Item name="Flight Lead Indicator">0</J22_Origin:Item>
+    <J22_Origin:Item name="Mission Commander Indicator">1</J22_Origin:Item>
+    <J22_Origin:Item name="Net Number">7</J22_Origin:Item>
+    <J22_Origin:Item name="Net Number (A/B)">7</J22_Origin:Item>
+    <J22_Origin:Item name="Net Number NonC2 NPG A">7</J22_Origin:Item>
+    <J22_Origin:Item name="NONC2 -TO-NONC2 NPG STATUS A">1</J22_Origin:Item>
+    <J22_Origin:Item name="NonC2 -to-nonC2 NPG Status (A/B)">1</J22_Origin:Item>
+    <J22_Origin:Item name="Note 1">4</J22_Origin:Item>
+    <J22_Origin:Item name="NPSI">3</J22_Origin:Item>
+    <J22_Origin:Item name="Source Track Number">2</J22_Origin:Item>
+    <J22_Origin:Item name="Strength">4</J22_Origin:Item>
+    <J22_Origin:Item name="Track Number Flight Lead">0</J22_Origin:Item>
+    <J22_Origin:Item name="Track Number Mission Commander">0</J22_Origin:Item>
+    <J22_Origin:Item name="Voice Call Sign">24</J22_Origin:Item>
+    <J22_Origin:Item name="Voice Frequency/Channel">13</J22_Origin:Item>
+    <J22_Origin:Item name="Wingman ID Letter/Number">6</J22_Origin:Item>
+  </J22_Origin:NameSpace><J22_Prolong:NameSpace xmlns:J22_Prolong="J/J22/Prolong">
+    <J22_Prolong:Item name="Course">9</J22_Prolong:Item>
+    <J22_Prolong:Item name="Latitude">23</J22_Prolong:Item>
+    <J22_Prolong:Item name="Longitude">24</J22_Prolong:Item>
+    <J22_Prolong:Item name="Speed">11</J22_Prolong:Item>
+    <J22_Prolong:Item name="Spare" defaultValue="0">49</J22_Prolong:Item>
+  </J22_Prolong:NameSpace><J22_Continue1:NameSpace xmlns:J22_Continue1="J/J22/Continue1">
+    <J22_Continue1:Item name="Air Activity">7</J22_Continue1:Item>
+    <J22_Continue1:Item name="Air Activity field with">7</J22_Continue1:Item>
+    <J22_Continue1:Item name="Air Platform">6</J22_Continue1:Item>
+    <J22_Continue1:Item name="Cont Word Label">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Continuation Word Label">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode I">4</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode I Code">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode II">5</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode II Code">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode III">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Mode III Code">12</J22_Continue1:Item>
+    <J22_Continue1:Item name="Spare" defaultValue="0">20</J22_Continue1:Item>
+  </J22_Continue1:NameSpace><J22_Continue2:NameSpace xmlns:J22_Continue2="J/J22/Continue2">
+    <J22_Continue2:Item name="1-bit">1</J22_Continue2:Item>
+    <J22_Continue2:Item name="Active Relay Indicator (Voice/Control)">1</J22_Continue2:Item>
+    <J22_Continue2:Item name="Control Channel">7</J22_Continue2:Item>
+    <J22_Continue2:Item name="Link 4A Address">13</J22_Continue2:Item>
+    <J22_Continue2:Item name="Link 4A Address Indicator">13</J22_Continue2:Item>
+    <J22_Continue2:Item name="Voice Call Sign">24</J22_Continue2:Item>
+    <J22_Continue2:Item name="Voice Call Sign Indicator">24</J22_Continue2:Item>
+    <J22_Continue2:Item name="Voice Frequency/Channel">13</J22_Continue2:Item>
+  </J22_Continue2:NameSpace><J22_Continue3:NameSpace xmlns:J22_Continue3="J/J22/Continue3">
+    <J22_Continue3:Item name="Beta Angle">15</J22_Continue3:Item>
+    <J22_Continue3:Item name="Continuation Word Label">5</J22_Continue3:Item>
+    <J22_Continue3:Item name="Relative Azimuth Quality">3</J22_Continue3:Item>
+    <J22_Continue3:Item name="Relative Position Quality">4</J22_Continue3:Item>
+    <J22_Continue3:Item name="U Coordinate">20</J22_Continue3:Item>
+    <J22_Continue3:Item name="U/V Coordinates are">20</J22_Continue3:Item>
+    <J22_Continue3:Item name="V Coordinate">20</J22_Continue3:Item>
+    <J22_Continue3:Item name="Spare" defaultValue="0">49</J22_Continue3:Item>
+  </J22_Continue3:NameSpace><J22_Continue5:NameSpace xmlns:J22_Continue5="J/J22/Continue5">
+    <J22_Continue5:Item name="Continuation Word Label">5</J22_Continue5:Item>
+    <J22_Continue5:Item name="Mission Correlator">8</J22_Continue5:Item>
+    <J22_Continue5:Item name="Net Number">7</J22_Continue5:Item>
+    <J22_Continue5:Item name="Net Number NonC2 NPG B">7</J22_Continue5:Item>
+    <J22_Continue5:Item name="NONC2 -TO-NONC2 NPG STATUS B">1</J22_Continue5:Item>
+    <J22_Continue5:Item name="NPG Status B">1</J22_Continue5:Item>
+    <J22_Continue5:Item name="Track Number (Flight Lead)">0</J22_Continue5:Item>
+    <J22_Continue5:Item name="Track Number (Mission Commander)">0</J22_Continue5:Item>
+    <J22_Continue5:Item name="Track Number (Mission Commander/Flight Lead)">0</J22_Continue5:Item>
+    <J22_Continue5:Item name="Wingman ID">6</J22_Continue5:Item>
+    <J22_Continue5:Item name="Wingman Identification">0</J22_Continue5:Item>
+    <J22_Continue5:Item name="Spare" defaultValue="0">49</J22_Continue5:Item>
+  </J22_Continue5:NameSpace>
+</J22:NameSpace>

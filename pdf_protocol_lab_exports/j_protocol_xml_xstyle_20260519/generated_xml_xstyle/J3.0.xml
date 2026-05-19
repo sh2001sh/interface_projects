@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J30:NameSpace xmlns:J30="J/J30">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+    </PreSeq>
+  </MessCode><J30_Origin:NameSpace xmlns:J30_Origin="J/J30/Origin">
+    <J30_Origin:StructMess name="Label">5</J30_Origin:StructMess>
+    <J30_Origin:StructMess name="Sublabel">3</J30_Origin:StructMess>
+    <J30_Origin:Item name="1-bit">1</J30_Origin:Item>
+    <J30_Origin:Item name="Delta Lat">0</J30_Origin:Item>
+    <J30_Origin:Item name="Delta Long">0</J30_Origin:Item>
+    <J30_Origin:Item name="End Point 1">1</J30_Origin:Item>
+    <J30_Origin:Item name="End Point 2">1</J30_Origin:Item>
+    <J30_Origin:Item name="Environment">3</J30_Origin:Item>
+    <J30_Origin:Item name="Exercise Indicator">1</J30_Origin:Item>
+    <J30_Origin:Item name="Force Tell Indicator">1</J30_Origin:Item>
+    <J30_Origin:Item name="Point Amp">4</J30_Origin:Item>
+    <J30_Origin:Item name="Point Amplification">4</J30_Origin:Item>
+    <J30_Origin:Item name="Point/Line/Area Descriptor">2</J30_Origin:Item>
+    <J30_Origin:Item name="Point Type">4</J30_Origin:Item>
+    <J30_Origin:Item name="Point Type Amplification 4-bit">3</J30_Origin:Item>
+    <J30_Origin:Item name="Point Type/Point Amp">3</J30_Origin:Item>
+    <J30_Origin:Item name="Priority">3</J30_Origin:Item>
+    <J30_Origin:Item name="Reference Track Number">19</J30_Origin:Item>
+    <J30_Origin:Item name="Source Track Number">19</J30_Origin:Item>
+    <J30_Origin:Item name="Square/Circle Switch">2</J30_Origin:Item>
+    <J30_Origin:Item name="Time Function">3</J30_Origin:Item>
+    <J30_Origin:Item name="Time Function ASW, DUI 004">3</J30_Origin:Item>
+    <J30_Origin:Item name="Time Function, DUI 002">3</J30_Origin:Item>
+    <J30_Origin:Item name="Time Indicator, DUI 005">3</J30_Origin:Item>
+    <J30_Origin:Item name="Time Report Function, DUI 003">2</J30_Origin:Item>
+    <J30_Origin:Item name="Track Number">19</J30_Origin:Item>
+  </J30_Origin:NameSpace><J30_Prolong:NameSpace xmlns:J30_Prolong="J/J30/Prolong">
+    <J30_Prolong:Item name="2-bit, 4">2</J30_Prolong:Item>
+    <J30_Prolong:Item name="Altitude">13</J30_Prolong:Item>
+    <J30_Prolong:Item name="Estimated Yield">2</J30_Prolong:Item>
+    <J30_Prolong:Item name="Latitude">14</J30_Prolong:Item>
+    <J30_Prolong:Item name="Longitude">14</J30_Prolong:Item>
+    <J30_Prolong:Item name="Type of Burst">3</J30_Prolong:Item>
+  </J30_Prolong:NameSpace><J30_Continue1:NameSpace xmlns:J30_Continue1="J/J30/Continue1">
+    <J30_Continue1:Item name="Continuation Word Label">5</J30_Continue1:Item>
+    <J30_Continue1:Item name="Delta Latitude">14</J30_Continue1:Item>
+    <J30_Continue1:Item name="Delta Longitude">14</J30_Continue1:Item>
+    <J30_Continue1:Item name="End Point">1</J30_Continue1:Item>
+    <J30_Continue1:Item name="End Point 1/2">1</J30_Continue1:Item>
+    <J30_Continue1:Item name="End Point fields are binary flags">1</J30_Continue1:Item>
+    <J30_Continue1:Item name="Longitude">14</J30_Continue1:Item>
+  </J30_Continue1:NameSpace><J30_Continue2:NameSpace xmlns:J30_Continue2="J/J30/Continue2">
+    <J30_Continue2:Item name="AXIS ORIENTATION">8</J30_Continue2:Item>
+    <J30_Continue2:Item name="Course">9</J30_Continue2:Item>
+    <J30_Continue2:Item name="Speed">11</J30_Continue2:Item>
+    <J30_Continue2:Item name="Track Number">19</J30_Continue2:Item>
+  </J30_Continue2:NameSpace><J30_Continue3:NameSpace xmlns:J30_Continue3="J/J30/Continue3">
+    <J30_Continue3:Item name="Channel Number">7</J30_Continue3:Item>
+    <J30_Continue3:Item name="Depth">7</J30_Continue3:Item>
+    <J30_Continue3:Item name="Radius">9</J30_Continue3:Item>
+    <J30_Continue3:Item name="Row Spacing">9</J30_Continue3:Item>
+    <J30_Continue3:Item name="Sonobuoy Type">9</J30_Continue3:Item>
+    <J30_Continue3:Item name="Spacing">9</J30_Continue3:Item>
+    <J30_Continue3:Item name="Type Number">5</J30_Continue3:Item>
+  </J30_Continue3:NameSpace><J30_Continue4:NameSpace xmlns:J30_Continue4="J/J30/Continue4">
+    <J30_Continue4:Item name="Continuation Word Label">5</J30_Continue4:Item>
+    <J30_Continue4:Item name="Sonobuoy Type">1</J30_Continue4:Item>
+    <J30_Continue4:Item name="Track Number Related 1">19</J30_Continue4:Item>
+    <J30_Continue4:Item name="Spare" defaultValue="0">20</J30_Continue4:Item>
+  </J30_Continue4:NameSpace><J30_Continue5:NameSpace xmlns:J30_Continue5="J/J30/Continue5">
+    <J30_Continue5:Item name="Amplification types">3</J30_Continue5:Item>
+    <J30_Continue5:Item name="Area Major/Minor Axis">6</J30_Continue5:Item>
+    <J30_Continue5:Item name="DI Bit">2</J30_Continue5:Item>
+    <J30_Continue5:Item name="DUIs 001-005 are">5</J30_Continue5:Item>
+    <J30_Continue5:Item name="Environment">5</J30_Continue5:Item>
+    <J30_Continue5:Item name="Structure">2</J30_Continue5:Item>
+  </J30_Continue5:NameSpace>
+</J30:NameSpace>

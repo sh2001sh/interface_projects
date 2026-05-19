@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J07:NameSpace xmlns:J07="J/J07">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J07_Origin:NameSpace xmlns:J07_Origin="J/J07/Origin">
+    <J07_Origin:Item name="Demand">5</J07_Origin:Item>
+    <J07_Origin:Item name="Dissemination Mode">1</J07_Origin:Item>
+    <J07_Origin:Item name="Dissemination Mode Indicator">2</J07_Origin:Item>
+    <J07_Origin:Item name="DUIs 001-006 DEMAND">5</J07_Origin:Item>
+    <J07_Origin:Item name="Hop Count">3</J07_Origin:Item>
+    <J07_Origin:Item name="Reallocation Pool Number">3</J07_Origin:Item>
+    <J07_Origin:Item name="Receive Count">3</J07_Origin:Item>
+    <J07_Origin:Item name="Time Tag">3</J07_Origin:Item>
+    <J07_Origin:Item name="Track Number">5</J07_Origin:Item>
+  </J07_Origin:NameSpace><J07_Prolong:NameSpace xmlns:J07_Prolong="J/J07/Prolong">
+    <J07_Prolong:Item name="Dissemination Mode Indicator">1</J07_Prolong:Item>
+  </J07_Prolong:NameSpace>
+</J07:NameSpace>

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J15:NameSpace xmlns:J15="J/J15">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J15_Origin:NameSpace xmlns:J15_Origin="J/J15/Origin">
+    <J15_Origin:Item name="CANTPRO">5</J15_Origin:Item>
+    <J15_Origin:Item name="Community Designator">4</J15_Origin:Item>
+    <J15_Origin:Item name="Net Number, Default">7</J15_Origin:Item>
+    <J15_Origin:Item name="Repromulgation Counter">4</J15_Origin:Item>
+    <J15_Origin:Item name="Timeout Interval">5</J15_Origin:Item>
+  </J15_Origin:NameSpace><J15_Prolong:NameSpace xmlns:J15_Prolong="J/J15/Prolong">
+    <J15_Prolong:Item name="CS UI">2</J15_Prolong:Item>
+    <J15_Prolong:Item name="Net Number">7</J15_Prolong:Item>
+    <J15_Prolong:Item name="Net Number Control">7</J15_Prolong:Item>
+    <J15_Prolong:Item name="Overall Recurrence Rate">4</J15_Prolong:Item>
+    <J15_Prolong:Item name="Participant Index">8</J15_Prolong:Item>
+    <J15_Prolong:Item name="Participant Index Number">8</J15_Prolong:Item>
+    <J15_Prolong:Item name="Recurrence Rate">4</J15_Prolong:Item>
+    <J15_Prolong:Item name="Relay Level">4</J15_Prolong:Item>
+    <J15_Prolong:Item name="Time Slot Number">15</J15_Prolong:Item>
+    <J15_Prolong:Item name="Time Slot Offset">7</J15_Prolong:Item>
+    <J15_Prolong:Item name="Time Slot Set">2</J15_Prolong:Item>
+    <J15_Prolong:Item name="Spare" defaultValue="0">7</J15_Prolong:Item>
+  </J15_Prolong:NameSpace><J15_Continue1:NameSpace xmlns:J15_Continue1="J/J15/Continue1">
+    <J15_Continue1:Item name="Label">3</J15_Continue1:Item>
+    <J15_Continue1:Item name="A/D Ind">7</J15_Continue1:Item>
+    <J15_Continue1:Item name="Label (2-6)">3</J15_Continue1:Item>
+    <J15_Continue1:Item name="Track Number">60</J15_Continue1:Item>
+    <J15_Continue1:Item name="Track Numbers (8-67)">0</J15_Continue1:Item>
+    <J15_Continue1:Item name="Spare" defaultValue="0">2</J15_Continue1:Item>
+    <J15_Continue1:Item name="Spare (68-69)" defaultValue="0">0</J15_Continue1:Item>
+  </J15_Continue1:NameSpace>
+</J15:NameSpace>

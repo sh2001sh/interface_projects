@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J11:NameSpace xmlns:J11="J/J11">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J11_Origin:NameSpace xmlns:J11_Origin="J/J11/Origin">
+    <J11_Origin:Item name="Enumerations for Connectivity Status Instruction">2</J11_Origin:Item>
+    <J11_Origin:Item name="Level">3</J11_Origin:Item>
+    <J11_Origin:Item name="Qc">1</J11_Origin:Item>
+    <J11_Origin:Item name="Quality">2</J11_Origin:Item>
+  </J11_Origin:NameSpace><J11_Prolong:NameSpace xmlns:J11_Prolong="J/J11/Prolong">
+    <J11_Prolong:Item name="Connectivity Quality">2</J11_Prolong:Item>
+    <J11_Prolong:Item name="Connectivity Quality 4/8-7/11">2</J11_Prolong:Item>
+    <J11_Prolong:Item name="Connectivity Status Instruction">2</J11_Prolong:Item>
+    <J11_Prolong:Item name="Connectivity Status Level">3</J11_Prolong:Item>
+    <J11_Prolong:Item name="E0 Word">7</J11_Prolong:Item>
+    <J11_Prolong:Item name="Header Word">2</J11_Prolong:Item>
+    <J11_Prolong:Item name="Source">3</J11_Prolong:Item>
+    <J11_Prolong:Item name="Track Number">15</J11_Prolong:Item>
+    <J11_Prolong:Item name="Track Number 4">15</J11_Prolong:Item>
+    <J11_Prolong:Item name="Track Number JU1-3">0</J11_Prolong:Item>
+    <J11_Prolong:Item name="Track Number JU4/8-7/11">0</J11_Prolong:Item>
+  </J11_Prolong:NameSpace><J11_Continue1:NameSpace xmlns:J11_Continue1="J/J11/Continue1">
+    <J11_Continue1:Item name="Community Designator">4</J11_Continue1:Item>
+    <J11_Continue1:Item name="Connectivity Quality">2</J11_Continue1:Item>
+    <J11_Continue1:Item name="Relay Level">4</J11_Continue1:Item>
+  </J11_Continue1:NameSpace>
+</J11:NameSpace>

@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J123:NameSpace xmlns:J123="J/J123">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J123_Origin:NameSpace xmlns:J123_Origin="J/J123/Origin">
+    <J123_Origin:Item name="Altitude">13</J123_Origin:Item>
+    <J123_Origin:Item name="Altitude Amplification">3</J123_Origin:Item>
+    <J123_Origin:Item name="Header Word">2</J123_Origin:Item>
+    <J123_Origin:Item name="Hour">5</J123_Origin:Item>
+    <J123_Origin:Item name="Latitude">23</J123_Origin:Item>
+    <J123_Origin:Item name="Longitude">24</J123_Origin:Item>
+    <J123_Origin:Item name="Minute">6</J123_Origin:Item>
+    <J123_Origin:Item name="Sequence Number">0</J123_Origin:Item>
+    <J123_Origin:Item name="Time Function">3</J123_Origin:Item>
+    <J123_Origin:Item name="Total Points">70</J123_Origin:Item>
+    <J123_Origin:Item name="Total Points in Series">70</J123_Origin:Item>
+    <J123_Origin:Item name="Track Number Addressee">17</J123_Origin:Item>
+    <J123_Origin:Item name="Track Number Source">2</J123_Origin:Item>
+    <J123_Origin:Item name="WAD">2</J123_Origin:Item>
+    <J123_Origin:Item name="Waypoint Action/Descriptor">4</J123_Origin:Item>
+  </J123_Origin:NameSpace><J123_Prolong:NameSpace xmlns:J123_Prolong="J/J123/Prolong">
+    <J123_Prolong:Item name="Alt Amp">3</J123_Prolong:Item>
+    <J123_Prolong:Item name="Altitude">13</J123_Prolong:Item>
+    <J123_Prolong:Item name="Altitude Amplification">3</J123_Prolong:Item>
+    <J123_Prolong:Item name="Latitude">23</J123_Prolong:Item>
+    <J123_Prolong:Item name="Longitude">24</J123_Prolong:Item>
+    <J123_Prolong:Item name="Spare" defaultValue="0">5</J123_Prolong:Item>
+  </J123_Prolong:NameSpace>
+</J123:NameSpace>

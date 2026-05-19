@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J03:NameSpace xmlns:J03="J/J03">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J03_Origin:NameSpace xmlns:J03_Origin="J/J03/Origin">
+    <J03_Origin:Item name="Action">1</J03_Origin:Item>
+    <J03_Origin:Item name="Action Code">4</J03_Origin:Item>
+    <J03_Origin:Item name="ACTION DUI 001">3</J03_Origin:Item>
+    <J03_Origin:Item name="Addressee; Delta Epoch; Epoch Subdivision; Action Code">4</J03_Origin:Item>
+    <J03_Origin:Item name="Delta Epoch">3</J03_Origin:Item>
+    <J03_Origin:Item name="Epoch Subdivision">6</J03_Origin:Item>
+    <J03_Origin:Item name="Field 392 008 Receipt/Compliance">5</J03_Origin:Item>
+    <J03_Origin:Item name="Participation Group">9</J03_Origin:Item>
+    <J03_Origin:Item name="R/C">5</J03_Origin:Item>
+    <J03_Origin:Item name="Relay Delay, Receive 1">5</J03_Origin:Item>
+    <J03_Origin:Item name="Time Slot Assignment; Participation Group">9</J03_Origin:Item>
+    <J03_Origin:Item name="Track Number">19</J03_Origin:Item>
+  </J03_Origin:NameSpace><J03_Prolong:NameSpace xmlns:J03_Prolong="J/J03/Prolong">
+    <J03_Prolong:Item name="6-bit">6</J03_Prolong:Item>
+    <J03_Prolong:Item name="Access Description">0</J03_Prolong:Item>
+    <J03_Prolong:Item name="Action">3</J03_Prolong:Item>
+    <J03_Prolong:Item name="Action Code">4</J03_Prolong:Item>
+    <J03_Prolong:Item name="Crypto Label 1">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Crypto Label 2">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Cryptomode">1</J03_Prolong:Item>
+    <J03_Prolong:Item name="Delta Epoch">3</J03_Prolong:Item>
+    <J03_Prolong:Item name="E0 Word">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Epoch Subdivision">6</J03_Prolong:Item>
+    <J03_Prolong:Item name="Header Word">2</J03_Prolong:Item>
+    <J03_Prolong:Item name="INDEX and DUI 001">4</J03_Prolong:Item>
+    <J03_Prolong:Item name="Logical Label 1">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Logical Label 2">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Net Number">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Participation Group">9</J03_Prolong:Item>
+    <J03_Prolong:Item name="Qualifier">0</J03_Prolong:Item>
+    <J03_Prolong:Item name="Receipt/Compliance">5</J03_Prolong:Item>
+    <J03_Prolong:Item name="Recurrence Rate">4</J03_Prolong:Item>
+    <J03_Prolong:Item name="Relay Delay">5</J03_Prolong:Item>
+    <J03_Prolong:Item name="Relay Delay Receive 1">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Relay Delay Receive 1 valid">7</J03_Prolong:Item>
+    <J03_Prolong:Item name="Time Slot Number">15</J03_Prolong:Item>
+    <J03_Prolong:Item name="Time Slot Set">2</J03_Prolong:Item>
+    <J03_Prolong:Item name="Track Number Addressee">17</J03_Prolong:Item>
+    <J03_Prolong:Item name="Track Number Source">2</J03_Prolong:Item>
+    <J03_Prolong:Item name="Type">5</J03_Prolong:Item>
+  </J03_Prolong:NameSpace><J03_Continue1:NameSpace xmlns:J03_Continue1="J/J03/Continue1">
+    <J03_Continue1:Item name="Action Code">4</J03_Continue1:Item>
+    <J03_Continue1:Item name="C1 Word (Net Number Decryption/Relay)">7</J03_Continue1:Item>
+    <J03_Continue1:Item name="C2 Word (Index Number Set">8</J03_Continue1:Item>
+    <J03_Continue1:Item name="Cryptomode Indicator">1</J03_Continue1:Item>
+    <J03_Continue1:Item name="Cryptovariable Logical Label Number Two">7</J03_Continue1:Item>
+    <J03_Continue1:Item name="Index Number New Set)">8</J03_Continue1:Item>
+    <J03_Continue1:Item name="Net Number Decryption">7</J03_Continue1:Item>
+    <J03_Continue1:Item name="Net Number Relay">7</J03_Continue1:Item>
+    <J03_Continue1:Item name="Relay Delay Receive 1">7</J03_Continue1:Item>
+  </J03_Continue1:NameSpace><J03_Continue2:NameSpace xmlns:J03_Continue2="J/J03/Continue2">
+    <J03_Continue2:Item name="Action">7</J03_Continue2:Item>
+    <J03_Continue2:Item name="Action Code">4</J03_Continue2:Item>
+    <J03_Continue2:Item name="C1 Word (Net Number Decryption/Relay)">7</J03_Continue2:Item>
+    <J03_Continue2:Item name="C2 Word (Index Number Set">8</J03_Continue2:Item>
+    <J03_Continue2:Item name="Continuation Word Label">5</J03_Continue2:Item>
+    <J03_Continue2:Item name="Cryptomode Indicator">1</J03_Continue2:Item>
+    <J03_Continue2:Item name="Cryptovariable Logical Label Number Two">7</J03_Continue2:Item>
+    <J03_Continue2:Item name="Index Number New Set">8</J03_Continue2:Item>
+    <J03_Continue2:Item name="Index Number Set">8</J03_Continue2:Item>
+    <J03_Continue2:Item name="Index Number (Set/New)">8</J03_Continue2:Item>
+    <J03_Continue2:Item name="Relay Delay Receive 1">7</J03_Continue2:Item>
+    <J03_Continue2:Item name="Spare" defaultValue="0">43</J03_Continue2:Item>
+  </J03_Continue2:NameSpace>
+</J03:NameSpace>

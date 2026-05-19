@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J04:NameSpace xmlns:J04="J/J04">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J04_Origin:NameSpace xmlns:J04_Origin="J/J04/Origin">
+    <J04_Origin:Item name="Delta Epoch">3</J04_Origin:Item>
+    <J04_Origin:Item name="Epoch Subdivision">6</J04_Origin:Item>
+    <J04_Origin:Item name="Participation Group">4</J04_Origin:Item>
+    <J04_Origin:Item name="Receipt/Compliance">4</J04_Origin:Item>
+    <J04_Origin:Item name="Relay Control Action">3</J04_Origin:Item>
+    <J04_Origin:Item name="Relay Function">3</J04_Origin:Item>
+    <J04_Origin:Item name="Relay Label Directed">5</J04_Origin:Item>
+    <J04_Origin:Item name="Track Number">15</J04_Origin:Item>
+    <J04_Origin:Item name="Voice Group">7</J04_Origin:Item>
+    <J04_Origin:Item name="Zoom Relay Transmit Net">0</J04_Origin:Item>
+  </J04_Origin:NameSpace><J04_Prolong:NameSpace xmlns:J04_Prolong="J/J04/Prolong">
+    <J04_Prolong:Item name="Bit layout">4</J04_Prolong:Item>
+    <J04_Prolong:Item name="Crypto">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Cryptomode Indicator">1</J04_Prolong:Item>
+    <J04_Prolong:Item name="CVL N1R">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="CYP MDE">1</J04_Prolong:Item>
+    <J04_Prolong:Item name="Delta Epoch">3</J04_Prolong:Item>
+    <J04_Prolong:Item name="E0 Word (Relay Delay">5</J04_Prolong:Item>
+    <J04_Prolong:Item name="Epoch Subdivision">6</J04_Prolong:Item>
+    <J04_Prolong:Item name="Header Word (Track Number Source)">15</J04_Prolong:Item>
+    <J04_Prolong:Item name="INDEX and DUI 001">4</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number Receive">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number Receive/Transmit">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Net Number Transmit">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Number Addressee">17</J04_Prolong:Item>
+    <J04_Prolong:Item name="Participation Group">9</J04_Prolong:Item>
+    <J04_Prolong:Item name="Participation Group Relay Assignment Indicator">9</J04_Prolong:Item>
+    <J04_Prolong:Item name="PGR Ind">1</J04_Prolong:Item>
+    <J04_Prolong:Item name="Receipt/Compliance">4</J04_Prolong:Item>
+    <J04_Prolong:Item name="Recurrence Rate">4</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Control Action">3</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Delay">5</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Function">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Relay Label Directed">5</J04_Prolong:Item>
+    <J04_Prolong:Item name="Set">2</J04_Prolong:Item>
+    <J04_Prolong:Item name="Time Slot Number">15</J04_Prolong:Item>
+    <J04_Prolong:Item name="Time Slot Number Index)">15</J04_Prolong:Item>
+    <J04_Prolong:Item name="Time Slot Set">2</J04_Prolong:Item>
+    <J04_Prolong:Item name="Voice Group">7</J04_Prolong:Item>
+    <J04_Prolong:Item name="Zoom Relay Transmit Net">0</J04_Prolong:Item>
+  </J04_Prolong:NameSpace><J04_Continue2:NameSpace xmlns:J04_Continue2="J/J04/Continue2">
+    <J04_Continue2:Item name="Continuation Word Label">5</J04_Continue2:Item>
+    <J04_Continue2:Item name="IRIP Route 1">1</J04_Continue2:Item>
+    <J04_Continue2:Item name="IRIP Routes">15</J04_Continue2:Item>
+    <J04_Continue2:Item name="RRIP Route 1">1</J04_Continue2:Item>
+    <J04_Continue2:Item name="RRIP Routes">15</J04_Continue2:Item>
+    <J04_Continue2:Item name="Spare" defaultValue="0">33</J04_Continue2:Item>
+  </J04_Continue2:NameSpace>
+</J04:NameSpace>

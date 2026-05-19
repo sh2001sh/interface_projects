@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J33:NameSpace xmlns:J33="J/J33">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J33_Origin:NameSpace xmlns:J33_Origin="J/J33/Origin">
+    <J33_Origin:Item name="Exercise Indicator">1</J33_Origin:Item>
+    <J33_Origin:Item name="Strength">4</J33_Origin:Item>
+    <J33_Origin:Item name="Track Number">19</J33_Origin:Item>
+    <J33_Origin:Item name="Track Quality discriminator">4</J33_Origin:Item>
+  </J33_Origin:NameSpace><J33_Prolong:NameSpace xmlns:J33_Prolong="J/J33/Prolong">
+    <J33_Prolong:Item name="Course">9</J33_Prolong:Item>
+    <J33_Prolong:Item name="Latitude">21</J33_Prolong:Item>
+    <J33_Prolong:Item name="Longitude">22</J33_Prolong:Item>
+    <J33_Prolong:Item name="Speed">11</J33_Prolong:Item>
+    <J33_Prolong:Item name="Spare" defaultValue="0">2</J33_Prolong:Item>
+  </J33_Prolong:NameSpace><J33_Continue1:NameSpace xmlns:J33_Continue1="J/J33/Continue1">
+    <J33_Continue1:Item name="Hour">5</J33_Continue1:Item>
+    <J33_Continue1:Item name="Minute">6</J33_Continue1:Item>
+    <J33_Continue1:Item name="Mode I">7</J33_Continue1:Item>
+    <J33_Continue1:Item name="Mode I-IV Code">7</J33_Continue1:Item>
+    <J33_Continue1:Item name="Mode II">13</J33_Continue1:Item>
+    <J33_Continue1:Item name="Mode III">13</J33_Continue1:Item>
+    <J33_Continue1:Item name="MODE IV INDICATOR">2</J33_Continue1:Item>
+    <J33_Continue1:Item name="PPLI IFF/SIF Indicator">2</J33_Continue1:Item>
+    <J33_Continue1:Item name="SURFACE ACTIVITY">7</J33_Continue1:Item>
+    <J33_Continue1:Item name="SURFACE PLATFORM">6</J33_Continue1:Item>
+  </J33_Continue1:NameSpace><J33_Continue2:NameSpace xmlns:J33_Continue2="J/J33/Continue2">
+    <J33_Continue2:Item name="3. Value T">0</J33_Continue2:Item>
+    <J33_Continue2:Item name="9 bits, enum list">7</J33_Continue2:Item>
+    <J33_Continue2:Item name="SAM/SSM Type 1">0</J33_Continue2:Item>
+  </J33_Continue2:NameSpace>
+</J33:NameSpace>

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J26:NameSpace xmlns:J26="J/J26">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J26_Origin:NameSpace xmlns:J26_Origin="J/J26/Origin">
+    <J26_Origin:Item name="Exercise Indicator">1</J26_Origin:Item>
+    <J26_Origin:Item name="Force Tell Indicator">1</J26_Origin:Item>
+  </J26_Origin:NameSpace><J26_Prolong:NameSpace xmlns:J26_Prolong="J/J26/Prolong">
+    <J26_Prolong:Item name="Latitude">2</J26_Prolong:Item>
+    <J26_Prolong:Item name="Longitude">14</J26_Prolong:Item>
+  </J26_Prolong:NameSpace><J26_Continue1:NameSpace xmlns:J26_Continue1="J/J26/Continue1">
+    <J26_Continue1:Item name="ARI CC">67</J26_Continue1:Item>
+    <J26_Continue1:Item name="ARI VC">66</J26_Continue1:Item>
+    <J26_Continue1:Item name="Continuation Word Label">3</J26_Continue1:Item>
+    <J26_Continue1:Item name="Continuation Word Label (2-6)">3</J26_Continue1:Item>
+    <J26_Continue1:Item name="Control Channel">7</J26_Continue1:Item>
+    <J26_Continue1:Item name="Control Channel (59-65)">7</J26_Continue1:Item>
+    <J26_Continue1:Item name="Disused">68</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Activity">7</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Activity (39-45)">7</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Activity bit">6</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Platform">6</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Platform (33-38)">6</J26_Continue1:Item>
+    <J26_Continue1:Item name="Land Platform bit">6</J26_Continue1:Item>
+    <J26_Continue1:Item name="Voice Call Sign">24</J26_Continue1:Item>
+    <J26_Continue1:Item name="Voice Call Sign (9-32)">24</J26_Continue1:Item>
+    <J26_Continue1:Item name="Voice Call Sign Indicator">7</J26_Continue1:Item>
+    <J26_Continue1:Item name="Voice Frequency/Channel">13</J26_Continue1:Item>
+    <J26_Continue1:Item name="Voice Frequency/Channel (46-58)">13</J26_Continue1:Item>
+    <J26_Continue1:Item name="Spare" defaultValue="0">8</J26_Continue1:Item>
+  </J26_Continue1:NameSpace><J26_Continue2:NameSpace xmlns:J26_Continue2="J/J26/Continue2">
+    <J26_Continue2:Item name="Force Tell Indicator">1</J26_Continue2:Item>
+  </J26_Continue2:NameSpace><J26_Continue3:NameSpace xmlns:J26_Continue3="J/J26/Continue3">
+    <J26_Continue3:Item name="Beta Angle">15</J26_Continue3:Item>
+    <J26_Continue3:Item name="Relative Azimuth Quality">3</J26_Continue3:Item>
+    <J26_Continue3:Item name="Relative Position Quality">4</J26_Continue3:Item>
+    <J26_Continue3:Item name="U Coordinate">20</J26_Continue3:Item>
+    <J26_Continue3:Item name="V Coordinate">20</J26_Continue3:Item>
+  </J26_Continue3:NameSpace>
+</J26:NameSpace>

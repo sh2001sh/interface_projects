@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J35:NameSpace xmlns:J35="J/J35">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J35_Origin:NameSpace xmlns:J35_Origin="J/J35/Origin">
+    <J35_Origin:Item name="354, 355, 292, 1604 are single bit indicators">1</J35_Origin:Item>
+    <J35_Origin:Item name="Elevation LSBS">14</J35_Origin:Item>
+    <J35_Origin:Item name="Latitude LSBs">3</J35_Origin:Item>
+    <J35_Origin:Item name="LST IND">1</J35_Origin:Item>
+    <J35_Origin:Item name="Minute">21</J35_Origin:Item>
+    <J35_Origin:Item name="Point/Track Indicator 1-bit">1</J35_Origin:Item>
+    <J35_Origin:Item name="Valid">3</J35_Origin:Item>
+  </J35_Origin:NameSpace><J35_Prolong:NameSpace xmlns:J35_Prolong="J/J35/Prolong">
+    <J35_Prolong:Item name="Passive/Active Indicator">1</J35_Prolong:Item>
+    <J35_Prolong:Item name="Track Identifier">2</J35_Prolong:Item>
+    <J35_Prolong:Item name="Tracking Modifier">2</J35_Prolong:Item>
+  </J35_Prolong:NameSpace><J35_Continue1:NameSpace xmlns:J35_Continue1="J/J35/Continue1">
+    <J35_Continue1:Item name="Hour">5</J35_Continue1:Item>
+    <J35_Continue1:Item name="Land Activity">7</J35_Continue1:Item>
+    <J35_Continue1:Item name="Land Platform">6</J35_Continue1:Item>
+    <J35_Continue1:Item name="Land Specific Type">7</J35_Continue1:Item>
+    <J35_Continue1:Item name="Minute">6</J35_Continue1:Item>
+    <J35_Continue1:Item name="Mode I">13</J35_Continue1:Item>
+  </J35_Continue1:NameSpace><J35_Continue3:NameSpace xmlns:J35_Continue3="J/J35/Continue3">
+    <J35_Continue3:Item name="Area Major Axis, 5">8</J35_Continue3:Item>
+    <J35_Continue3:Item name="AXIS ORIENTATION">11</J35_Continue3:Item>
+    <J35_Continue3:Item name="SQUARE/CIRCLE SWITCH, 3">9</J35_Continue3:Item>
+  </J35_Continue3:NameSpace>
+</J35:NameSpace>

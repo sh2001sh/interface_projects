@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J13:NameSpace xmlns:J13="J/J13">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J13_Origin:NameSpace xmlns:J13_Origin="J/J13/Origin">
+    <J13_Origin:StructMess name="Label">5</J13_Origin:StructMess>
+    <J13_Origin:StructMess name="Message Length Indicator">3</J13_Origin:StructMess>
+    <J13_Origin:StructMess name="Sublabel">3</J13_Origin:StructMess>
+    <J13_Origin:Item name="Ack DA">1</J13_Origin:Item>
+    <J13_Origin:Item name="Ack Data">1</J13_Origin:Item>
+    <J13_Origin:Item name="Ack Data Amp">1</J13_Origin:Item>
+    <J13_Origin:Item name="Ack DD">1</J13_Origin:Item>
+    <J13_Origin:Item name="BSI">1</J13_Origin:Item>
+    <J13_Origin:Item name="Field 795 001">1</J13_Origin:Item>
+    <J13_Origin:Item name="Field 796 001">1</J13_Origin:Item>
+    <J13_Origin:Item name="Field 798 001">1</J13_Origin:Item>
+    <J13_Origin:Item name="Field 799 001">1</J13_Origin:Item>
+    <J13_Origin:Item name="Message Length Ind">3</J13_Origin:Item>
+    <J13_Origin:Item name="SBF Flags">39</J13_Origin:Item>
+    <J13_Origin:Item name="Track Number">15</J13_Origin:Item>
+  </J13_Origin:NameSpace><J13_Prolong:NameSpace xmlns:J13_Prolong="J/J13/Prolong">
+    <J13_Prolong:Item name="SBF F40 bit">1</J13_Prolong:Item>
+    <J13_Prolong:Item name="SBF flags are">1</J13_Prolong:Item>
+  </J13_Prolong:NameSpace>
+</J13:NameSpace>

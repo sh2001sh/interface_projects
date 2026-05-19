@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J20:NameSpace xmlns:J20="J/J20">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J20_Origin:NameSpace xmlns:J20_Origin="J/J20/Origin">
+    <J20_Origin:StructMess name="Message Length Indicator">3</J20_Origin:StructMess>
+    <J20_Origin:Item name="1 bit, binary enum">1</J20_Origin:Item>
+    <J20_Origin:Item name="Activity">7</J20_Origin:Item>
+    <J20_Origin:Item name="Air Specific Type">10</J20_Origin:Item>
+    <J20_Origin:Item name="Airborne Indicator">1</J20_Origin:Item>
+    <J20_Origin:Item name="DFI/DUI pairs define">11</J20_Origin:Item>
+    <J20_Origin:Item name="Flight Leader Indicator">1</J20_Origin:Item>
+    <J20_Origin:Item name="Generic Unit Type">5</J20_Origin:Item>
+    <J20_Origin:Item name="Hour Tick">5</J20_Origin:Item>
+    <J20_Origin:Item name="Land Specific Type">12</J20_Origin:Item>
+    <J20_Origin:Item name="Latitude">5</J20_Origin:Item>
+    <J20_Origin:Item name="Mission Commander Indicator">1</J20_Origin:Item>
+    <J20_Origin:Item name="Mission Correlator">8</J20_Origin:Item>
+    <J20_Origin:Item name="ORG ENV">2</J20_Origin:Item>
+    <J20_Origin:Item name="Originator Env">2</J20_Origin:Item>
+    <J20_Origin:Item name="Originator Environment">2</J20_Origin:Item>
+    <J20_Origin:Item name="Site">3</J20_Origin:Item>
+    <J20_Origin:Item name="Subsurface Specific Type">12</J20_Origin:Item>
+    <J20_Origin:Item name="Surface Specific Type">12</J20_Origin:Item>
+  </J20_Origin:NameSpace><J20_Prolong:NameSpace xmlns:J20_Prolong="J/J20/Prolong">
+    <J20_Prolong:Item name="Course">9</J20_Prolong:Item>
+    <J20_Prolong:Item name="Latitude 1">23</J20_Prolong:Item>
+    <J20_Prolong:Item name="Latitude LSBs">2</J20_Prolong:Item>
+    <J20_Prolong:Item name="Longitude">23</J20_Prolong:Item>
+    <J20_Prolong:Item name="Speed">11</J20_Prolong:Item>
+  </J20_Prolong:NameSpace><J20_Continue1:NameSpace xmlns:J20_Continue1="J/J20/Continue1">
+    <J20_Continue1:Item name="Activity">7</J20_Continue1:Item>
+    <J20_Continue1:Item name="Air Platform enum">6</J20_Continue1:Item>
+    <J20_Continue1:Item name="Depth">7</J20_Continue1:Item>
+    <J20_Continue1:Item name="Elevation">11</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mission Correlator">8</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode I">5</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode I Code">5</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode II">12</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode II Code">12</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode III">12</J20_Continue1:Item>
+    <J20_Continue1:Item name="Mode III Code">12</J20_Continue1:Item>
+    <J20_Continue1:Item name="Platform">6</J20_Continue1:Item>
+    <J20_Continue1:Item name="Subsurface Platform enum">6</J20_Continue1:Item>
+    <J20_Continue1:Item name="Surface Platform enum">6</J20_Continue1:Item>
+  </J20_Continue1:NameSpace><J20_Continue2:NameSpace xmlns:J20_Continue2="J/J20/Continue2">
+    <J20_Continue2:Item name="Control Channel">7</J20_Continue2:Item>
+  </J20_Continue2:NameSpace><J20_Continue3:NameSpace xmlns:J20_Continue3="J/J20/Continue3">
+    <J20_Continue3:Item name="Air Specific Type">10</J20_Continue3:Item>
+    <J20_Continue3:Item name="AIR SPECIFIC TYPE DUI 001">12</J20_Continue3:Item>
+    <J20_Continue3:Item name="Latitude 1">23</J20_Continue3:Item>
+    <J20_Continue3:Item name="Latitude LSBs">2</J20_Continue3:Item>
+    <J20_Continue3:Item name="Position Time Quality">10</J20_Continue3:Item>
+  </J20_Continue3:NameSpace>
+</J20:NameSpace>

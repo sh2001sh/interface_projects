@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J74:NameSpace xmlns:J74="J/J74">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J74_Origin:NameSpace xmlns:J74_Origin="J/J74/Origin">
+    <J74_Origin:Item name="DUIs">1</J74_Origin:Item>
+    <J74_Origin:Item name="Octal">4</J74_Origin:Item>
+  </J74_Origin:NameSpace>
+</J74:NameSpace>

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J72:NameSpace xmlns:J72="J/J72">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J72_Origin:NameSpace xmlns:J72_Origin="J/J72/Origin">
+    <J72_Origin:StructMess name="Label">5</J72_Origin:StructMess>
+    <J72_Origin:StructMess name="Message Length Indicator">3</J72_Origin:StructMess>
+    <J72_Origin:StructMess name="Sublabel">3</J72_Origin:StructMess>
+    <J72_Origin:Item name="Action">3</J72_Origin:Item>
+    <J72_Origin:Item name="Action Correlate">3</J72_Origin:Item>
+    <J72_Origin:Item name="Action field enum">2</J72_Origin:Item>
+    <J72_Origin:Item name="Header Word">2</J72_Origin:Item>
+    <J72_Origin:Item name="RV">2</J72_Origin:Item>
+    <J72_Origin:Item name="Structure">3</J72_Origin:Item>
+    <J72_Origin:Item name="Track Number Dropped">19</J72_Origin:Item>
+    <J72_Origin:Item name="Track Number Retained">19</J72_Origin:Item>
+    <J72_Origin:Item name="Track Number Source">2</J72_Origin:Item>
+    <J72_Origin:Item name="Spare" defaultValue="0">1</J72_Origin:Item>
+  </J72_Origin:NameSpace>
+</J72:NameSpace>

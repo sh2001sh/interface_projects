@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J130:NameSpace xmlns:J130="J/J130">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J130_Origin:NameSpace xmlns:J130_Origin="J/J130/Origin">
+    <J130_Origin:StructMess name="LABEL">5</J130_Origin:StructMess>
+    <J130_Origin:Item name="1 bit, binary enum">1</J130_Origin:Item>
+    <J130_Origin:Item name="Active Runway Direction">6</J130_Origin:Item>
+    <J130_Origin:Item name="AIRFIELD STATUS">1</J130_Origin:Item>
+    <J130_Origin:Item name="Base Weather State">3</J130_Origin:Item>
+    <J130_Origin:Item name="Crash Services">1</J130_Origin:Item>
+    <J130_Origin:Item name="TRACK NUMBER">19</J130_Origin:Item>
+  </J130_Origin:NameSpace><J130_Prolong:NameSpace xmlns:J130_Prolong="J/J130/Prolong">
+    <J130_Prolong:Item name="ACTIVE RUNWAY DIRECTION">6</J130_Prolong:Item>
+    <J130_Prolong:Item name="ACTIVE RUNWAY STATUS">3</J130_Prolong:Item>
+    <J130_Prolong:Item name="Braking action">3</J130_Prolong:Item>
+    <J130_Prolong:Item name="ICAO">5</J130_Prolong:Item>
+    <J130_Prolong:Item name="ICAO CODE">20</J130_Prolong:Item>
+  </J130_Prolong:NameSpace><J130_Continue1:NameSpace xmlns:J130_Continue1="J/J130/Continue1">
+    <J130_Continue1:Item name="CLOUD COVER">2</J130_Continue1:Item>
+    <J130_Continue1:Item name="Cloud Cover, 1">2</J130_Continue1:Item>
+    <J130_Continue1:Item name="VISIBILITY">7</J130_Continue1:Item>
+    <J130_Continue1:Item name="WIND DIRECTION">7</J130_Continue1:Item>
+    <J130_Continue1:Item name="WIND SPEED">7</J130_Continue1:Item>
+  </J130_Continue1:NameSpace><J130_Continue2:NameSpace xmlns:J130_Continue2="J/J130/Continue2">
+    <J130_Continue2:Item name="20mm">0</J130_Continue2:Item>
+    <J130_Continue2:Item name="27mm">0</J130_Continue2:Item>
+    <J130_Continue2:Item name="30mm Ammunition. Values: T (Default=0)">6</J130_Continue2:Item>
+    <J130_Continue2:Item name="AIM-9L">1</J130_Continue2:Item>
+    <J130_Continue2:Item name="AVTUR">1</J130_Continue2:Item>
+    <J130_Continue2:Item name="Continuation Word Label">5</J130_Continue2:Item>
+    <J130_Continue2:Item name="DURANDAL">1</J130_Continue2:Item>
+    <J130_Continue2:Item name="LIQUID OXYGEN">1</J130_Continue2:Item>
+    <J130_Continue2:Item name="SPARE" defaultValue="0">32</J130_Continue2:Item>
+  </J130_Continue2:NameSpace>
+</J130:NameSpace>

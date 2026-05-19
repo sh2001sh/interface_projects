@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J05:NameSpace xmlns:J05="J/J05">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J05_Origin:NameSpace xmlns:J05_Origin="J/J05/Origin">
+    <J05_Origin:Item name="Recurrence Rate Number">4</J05_Origin:Item>
+  </J05_Origin:NameSpace>
+</J05:NameSpace>

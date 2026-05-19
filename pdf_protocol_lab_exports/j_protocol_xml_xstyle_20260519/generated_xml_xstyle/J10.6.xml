@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J106:NameSpace xmlns:J106="J/J106">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J106_Origin:NameSpace xmlns:J106_Origin="J/J106/Origin">
+    <J106_Origin:StructMess name="Label">5</J106_Origin:StructMess>
+    <J106_Origin:StructMess name="Sublabel">3</J106_Origin:StructMess>
+    <J106_Origin:Item name="Binary">14</J106_Origin:Item>
+    <J106_Origin:Item name="Disused">1</J106_Origin:Item>
+    <J106_Origin:Item name="DUD">69</J106_Origin:Item>
+    <J106_Origin:Item name="Header Word">2</J106_Origin:Item>
+    <J106_Origin:Item name="Label (2-6)">5</J106_Origin:Item>
+    <J106_Origin:Item name="Message Length">3</J106_Origin:Item>
+    <J106_Origin:Item name="Message Length (10-12)">3</J106_Origin:Item>
+    <J106_Origin:Item name="Pairing Action">4</J106_Origin:Item>
+    <J106_Origin:Item name="Pairing Action (51-54)">4</J106_Origin:Item>
+    <J106_Origin:Item name="Sublabel (7-9)">3</J106_Origin:Item>
+    <J106_Origin:Item name="Track Number">19</J106_Origin:Item>
+    <J106_Origin:Item name="Track Number Objective">19</J106_Origin:Item>
+    <J106_Origin:Item name="Track Number Source">2</J106_Origin:Item>
+    <J106_Origin:Item name="Track Obj">19</J106_Origin:Item>
+    <J106_Origin:Item name="Track Obj (32-50)">19</J106_Origin:Item>
+    <J106_Origin:Item name="Track Ref">19</J106_Origin:Item>
+    <J106_Origin:Item name="Track Ref (13-31)">19</J106_Origin:Item>
+    <J106_Origin:Item name="Spare" defaultValue="0">14</J106_Origin:Item>
+    <J106_Origin:Item name="Spare (55-68)" defaultValue="0">14</J106_Origin:Item>
+  </J106_Origin:NameSpace>
+</J106:NameSpace>

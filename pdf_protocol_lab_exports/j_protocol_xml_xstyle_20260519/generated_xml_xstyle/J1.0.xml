@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J10:NameSpace xmlns:J10="J/J10">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J10_Origin:NameSpace xmlns:J10_Origin="J/J10/Origin">
+    <J10_Origin:StructMess name="Label">5</J10_Origin:StructMess>
+    <J10_Origin:StructMess name="Message Length Indicator">3</J10_Origin:StructMess>
+    <J10_Origin:StructMess name="Sublabel">3</J10_Origin:StructMess>
+    <J10_Origin:Item name="CII">2</J10_Origin:Item>
+    <J10_Origin:Item name="Recurrence Rate">6</J10_Origin:Item>
+    <J10_Origin:Item name="Route Number">4</J10_Origin:Item>
+    <J10_Origin:Item name="Track Number">45</J10_Origin:Item>
+  </J10_Origin:NameSpace><J10_Prolong:NameSpace xmlns:J10_Prolong="J/J10/Prolong">
+    <J10_Prolong:Item name="Octal">13</J10_Prolong:Item>
+  </J10_Prolong:NameSpace>
+</J10:NameSpace>

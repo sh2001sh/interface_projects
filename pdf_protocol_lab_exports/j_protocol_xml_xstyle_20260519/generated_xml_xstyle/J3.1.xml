@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J31:NameSpace xmlns:J31="J/J31">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J31_Origin:NameSpace xmlns:J31_Origin="J/J31/Origin">
+    <J31_Origin:Item name="Exercise Indicator">1</J31_Origin:Item>
+    <J31_Origin:Item name="Time Function">2</J31_Origin:Item>
+    <J31_Origin:Item name="Time Function valid">3</J31_Origin:Item>
+  </J31_Origin:NameSpace><J31_Prolong:NameSpace xmlns:J31_Prolong="J/J31/Prolong">
+    <J31_Prolong:Item name="E0 Word">7</J31_Prolong:Item>
+    <J31_Prolong:Item name="Emergency Type">1</J31_Prolong:Item>
+    <J31_Prolong:Item name="Exercise Indicator">1</J31_Prolong:Item>
+    <J31_Prolong:Item name="Header Word">2</J31_Prolong:Item>
+    <J31_Prolong:Item name="Hour">5</J31_Prolong:Item>
+    <J31_Prolong:Item name="Initial Word">2</J31_Prolong:Item>
+    <J31_Prolong:Item name="Latitude">2</J31_Prolong:Item>
+    <J31_Prolong:Item name="Longitude">14</J31_Prolong:Item>
+    <J31_Prolong:Item name="Minute">6</J31_Prolong:Item>
+    <J31_Prolong:Item name="Personnel Involved">0</J31_Prolong:Item>
+    <J31_Prolong:Item name="Position Accuracy">0</J31_Prolong:Item>
+    <J31_Prolong:Item name="Simulation Indicator">1</J31_Prolong:Item>
+    <J31_Prolong:Item name="Time Function">3</J31_Prolong:Item>
+    <J31_Prolong:Item name="Track Number">19</J31_Prolong:Item>
+    <J31_Prolong:Item name="Track Number Previously Reported">0</J31_Prolong:Item>
+    <J31_Prolong:Item name="Track Number Source">2</J31_Prolong:Item>
+  </J31_Prolong:NameSpace><J31_Continue2:NameSpace xmlns:J31_Continue2="J/J31/Continue2">
+    <J31_Continue2:Item name="IMP/DIS">2</J31_Continue2:Item>
+  </J31_Continue2:NameSpace>
+</J31:NameSpace>

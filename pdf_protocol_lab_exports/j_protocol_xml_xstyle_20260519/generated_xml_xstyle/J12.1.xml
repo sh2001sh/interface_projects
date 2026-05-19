@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J121:NameSpace xmlns:J121="J/J121">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J121_Origin:NameSpace xmlns:J121_Origin="J/J121/Origin">
+    <J121_Origin:StructMess name="Label">5</J121_Origin:StructMess>
+    <J121_Origin:StructMess name="Sublabel">3</J121_Origin:StructMess>
+    <J121_Origin:Item name="Altitude">13</J121_Origin:Item>
+    <J121_Origin:Item name="Course">9</J121_Origin:Item>
+    <J121_Origin:Item name="Elements">4</J121_Origin:Item>
+    <J121_Origin:Item name="Message Len">3</J121_Origin:Item>
+    <J121_Origin:Item name="R/C">3</J121_Origin:Item>
+    <J121_Origin:Item name="Receipt/Compliance">5</J121_Origin:Item>
+    <J121_Origin:Item name="Recurrence Rate">4</J121_Origin:Item>
+    <J121_Origin:Item name="Speed">11</J121_Origin:Item>
+    <J121_Origin:Item name="Time to Intercept">8</J121_Origin:Item>
+    <J121_Origin:Item name="Track Num">15</J121_Origin:Item>
+    <J121_Origin:Item name="Track Number">19</J121_Origin:Item>
+    <J121_Origin:Item name="Track Number Addressee">17</J121_Origin:Item>
+    <J121_Origin:Item name="Track Number Source">2</J121_Origin:Item>
+    <J121_Origin:Item name="Vector Disc">6</J121_Origin:Item>
+    <J121_Origin:Item name="Vector Discrete">2</J121_Origin:Item>
+    <J121_Origin:Item name="Waypoint Action/Descriptor">4</J121_Origin:Item>
+    <J121_Origin:Item name="Spare" defaultValue="0">3</J121_Origin:Item>
+  </J121_Origin:NameSpace><J121_Prolong:NameSpace xmlns:J121_Prolong="J/J121/Prolong">
+    <J121_Prolong:Item name="Elements">6</J121_Prolong:Item>
+    <J121_Prolong:Item name="Receipt/Compliance">5</J121_Prolong:Item>
+    <J121_Prolong:Item name="Recurrence">4</J121_Prolong:Item>
+    <J121_Prolong:Item name="Recurrence Rate">4</J121_Prolong:Item>
+    <J121_Prolong:Item name="Time to Intercept">8</J121_Prolong:Item>
+    <J121_Prolong:Item name="Spare" defaultValue="0">51</J121_Prolong:Item>
+  </J121_Prolong:NameSpace>
+</J121:NameSpace>

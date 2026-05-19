@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J70:NameSpace xmlns:J70="J/J70">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+    </PreSeq>
+  </MessCode><J70_Origin:NameSpace xmlns:J70_Origin="J/J70/Origin">
+    <J70_Origin:Item name="ACT">3</J70_Origin:Item>
+    <J70_Origin:Item name="ACT field with">2</J70_Origin:Item>
+    <J70_Origin:Item name="Action">3</J70_Origin:Item>
+    <J70_Origin:Item name="Action Track Management">3</J70_Origin:Item>
+    <J70_Origin:Item name="Activity">7</J70_Origin:Item>
+    <J70_Origin:Item name="Alert Status Change">5</J70_Origin:Item>
+    <J70_Origin:Item name="Control Unit Indicator">1</J70_Origin:Item>
+    <J70_Origin:Item name="Controlling Unit Indicator">1</J70_Origin:Item>
+    <J70_Origin:Item name="EI">1</J70_Origin:Item>
+    <J70_Origin:Item name="Env">3</J70_Origin:Item>
+    <J70_Origin:Item name="Environment">3</J70_Origin:Item>
+    <J70_Origin:Item name="Exercise Indicator">1</J70_Origin:Item>
+    <J70_Origin:Item name="Identity">3</J70_Origin:Item>
+    <J70_Origin:Item name="Identity Amplifying Descriptor">3</J70_Origin:Item>
+    <J70_Origin:Item name="Identity Difference Indicator">1</J70_Origin:Item>
+    <J70_Origin:Item name="Platform">5</J70_Origin:Item>
+    <J70_Origin:Item name="Reference Track Number">19</J70_Origin:Item>
+    <J70_Origin:Item name="Space/Air/Surface/Subsurface/Land Activity">7</J70_Origin:Item>
+    <J70_Origin:Item name="Space/Air/Surface/Subsurface/Land Platform">6</J70_Origin:Item>
+    <J70_Origin:Item name="Special Interest Indicator">2</J70_Origin:Item>
+    <J70_Origin:Item name="Specific Type">12</J70_Origin:Item>
+    <J70_Origin:Item name="Strength">4</J70_Origin:Item>
+    <J70_Origin:Item name="Track Management Action">3</J70_Origin:Item>
+    <J70_Origin:Item name="Track Management Action Value enum">3</J70_Origin:Item>
+    <J70_Origin:Item name="Track Number">19</J70_Origin:Item>
+    <J70_Origin:Item name="Track Number Source">2</J70_Origin:Item>
+  </J70_Origin:NameSpace><J70_Prolong:NameSpace xmlns:J70_Prolong="J/J70/Prolong">
+    <J70_Prolong:Item name="Percent of Tracked Vehicles">4</J70_Prolong:Item>
+    <J70_Prolong:Item name="Total Number of Vehicles">4</J70_Prolong:Item>
+  </J70_Prolong:NameSpace><J70_Continue1:NameSpace xmlns:J70_Continue1="J/J70/Continue1">
+    <J70_Continue1:Item name="Air Specific Type">8</J70_Continue1:Item>
+    <J70_Continue1:Item name="Continuation Word Label">5</J70_Continue1:Item>
+    <J70_Continue1:Item name="Land Specific Type">12</J70_Continue1:Item>
+    <J70_Continue1:Item name="Space Specific Type">12</J70_Continue1:Item>
+    <J70_Continue1:Item name="Subsurface Specific Type">12</J70_Continue1:Item>
+    <J70_Continue1:Item name="Surface Specific Type">12</J70_Continue1:Item>
+    <J70_Continue1:Item name="Spare" defaultValue="0">1</J70_Continue1:Item>
+  </J70_Continue1:NameSpace>
+</J70:NameSpace>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J25:NameSpace xmlns:J25="J/J25">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+    </PreSeq>
+  </MessCode><J25_Origin:NameSpace xmlns:J25_Origin="J/J25/Origin">
+    <J25_Origin:Item name="Active Relay Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Command">5</J25_Origin:Item>
+    <J25_Origin:Item name="Control Channel">7</J25_Origin:Item>
+    <J25_Origin:Item name="Control Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Displaced Position Indicator">0</J25_Origin:Item>
+    <J25_Origin:Item name="Elevation">12</J25_Origin:Item>
+    <J25_Origin:Item name="Elevation Quality">4</J25_Origin:Item>
+    <J25_Origin:Item name="Emergency Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Exercise Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Force Tell Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Geodetic Position Quality">4</J25_Origin:Item>
+    <J25_Origin:Item name="Land Activity">7</J25_Origin:Item>
+    <J25_Origin:Item name="Latitude (of antenna)">0</J25_Origin:Item>
+    <J25_Origin:Item name="Latitude (of unit if displaced)">12</J25_Origin:Item>
+    <J25_Origin:Item name="Longitude (of antenna)">0</J25_Origin:Item>
+    <J25_Origin:Item name="Longitude (of unit if displaced)">12</J25_Origin:Item>
+    <J25_Origin:Item name="Mission Correlator">8</J25_Origin:Item>
+    <J25_Origin:Item name="Network Participation Status">4</J25_Origin:Item>
+    <J25_Origin:Item name="Network Participation Status Indicator">3</J25_Origin:Item>
+    <J25_Origin:Item name="NPSI">3</J25_Origin:Item>
+    <J25_Origin:Item name="RTT Reply Status">1</J25_Origin:Item>
+    <J25_Origin:Item name="RTT Reply Status Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Simulation Indicator">1</J25_Origin:Item>
+    <J25_Origin:Item name="Source Track Number">2</J25_Origin:Item>
+    <J25_Origin:Item name="Strength">4</J25_Origin:Item>
+    <J25_Origin:Item name="Time Quality">4</J25_Origin:Item>
+    <J25_Origin:Item name="Voice Call Sign">24</J25_Origin:Item>
+    <J25_Origin:Item name="Voice Frequency/Channel">13</J25_Origin:Item>
+  </J25_Origin:NameSpace><J25_Prolong:NameSpace xmlns:J25_Prolong="J/J25/Prolong">
+    <J25_Prolong:Item name="Latitude">23</J25_Prolong:Item>
+    <J25_Prolong:Item name="Latitude (0.0013 Minute)">6</J25_Prolong:Item>
+    <J25_Prolong:Item name="Longitude">24</J25_Prolong:Item>
+    <J25_Prolong:Item name="Longitude (0.0013 Minute)">6</J25_Prolong:Item>
+    <J25_Prolong:Item name="Total">70</J25_Prolong:Item>
+    <J25_Prolong:Item name="Total 70 bits">70</J25_Prolong:Item>
+    <J25_Prolong:Item name="Spare" defaultValue="0">21</J25_Prolong:Item>
+  </J25_Prolong:NameSpace><J25_Continue1:NameSpace xmlns:J25_Continue1="J/J25/Continue1">
+    <J25_Continue1:Item name="Active Relay Indicators">0</J25_Continue1:Item>
+    <J25_Continue1:Item name="Control Channel">7</J25_Continue1:Item>
+    <J25_Continue1:Item name="Land Activity">7</J25_Continue1:Item>
+    <J25_Continue1:Item name="Land Platform">6</J25_Continue1:Item>
+    <J25_Continue1:Item name="Voice Call Sign">24</J25_Continue1:Item>
+    <J25_Continue1:Item name="Voice Call Sign Indicator">1</J25_Continue1:Item>
+    <J25_Continue1:Item name="Voice Frequency/Channel">13</J25_Continue1:Item>
+  </J25_Continue1:NameSpace><J25_Continue3:NameSpace xmlns:J25_Continue3="J/J25/Continue3">
+    <J25_Continue3:Item name="Beta Angle">15</J25_Continue3:Item>
+    <J25_Continue3:Item name="Cont Word Label">5</J25_Continue3:Item>
+    <J25_Continue3:Item name="Continuation Word Label">5</J25_Continue3:Item>
+    <J25_Continue3:Item name="Rel Azimuth Quality">3</J25_Continue3:Item>
+    <J25_Continue3:Item name="Rel Pos Quality">4</J25_Continue3:Item>
+    <J25_Continue3:Item name="Relative Azimuth Quality">3</J25_Continue3:Item>
+    <J25_Continue3:Item name="Relative Position Quality">4</J25_Continue3:Item>
+    <J25_Continue3:Item name="U Coordinate">20</J25_Continue3:Item>
+    <J25_Continue3:Item name="V Coordinate">20</J25_Continue3:Item>
+    <J25_Continue3:Item name="Spare" defaultValue="0">1</J25_Continue3:Item>
+  </J25_Continue3:NameSpace><J25_Continue4:NameSpace xmlns:J25_Continue4="J/J25/Continue4">
+    <J25_Continue4:Item name="Continuation Word Label">5</J25_Continue4:Item>
+    <J25_Continue4:Item name="Latitude">20</J25_Continue4:Item>
+    <J25_Continue4:Item name="Latitude (0.0103 Minutes)">0</J25_Continue4:Item>
+    <J25_Continue4:Item name="Longitude">21</J25_Continue4:Item>
+    <J25_Continue4:Item name="Longitude (0.0103 Minutes)">0</J25_Continue4:Item>
+    <J25_Continue4:Item name="Spare" defaultValue="0">3</J25_Continue4:Item>
+  </J25_Continue4:NameSpace>
+</J25:NameSpace>

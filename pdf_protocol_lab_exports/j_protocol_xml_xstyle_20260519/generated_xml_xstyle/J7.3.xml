@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J73:NameSpace xmlns:J73="J/J73">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+    </PreSeq>
+  </MessCode><J73_Origin:NameSpace xmlns:J73_Origin="J/J73/Origin">
+    <J73_Origin:StructMess name="Label">5</J73_Origin:StructMess>
+    <J73_Origin:StructMess name="Message Length Indicator">3</J73_Origin:StructMess>
+    <J73_Origin:StructMess name="Sublabel">3</J73_Origin:StructMess>
+    <J73_Origin:Item name="Action">3</J73_Origin:Item>
+    <J73_Origin:Item name="Action Pointer">3</J73_Origin:Item>
+    <J73_Origin:Item name="Characters #1-20">0</J73_Origin:Item>
+    <J73_Origin:Item name="Header Word">2</J73_Origin:Item>
+    <J73_Origin:Item name="Lat">0</J73_Origin:Item>
+    <J73_Origin:Item name="Lat/Lon">0</J73_Origin:Item>
+    <J73_Origin:Item name="Latitude">18</J73_Origin:Item>
+    <J73_Origin:Item name="Lon">0</J73_Origin:Item>
+    <J73_Origin:Item name="Longitude">19</J73_Origin:Item>
+    <J73_Origin:Item name="MLI">0</J73_Origin:Item>
+    <J73_Origin:Item name="Pointer Action">3</J73_Origin:Item>
+    <J73_Origin:Item name="Text Indicator">2</J73_Origin:Item>
+    <J73_Origin:Item name="Track Number 1">17</J73_Origin:Item>
+    <J73_Origin:Item name="Track Number Addressee">17</J73_Origin:Item>
+    <J73_Origin:Item name="Track Number Source">2</J73_Origin:Item>
+  </J73_Origin:NameSpace><J73_Continue1:NameSpace xmlns:J73_Continue1="J/J73/Continue1">
+    <J73_Continue1:Item name="Addressee 2">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 3">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 4">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Addressee 5">15</J73_Continue1:Item>
+    <J73_Continue1:Item name="Continuation Word Label">5</J73_Continue1:Item>
+    <J73_Continue1:Item name="Track Numbers 2">0</J73_Continue1:Item>
+    <J73_Continue1:Item name="Spare" defaultValue="0">3</J73_Continue1:Item>
+  </J73_Continue1:NameSpace><J73_Continue2:NameSpace xmlns:J73_Continue2="J/J73/Continue2">
+    <J73_Continue2:Item name="Label">5</J73_Continue2:Item>
+    <J73_Continue2:Item name="10 Characters (6 bits each)">0</J73_Continue2:Item>
+    <J73_Continue2:Item name="Character #1-#10">6</J73_Continue2:Item>
+    <J73_Continue2:Item name="Default">6</J73_Continue2:Item>
+    <J73_Continue2:Item name="Format">2</J73_Continue2:Item>
+    <J73_Continue2:Item name="Spare" defaultValue="0">3</J73_Continue2:Item>
+  </J73_Continue2:NameSpace><J73_Continue3:NameSpace xmlns:J73_Continue3="J/J73/Continue3">
+    <J73_Continue3:Item name="Character #11-#20">60</J73_Continue3:Item>
+    <J73_Continue3:Item name="Characters #11-#20">60</J73_Continue3:Item>
+    <J73_Continue3:Item name="Continuation Word Label">5</J73_Continue3:Item>
+    <J73_Continue3:Item name="Default">6</J73_Continue3:Item>
+    <J73_Continue3:Item name="Spare" defaultValue="0">3</J73_Continue3:Item>
+  </J73_Continue3:NameSpace>
+</J73:NameSpace>

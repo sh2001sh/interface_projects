@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J310:NameSpace xmlns:J310="J/J310">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+    </PreSeq>
+  </MessCode><J310_Origin:NameSpace xmlns:J310_Origin="J/J310/Origin">
+    <J310_Origin:StructMess name="Label">5</J310_Origin:StructMess>
+    <J310_Origin:StructMess name="Message Length Indicator">3</J310_Origin:StructMess>
+    <J310_Origin:StructMess name="Sublabel">3</J310_Origin:StructMess>
+    <J310_Origin:Item name="ACT">3</J310_Origin:Item>
+    <J310_Origin:Item name="Action">4</J310_Origin:Item>
+    <J310_Origin:Item name="Action Code">4</J310_Origin:Item>
+    <J310_Origin:Item name="CCPD">0</J310_Origin:Item>
+    <J310_Origin:Item name="CIC">0</J310_Origin:Item>
+    <J310_Origin:Item name="CVLL location data">0</J310_Origin:Item>
+    <J310_Origin:Item name="Execute Hours">5</J310_Origin:Item>
+    <J310_Origin:Item name="Execute Minutes">6</J310_Origin:Item>
+    <J310_Origin:Item name="R/C">3</J310_Origin:Item>
+    <J310_Origin:Item name="Receipt/Compliance">5</J310_Origin:Item>
+    <J310_Origin:Item name="Recurrence Rate">4</J310_Origin:Item>
+    <J310_Origin:Item name="SDU Number">0</J310_Origin:Item>
+    <J310_Origin:Item name="SIN">0</J310_Origin:Item>
+    <J310_Origin:Item name="Track Number">15</J310_Origin:Item>
+    <J310_Origin:Item name="UVUN">0</J310_Origin:Item>
+    <J310_Origin:Item name="Spare" defaultValue="0">3</J310_Origin:Item>
+  </J310_Origin:NameSpace><J310_Prolong:NameSpace xmlns:J310_Prolong="J/J310/Prolong">
+    <J310_Prolong:Item name="Cryptoperiod Designator">1</J310_Prolong:Item>
+    <J310_Prolong:Item name="Cryptovariable Logical Label Location for locations">7</J310_Prolong:Item>
+  </J310_Prolong:NameSpace><J310_Continue2:NameSpace xmlns:J310_Continue2="J/J310/Continue2">
+    <J310_Continue2:Item name="Cryptoperiod Designator">1</J310_Continue2:Item>
+    <J310_Continue2:Item name="Cryptovariable Logical Label">7</J310_Continue2:Item>
+    <J310_Continue2:Item name="Field for Memory Location">3</J310_Continue2:Item>
+  </J310_Continue2:NameSpace>
+</J310:NameSpace>

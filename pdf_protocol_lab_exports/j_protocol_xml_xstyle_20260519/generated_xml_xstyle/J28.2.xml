@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J282:NameSpace xmlns:J282="J/J282">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Prolong:StructMess.字标识">1</Member>
+    </PreSeq>
+  </MessCode><J282_Origin:NameSpace xmlns:J282_Origin="J/J282/Origin">
+    <J282_Origin:StructMess name="Message Length Indicator">3</J282_Origin:StructMess>
+    <J282_Origin:Item name="Character #1">6</J282_Origin:Item>
+    <J282_Origin:Item name="Character #2">6</J282_Origin:Item>
+    <J282_Origin:Item name="Label J-Series">14</J282_Origin:Item>
+    <J282_Origin:Item name="Message Count">8</J282_Origin:Item>
+    <J282_Origin:Item name="Message Number">8</J282_Origin:Item>
+    <J282_Origin:Item name="Operator/Warfare Area">4</J282_Origin:Item>
+    <J282_Origin:Item name="Track Number">15</J282_Origin:Item>
+  </J282_Origin:NameSpace><J282_Prolong:NameSpace xmlns:J282_Prolong="J/J282/Prolong">
+    <J282_Prolong:Item name="Characters #3-#13">66</J282_Prolong:Item>
+    <J282_Prolong:Item name="Count">8</J282_Prolong:Item>
+    <J282_Prolong:Item name="E0 Word (Characters 1-13)">7</J282_Prolong:Item>
+    <J282_Prolong:Item name="Header Word">2</J282_Prolong:Item>
+    <J282_Prolong:Item name="Message Number">8</J282_Prolong:Item>
+    <J282_Prolong:Item name="Proprietary Format">2</J282_Prolong:Item>
+    <J282_Prolong:Item name="Track Number)">15</J282_Prolong:Item>
+  </J282_Prolong:NameSpace>
+</J282:NameSpace>

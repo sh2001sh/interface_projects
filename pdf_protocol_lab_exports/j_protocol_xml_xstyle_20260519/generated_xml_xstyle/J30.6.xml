@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J306:NameSpace xmlns:J306="J/J306">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J306_Origin:NameSpace xmlns:J306_Origin="J/J306/Origin">
+    <J306_Origin:StructMess name="Label">5</J306_Origin:StructMess>
+    <J306_Origin:StructMess name="Message Length Indicator">3</J306_Origin:StructMess>
+    <J306_Origin:StructMess name="Sublabel">3</J306_Origin:StructMess>
+    <J306_Origin:Item name="Label: bits">5</J306_Origin:Item>
+    <J306_Origin:Item name="Message Length Indicator: bits">3</J306_Origin:Item>
+    <J306_Origin:Item name="Proprietary">57</J306_Origin:Item>
+    <J306_Origin:Item name="Proprietary Information: bits">57</J306_Origin:Item>
+    <J306_Origin:Item name="Sublabel: bits">3</J306_Origin:Item>
+  </J306_Origin:NameSpace>
+</J306:NameSpace>

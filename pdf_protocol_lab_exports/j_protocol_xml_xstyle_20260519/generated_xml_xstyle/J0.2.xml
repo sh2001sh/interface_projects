@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J02:NameSpace xmlns:J02="J/J02">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J02_Origin:NameSpace xmlns:J02_Origin="J/J02/Origin">
+    <J02_Origin:Item name="Delta Change; Time Slot Number">15</J02_Origin:Item>
+    <J02_Origin:Item name="Epoch Number">0</J02_Origin:Item>
+    <J02_Origin:Item name="Epoch Number Delta Change">3</J02_Origin:Item>
+    <J02_Origin:Item name="Epoch Number Execution">0</J02_Origin:Item>
+    <J02_Origin:Item name="Epoch Subdivision Execution">6</J02_Origin:Item>
+    <J02_Origin:Item name="Execution">0</J02_Origin:Item>
+    <J02_Origin:Item name="Execution; Epoch Number">0</J02_Origin:Item>
+    <J02_Origin:Item name="Execution; Epoch Subdivision">6</J02_Origin:Item>
+    <J02_Origin:Item name="Header Word">2</J02_Origin:Item>
+    <J02_Origin:Item name="J0.2I word with fields like Epoch Number">0</J02_Origin:Item>
+    <J02_Origin:Item name="NEW and DUI 002">18</J02_Origin:Item>
+    <J02_Origin:Item name="New; Residual Time Change">0</J02_Origin:Item>
+    <J02_Origin:Item name="New; Time Slot Set">2</J02_Origin:Item>
+    <J02_Origin:Item name="Residual Time Change">0</J02_Origin:Item>
+    <J02_Origin:Item name="Time Slot Number New">15</J02_Origin:Item>
+    <J02_Origin:Item name="Time Slot Set New">2</J02_Origin:Item>
+    <J02_Origin:Item name="Track Number Source">2</J02_Origin:Item>
+  </J02_Origin:NameSpace>
+</J02:NameSpace>

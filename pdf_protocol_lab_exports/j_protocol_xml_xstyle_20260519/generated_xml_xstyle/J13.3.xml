@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J133:NameSpace xmlns:J133="J/J133">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,1</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,2</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,3</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,4</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,5</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,6</Member>
+      <Member corr="Head_Continue:StructMess.字标识,Head_Continue:StructMess.标识符">2,7</Member>
+    </PreSeq>
+  </MessCode><J133_Origin:NameSpace xmlns:J133_Origin="J/J133/Origin">
+    <J133_Origin:Item name="Flight Deck">3</J133_Origin:Item>
+    <J133_Origin:Item name="Flight Deck Status (T)">5</J133_Origin:Item>
+    <J133_Origin:Item name="Hour">31</J133_Origin:Item>
+    <J133_Origin:Item name="Landing Approach Condition (T)">0</J133_Origin:Item>
+    <J133_Origin:Item name="Minute">63</J133_Origin:Item>
+    <J133_Origin:Item name="Surface Platform Status (Track Deck">5</J133_Origin:Item>
+    <J133_Origin:Item name="Surface Specific Type">1</J133_Origin:Item>
+    <J133_Origin:Item name="Time Report Function">3</J133_Origin:Item>
+    <J133_Origin:Item name="Track Number (M)">0</J133_Origin:Item>
+  </J133_Origin:NameSpace><J133_Continue1:NameSpace xmlns:J133_Continue1="J/J133/Continue1">
+    <J133_Continue1:Item name="Continuation Word Label">5</J133_Continue1:Item>
+    <J133_Continue1:Item name="Fire Control Systems">3</J133_Continue1:Item>
+    <J133_Continue1:Item name="Fuel Function">1</J133_Continue1:Item>
+    <J133_Continue1:Item name="Fuel Surface">12</J133_Continue1:Item>
+    <J133_Continue1:Item name="Missile Type">10</J133_Continue1:Item>
+    <J133_Continue1:Item name="Missile Type 1">6</J133_Continue1:Item>
+    <J133_Continue1:Item name="Operational Inventory 1-3 (T)">0</J133_Continue1:Item>
+    <J133_Continue1:Item name="Operational Missile Inventory 1">7</J133_Continue1:Item>
+  </J133_Continue1:NameSpace><J133_Continue2:NameSpace xmlns:J133_Continue2="J/J133/Continue2">
+    <J133_Continue2:Item name="2D/3D Radar (4/T)">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Aircraft types">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Command/Control (T)">5</J133_Continue2:Item>
+    <J133_Continue2:Item name="Comms">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Data Link (T)">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Electronic Attack (T)">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Guns (T)">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="IFF">4</J133_Continue2:Item>
+    <J133_Continue2:Item name="Navigation (T)">0</J133_Continue2:Item>
+    <J133_Continue2:Item name="Radar">6</J133_Continue2:Item>
+    <J133_Continue2:Item name="Sonar">4</J133_Continue2:Item>
+    <J133_Continue2:Item name="Status">5</J133_Continue2:Item>
+    <J133_Continue2:Item name="Surface Radar (T)">0</J133_Continue2:Item>
+  </J133_Continue2:NameSpace><J133_Continue3:NameSpace xmlns:J133_Continue3="J/J133/Continue3">
+    <J133_Continue3:Item name="Continuation Word Label">5</J133_Continue3:Item>
+    <J133_Continue3:Item name="Decoy Chaff/IR (2 bits each)">0</J133_Continue3:Item>
+    <J133_Continue3:Item name="Direction Finders">2</J133_Continue3:Item>
+    <J133_Continue3:Item name="EA Frequency Bands A-M (2 bits each)">20</J133_Continue3:Item>
+    <J133_Continue3:Item name="ES/EA Frequency Bands">15</J133_Continue3:Item>
+    <J133_Continue3:Item name="ES Frequency Bands A-M (2 bits each)">20</J133_Continue3:Item>
+    <J133_Continue3:Item name="HF/VHF/UHF Direction Finder (2 bits each)">0</J133_Continue3:Item>
+    <J133_Continue3:Item name="Spare" defaultValue="0">1</J133_Continue3:Item>
+  </J133_Continue3:NameSpace><J133_Continue4:NameSpace xmlns:J133_Continue4="J/J133/Continue4">
+    <J133_Continue4:Item name="Continuation Word Label">5</J133_Continue4:Item>
+    <J133_Continue4:Item name="Voice Group A Channel">7</J133_Continue4:Item>
+    <J133_Continue4:Item name="Voice Group B Channel">7</J133_Continue4:Item>
+    <J133_Continue4:Item name="Spare" defaultValue="0">49</J133_Continue4:Item>
+  </J133_Continue4:NameSpace><J133_Continue5:NameSpace xmlns:J133_Continue5="J/J133/Continue5">
+    <J133_Continue5:Item name="Continuation Word Label">5</J133_Continue5:Item>
+    <J133_Continue5:Item name="Fire Control Systems">3</J133_Continue5:Item>
+    <J133_Continue5:Item name="Inventory 4">7</J133_Continue5:Item>
+    <J133_Continue5:Item name="Missile Type">6</J133_Continue5:Item>
+    <J133_Continue5:Item name="Missile Type 4">6</J133_Continue5:Item>
+    <J133_Continue5:Item name="Missile Type 4-9 (6 bits each)">6</J133_Continue5:Item>
+    <J133_Continue5:Item name="Number of Fire Control Systems Available (4 bits each)">3</J133_Continue5:Item>
+    <J133_Continue5:Item name="Operational Missile Inventory (7 bits each)">0</J133_Continue5:Item>
+    <J133_Continue5:Item name="Spare (1 bit each)" defaultValue="0">1</J133_Continue5:Item>
+  </J133_Continue5:NameSpace><J133_Continue6:NameSpace xmlns:J133_Continue6="J/J133/Continue6">
+    <J133_Continue6:Item name="Fire Control Systems">3</J133_Continue6:Item>
+    <J133_Continue6:Item name="Missile Type">6</J133_Continue6:Item>
+    <J133_Continue6:Item name="Missile Type 7">4</J133_Continue6:Item>
+  </J133_Continue6:NameSpace><J133_Continue7:NameSpace xmlns:J133_Continue7="J/J133/Continue7">
+    <J133_Continue7:Item name="Fire Control Systems 10">4</J133_Continue7:Item>
+    <J133_Continue7:Item name="Missile Type 10">5</J133_Continue7:Item>
+    <J133_Continue7:Item name="Operational Missile Inventory 10">7</J133_Continue7:Item>
+  </J133_Continue7:NameSpace>
+</J133:NameSpace>

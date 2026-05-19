@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<J305:NameSpace xmlns:J305="J/J305">
+  <MessCode>
+    <PreSeq cycle="0" times="1" name="Seq_1">
+      <Member corr="Head_Origin:StructMess.字标识">3</Member>
+    </PreSeq>
+  </MessCode><J305_Origin:NameSpace xmlns:J305_Origin="J/J305/Origin">
+    <J305_Origin:StructMess name="Word Format">2</J305_Origin:StructMess>
+    <J305_Origin:StructMess name="Label">5</J305_Origin:StructMess>
+    <J305_Origin:StructMess name="Sublabel">3</J305_Origin:StructMess>
+    <J305_Origin:StructMess name="Message Length Indicator">3</J305_Origin:StructMess>
+  </J305_Origin:NameSpace>
+</J305:NameSpace>
