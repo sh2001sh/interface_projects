@@ -23,4 +23,7 @@ python app.py
 - `port_config_json.endpoints` 已支持显式多端口配置，可为多个原协议配置多个接收端口。
 - `port_config_json.messageType` 现在可省略；接口会按转换关系自动推断，joint 多源场景默认补成 `joint_bundle`。
 - 根入口 `POST /api/code_generation/generate` 支持同路由 SSE：可传 `stream=true` 或 `X-Stream-Response: true`。
+- 生成产物的编译步骤见 `COMPILE_GENERATED_PROJECT.md`。
 - 统一接口说明见仓库根目录 `接口文档.md`。
+- `data.summary.qt_project_generation_time_ms` / `qt_project_generation_time_display`：本次 Qt 工程生成耗时。统计范围覆盖协议物化、映射构建、工程渲染、manifest 读取和语法校验。
+- 2026-05-23 已用真实 HTTP 请求验证：同一条真实调用返回了 `qt_project_generation_time_ms=221.9816`，并成功生成 `protocol_manifest.json`。
