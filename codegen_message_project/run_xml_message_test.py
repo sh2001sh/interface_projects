@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from create_test_project import (
+from _test_project_builder import (
     build_project,
     default_protocols,
     ensure_protocol,
