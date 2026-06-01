@@ -31,6 +31,43 @@ python3 "/nfs/615/codegen_message_project/create_test_project.py" \
   --target-protocol "X0_5"
 ```
 
+## 源 XML 一键测试
+
+如果测试输入是源协议 XML，优先使用 `run_xml_message_test.py`。`--source-xml` 应传一个协议相关的全部源 XML 文件夹；联合转换时脚本会按字段名把目录内 XML 匹配到 manifest 里的源协议，默认按字段位宽随机生成合法测试值，自动创建并编译测试工程，然后通过 UDP 发送给接口 8 生成工程的接收端口。
+
+真实协议样例：
+
+```bash
+python3 "/nfs/615/codegen_message_project/run_xml_message_test.py" \
+  --source-xml "/nfs/615/interface_projects/test/data/real_protocol_bundle/source_protocols" \
+  --source-port 4620 \
+  --mode send
+```
+
+上面这条命令会自动扫描 `/nfs/615/interface_projects/test/output`，找到匹配目录内源协议 XML 且接收端口为 `4620` 的接口 8 生成目录。如果有多个生成目录匹配，再显式传 `--generated-dir`：
+
+```bash
+python3 "/nfs/615/codegen_message_project/run_xml_message_test.py" \
+  --generated-dir "/nfs/615/interface_projects/test/output/interface7_71_8_clean_20260521/generated" \
+  --source-xml "/nfs/615/interface_projects/test/data/real_protocol_bundle/source_protocols" \
+  --source-port 4620 \
+  --mode send
+```
+
+如果接口 8 生成的主程序已经启动，并且需要验证目标消息返回，可以使用 `roundtrip`，同时传目标消息监听端口：
+
+```bash
+python3 "/nfs/615/codegen_message_project/run_xml_message_test.py" \
+  --source-xml "/nfs/615/interface_projects/test/data/real_protocol_bundle/source_protocols" \
+  --source-port 4620 \
+  --target-port 5620 \
+  --mode roundtrip
+```
+
+默认不需要传 `--set`。脚本会随机生成字段值，并写入 `source_xml_values.json`。如需复现实验，可以传 `--seed 1` 固定随机值；如需使用 XML 的 `defaultValue`，可以传 `--value-mode default`。
+
+如果只想临时验证单个 XML，也可以把 `--source-xml` 指向单个文件；正式联调建议传完整文件夹，避免漏发联合转换依赖的源消息。
+
 ## 输出结构
 
 生成后的 `--output-dir` 中会包含：
@@ -39,6 +76,7 @@ python3 "/nfs/615/codegen_message_project/create_test_project.py" \
 - `xml_message_test.pro`：qmake 工程文件。
 - `example_values.json`：源协议字段默认值模板，可直接作为 `--values-json` 输入。
 - `README.md`：面向该生成目录的专用说明，包含协议名、端口和字段列表。
+- `source_xml_values.json`：使用 `run_xml_message_test.py` 时生成的源 XML 字段值。
 - `protocol_manifest.json`：从接口 8 生成目录复制，用于核对协议和位布局。
 - `config.xml`：如果接口 8 生成目录存在则复制。
 - `codec.cpp`、`codec.h`、`*_def.h`：编译测试工程所需的编解码依赖。
