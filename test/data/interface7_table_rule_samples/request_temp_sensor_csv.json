@@ -1,0 +1,12 @@
+{
+  "input_mode": "table_rule",
+  "project_name": "temp_sensor_to_temp_report_table_rule",
+  "table_rule_files": [
+    "/nfs/615/interface_projects/test/data/interface7_table_rule_samples/temp_sensor_to_report_rules.csv"
+  ],
+  "source_protocol_type": "Temp_Sensor",
+  "source_message_code": "Temp_Sensor",
+  "target_protocol_type": "Temp_Report",
+  "target_message_code": "Temp_Report",
+  "rules_output_dir": "/nfs/615/interface_projects/test/data/interface7_table_rule_samples/output"
+}

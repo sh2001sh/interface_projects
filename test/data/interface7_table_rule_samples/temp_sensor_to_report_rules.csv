@@ -1,0 +1,3 @@
+﻿源协议,源消息,目标协议,目标消息,目标字段,源字段,转换关系,转换类型,字段含义,说明
+Temp_Sensor,Temp_Sensor,Temp_Report,Temp_Report,temperature_c,temperature,temperature_c = temperature；自然语言：源温度已经是摄氏度，目标温度字段直接继承源字段。,transcoding,温度,用于验证接口7能从表格中抽取直接映射规则，并可继续交给接口8生成工程。
+Temp_Sensor,Temp_Sensor,Temp_Report,Temp_Report,alarm,status,"alarm = 0->0, 1->1, 2->1, 3->2；自然语言：状态码0表示正常，1和2都转为一般告警，3转为严重告警。",mapping,告警等级,用于验证枚举/状态映射关系。

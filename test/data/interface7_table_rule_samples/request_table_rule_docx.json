@@ -1,0 +1,8 @@
+{
+  "input_mode": "table_rule",
+  "project_name": "interface7_table_rule_docx_sample",
+  "table_rule_files": [
+    "/nfs/615/interface_projects/test/data/interface7_table_rule_samples/interface7_table_rule_samples.docx"
+  ],
+  "rules_output_dir": "/nfs/615/interface_projects/test/data/interface7_table_rule_samples/output"
+}
