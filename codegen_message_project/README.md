@@ -1,14 +1,8 @@
 # codegen_message_project
 
-本目录只保留一键 XML 消息测试入口：`run_xml_message_test.py`。
+本目录只保留一键 XML UDP 测试入口：`run_xml_message_test.py`。
 
-脚本输入源协议 XML 文件夹和接口 8 生成工程的端口信息，自动完成以下步骤：
-
-- 匹配接口 8 生成目录中的 `protocol_manifest.json`
-- 按源 XML 字段构造合法测试值，默认随机生成
-- 自动生成并编译临时 Qt 测试工程
-- 通过 UDP 向接口 8 生成工程发送源协议消息
-- `roundtrip` 模式下监听目标端口并输出解码后的目标协议 JSON
+脚本只依赖协议 XML。它按 XML 中的 `Item`、`Field`、`Group` 定义解析字段顺序、位宽、默认值和循环次数，直接构造源协议二进制 UDP 报文；不读取接口 8 生成工程目录，也不需要 `protocol_manifest.json`、`codec.cpp` 或测试工程编译。
 
 ## 一键运行
 
@@ -22,32 +16,24 @@ python3 "/nfs/615/codegen_message_project/run_xml_message_test.py" \
   --mode roundtrip
 ```
 
-`--source-xml` 建议传一个协议相关的全部源 XML 文件夹。联合转换时，脚本会按字段名把目录内 XML 匹配到 manifest 里的源协议，并按联合转换依赖顺序发送多个源消息。
+`--source-xml` 建议传一个协议相关的全部源 XML 文件夹。联合转换时，脚本会按文件顺序反向发送多个源消息；例如真实 K 样例会先发送 `K1_7`，再发送 `K1_6`，用于触发聚集后的目标转换。
 
-如果自动扫描到多个接口 8 生成目录，显式传 `--generated-dir`：
-
-```bash
-python3 "/nfs/615/codegen_message_project/run_xml_message_test.py" \
-  --generated-dir "/nfs/615/interface_projects/test/output/interface7_71_8_clean_20260521/generated" \
-  --source-xml "/nfs/615/interface_projects/test/data/real_protocol_bundle/source_protocols" \
-  --source-port 4620 \
-  --target-port 5620 \
-  --mode roundtrip
-```
+如果目标 XML 和源 XML 同级存在 `target_protocols/` 目录，`roundtrip` 收到目标 UDP 后会自动按目标 XML 解码；否则输出原始 `__bytes`。
 
 ## 常用参数
 
-- `--source-xml`：源协议 XML 文件夹；兼容单个 XML 文件，但正式联调建议传文件夹。
-- `--generated-dir`：接口 8 生成工程目录；不传时按 `--source-xml` 和 `--source-port` 自动扫描。
-- `--source-port`：接口 8 生成工程的源消息接收端口。
+- `--source-xml`：源协议 XML 文件夹；也兼容单个 XML 文件。
+- `--target-xml`：目标协议 XML 文件或文件夹；不传时自动查找同级 `target_protocols/`。
+- `--source-port`：接口 8 运行工程的源消息接收端口。
 - `--target-port`：目标消息监听端口，`roundtrip` 和 `recv` 模式需要。
 - `--mode`：`send`、`recv` 或 `roundtrip`，默认 `send`。
 - `--seed`：固定随机种子，便于复现实验。
 - `--value-mode default`：使用 XML 的默认值；默认 `random` 会按字段位宽随机生成合法值。
-- `--set field=value`：覆盖单个字段值，可重复传入；通常不需要传。
+- `--set field=value`：覆盖单个字段值，可重复传入；字段名可用 XML 字段名或字段路径。
+- `--output-dir`：测试输出目录，默认 `./xml_message_test_output`。
 - `--timeout-ms`：接收超时时间，默认 `5000`。
 
-运行后，脚本会在测试工程目录写入 `source_xml_values.json`，记录本次实际使用的字段值。`roundtrip` 成功时会输出目标协议 JSON，并包含 `__bytes`、`__sender_ip`、`__sender_port` 等接收信息。
+运行后，脚本会写入 `source_xml_values.json`，记录每个源协议实际发送的字段值和十六进制报文。`roundtrip` 成功时会输出目标协议 JSON，并包含 `__bytes`、`__sender_ip`、`__sender_port` 等接收信息。
 
 ## K 协议子消息识别
 

@@ -1,593 +1,521 @@
 #!/usr/bin/env python3
-"""Build and run UDP message tests from source protocol XML files."""
+"""Send and receive UDP test messages directly from protocol XML definitions."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import re
-import subprocess
-import sys
+import socket
+import time
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from _test_project_builder import (
-    build_project,
-    default_protocols,
-    ensure_protocol,
-    load_manifest,
-    protocol_fields,
-    protocol_map,
-    write_json,
-)
+
+@dataclass(slots=True)
+class XmlField:
+    """One flattened scalar field from a protocol XML."""
+
+    label: str
+    key: str
+    path: str
+    bit_length: int
+    default: int | None
+
+
+@dataclass(slots=True)
+class XmlProtocol:
+    """One protocol parsed from an XML file."""
+
+    name: str
+    path: Path
+    endian: str
+    fields: list[XmlField]
+
+    @property
+    def total_bits(self) -> int:
+        return sum(field.bit_length for field in self.fields)
+
+    @property
+    def byte_length(self) -> int:
+        return (self.total_bits + 7) // 8
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(
-        description="根据源协议XML构造消息并测试接口8生成工程的UDP收发",
-    )
-    parser.add_argument(
-        "--generated-dir",
-        help="接口8生成工程目录；不传时按 --source-xml 和 --source-port 自动扫描",
-    )
-    parser.add_argument(
-        "--generated-root",
-        default="/nfs/615/interface_projects/test/output",
-        help="自动扫描接口8生成目录的根目录，默认 /nfs/615/interface_projects/test/output",
-    )
-    source_input = parser.add_mutually_exclusive_group(required=True)
-    source_input.add_argument(
-        "--source-xml",
-        help="源协议XML文件夹；目录内应包含一个协议相关的全部源XML。也兼容单个XML文件",
-    )
-    source_input.add_argument(
-        "--source-dir",
-        help="兼容别名：源协议XML文件夹；建议统一使用 --source-xml 传文件夹",
-    )
-    parser.add_argument(
-        "--output-dir",
-        help="测试工程输出目录；默认生成在 generated-dir 同级的 generated_project_message_test",
-    )
-    parser.add_argument(
-        "--source-protocol",
-        help="源协议 type_name；默认取 manifest 第一条 conversion 的第一个 source.protocol",
-    )
-    parser.add_argument(
-        "--target-protocol",
-        help="目标协议 type_name；默认取 manifest 第一条 conversion 的 target_protocol",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=("send", "recv", "roundtrip"),
-        default="send",
-        help="测试模式；send 只发送源消息，roundtrip 会等待目标消息返回",
-    )
-    parser.add_argument(
-        "--source-ip",
-        help="发送源协议消息的目标IP；默认使用 manifest 中的 recv_ip",
-    )
-    parser.add_argument(
-        "--source-port",
-        "--recv-port",
-        type=int,
-        help="发送源协议消息的目标端口，也就是接口8生成工程的接收端口",
-    )
-    parser.add_argument(
-        "--target-ip",
-        help="roundtrip/recv 监听目标消息的IP；默认使用 manifest 中的 send_ip",
-    )
-    parser.add_argument(
-        "--target-port",
-        "--send-port",
-        type=int,
-        help="roundtrip/recv 监听目标消息的端口，也就是接口8生成工程的发送端口",
-    )
-    parser.add_argument(
-        "--value-mode",
-        choices=("random", "default"),
-        default="random",
-        help="未用 --set 覆盖时的取值方式；random 按位宽生成随机值，default 使用XML defaultValue",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        help="随机数种子；不传时每次运行生成不同测试值",
-    )
-    parser.add_argument(
-        "--set",
-        action="append",
-        default=[],
-        dest="set_pairs",
-        help="覆盖XML默认值，格式 field=value，可重复传入",
-    )
-    parser.add_argument(
-        "--missing-value",
-        type=int,
-        default=0,
-        help="XML未给 defaultValue 时使用的字段值，默认0",
-    )
-    parser.add_argument(
-        "--timeout-ms",
-        type=int,
-        default=5000,
-        help="recv/roundtrip 等待目标消息的超时时间",
-    )
-    parser.add_argument(
-        "--jobs",
-        type=int,
-        default=max(1, min(4, os.cpu_count() or 1)),
-        help="make 并发数",
-    )
-    parser.add_argument(
-        "--no-build",
-        action="store_true",
-        help="只生成测试工程和值文件，不执行 qmake/make",
-    )
-    parser.add_argument(
-        "--no-run",
-        action="store_true",
-        help="只生成并编译测试工程，不运行测试程序",
-    )
+
+    parser = argparse.ArgumentParser(description="根据协议 XML 构造 UDP 消息并测试接口 8 运行工程")
+    parser.add_argument("--source-xml", required=True, help="源协议 XML 文件夹；也兼容单个 XML 文件")
+    parser.add_argument("--target-xml", help="目标协议 XML 文件或文件夹；不传时自动查找 sibling target_protocols")
+    parser.add_argument("--output-dir", help="测试输出目录；默认写到当前目录 xml_message_test_output")
+    parser.add_argument("--mode", choices=("send", "recv", "roundtrip"), default="send", help="测试模式")
+    parser.add_argument("--source-ip", default="127.0.0.1", help="源消息发送目标 IP，默认 127.0.0.1")
+    parser.add_argument("--source-port", "--recv-port", type=int, help="接口 8 运行工程的源消息接收端口")
+    parser.add_argument("--target-ip", default="127.0.0.1", help="目标消息监听 IP，默认 127.0.0.1")
+    parser.add_argument("--target-port", "--send-port", type=int, help="目标消息监听端口")
+    parser.add_argument("--value-mode", choices=("random", "default"), default="random", help="字段取值方式")
+    parser.add_argument("--seed", type=int, help="随机数种子")
+    parser.add_argument("--set", action="append", default=[], dest="set_pairs", help="覆盖字段值，格式 field=value")
+    parser.add_argument("--missing-value", type=int, default=0, help="XML 无默认值时的字段值，默认 0")
+    parser.add_argument("--timeout-ms", type=int, default=5000, help="接收超时时间，默认 5000")
     return parser.parse_args()
 
 
 def local_name(tag: str) -> str:
-    """Return the XML local tag name without namespace."""
+    """Return one XML tag local name without namespace."""
+
     return str(tag or "").split("}", 1)[-1].split(":", 1)[-1]
 
 
+def namespace_uri(tag: str) -> str:
+    """Return the namespace URI embedded in an ElementTree tag."""
+
+    text = str(tag or "")
+    if text.startswith("{") and "}" in text:
+        return text[1:].split("}", 1)[0]
+    return ""
+
+
+def section_label(element: ET.Element) -> str:
+    """Build a readable path label for one NameSpace section."""
+
+    raw = str(element.attrib.get("name") or "").strip()
+    if raw:
+        return raw
+    uri = namespace_uri(element.tag).rstrip("/")
+    if uri:
+        return uri.rsplit("/", 1)[-1]
+    return local_name(element.tag)
+
+
 def normalize_key(value: Any) -> str:
-    """Normalize field labels for XML/manifest matching."""
+    """Normalize field names for matching CLI overrides."""
+
     return re.sub(r"[\s_\-./:：()（）\[\]【】]+", "", str(value or "").strip().lower())
 
 
-def parse_int(value: Any) -> int | None:
-    """Parse integer-like XML values."""
+def type_name_from_path(path: Path) -> str:
+    """Build a protocol type name from an XML file stem."""
+
+    parts = re.split(r"[^0-9A-Za-z]+", path.stem)
+    tokens = [part for part in parts if part]
+    return "_".join(token[:1].upper() + token[1:] for token in tokens) or path.stem
+
+
+def parse_int(value: Any, fallback: int | None = None) -> int | None:
+    """Parse one integer-like XML value."""
+
     text = str(value or "").strip()
     if not text:
-        return None
+        return fallback
     try:
         return int(text, 0)
     except ValueError:
-        return None
+        return fallback
 
 
-def xml_field_defaults(source_xml: Path) -> dict[str, int]:
-    """Extract field defaults from an XML protocol description."""
-    if not source_xml.is_file():
-        raise FileNotFoundError(f"源协议XML不存在: {source_xml}")
-    root = ET.parse(source_xml).getroot()
-    defaults: dict[str, int] = {}
-    for element in root.iter():
-        tag = local_name(element.tag)
-        if tag not in {"Item", "NetCtrl", "SpecType", "StructMess"}:
+def bit_length_of(element: ET.Element) -> int | None:
+    """Read bit length from text or common attributes."""
+
+    for candidate in ((element.text or "").strip(), element.attrib.get("bitLength"), element.attrib.get("length")):
+        parsed = parse_int(candidate)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def corr_labels(raw_corr: str | None) -> list[str]:
+    """Extract control labels from a corr attribute."""
+
+    labels: list[str] = []
+    for chunk in str(raw_corr or "").split(","):
+        token = chunk.strip()
+        if token:
+            labels.append(token.rsplit(".", 1)[-1].strip())
+    return labels
+
+
+def parse_xml_files(path: Path) -> list[Path]:
+    """Return XML files from one file or directory."""
+
+    if path.is_file():
+        return [path]
+    if not path.is_dir():
+        raise FileNotFoundError(f"XML 路径不存在: {path}")
+    files = sorted(item for item in path.iterdir() if item.is_file() and item.suffix.lower() == ".xml")
+    if not files:
+        raise FileNotFoundError(f"XML 目录中没有 xml 文件: {path}")
+    return files
+
+
+def flatten_children(
+    element: ET.Element,
+    label_defaults: dict[str, int | None],
+    path_parts: tuple[str, ...] = (),
+) -> list[XmlField]:
+    """Flatten Item, Field and Group XML nodes in protocol order."""
+
+    fields: list[XmlField] = []
+    for child in list(element):
+        local = local_name(child.tag)
+        if local in {"MessCode", "Dimen"}:
             continue
-        name = str(element.attrib.get("name") or "").strip()
-        if not name:
+        label = str(child.attrib.get("name") or local).strip()
+        if local == "NameSpace":
+            fields.extend(flatten_children(child, label_defaults, path_parts + (section_label(child),)))
             continue
-        raw_default = (
-            element.attrib.get("defaultValue")
-            if element.attrib.get("defaultValue") is not None
-            else element.attrib.get("default")
-        )
-        parsed = parse_int(raw_default)
-        if parsed is None:
-            parsed = parse_int(element.attrib.get("value"))
-        if parsed is None:
+        if local in {"Item", "StructMess", "NetCtrl", "SpecType"}:
+            bit_length = bit_length_of(child)
+            if bit_length is None:
+                continue
+            default = parse_int(child.attrib.get("defaultValue"), None)
+            if default is None:
+                default = parse_int(child.attrib.get("default"), None)
+            if default is None:
+                default = parse_int(child.attrib.get("value"), None)
+            label_defaults[label] = default
+            field_path = path_parts + (label,)
+            fields.append(
+                XmlField(
+                    label=label,
+                    key=unique_key(field_path),
+                    path="/".join(field_path),
+                    bit_length=bit_length,
+                    default=default,
+                )
+            )
             continue
-        defaults[name] = parsed
-    return defaults
-
-
-def xml_field_names(source_xml: Path) -> set[str]:
-    """Return normalized field names declared in source XML."""
-    if not source_xml.is_file():
-        raise FileNotFoundError(f"源协议XML不存在: {source_xml}")
-    root = ET.parse(source_xml).getroot()
-    names: set[str] = set()
-    for element in root.iter():
-        if local_name(element.tag) not in {"Item", "NetCtrl", "SpecType", "StructMess"}:
+        if local == "Field":
+            fields.extend(flatten_children(child, label_defaults, path_parts + (label,)))
             continue
-        name = str(element.attrib.get("name") or "").strip()
-        if name:
-            names.add(normalize_key(name))
-    return names
-
-
-def list_source_xmls(source_dir: Path) -> list[Path]:
-    """List XML files in a source protocol directory."""
-    if not source_dir.is_dir():
-        raise NotADirectoryError(f"源协议XML目录不存在: {source_dir}")
-    xmls = sorted(path for path in source_dir.iterdir() if path.is_file() and path.suffix.lower() == ".xml")
-    if not xmls:
-        raise FileNotFoundError(f"源协议XML目录中没有xml文件: {source_dir}")
-    return xmls
-
-
-def combined_xml_field_names(source_paths: list[Path]) -> set[str]:
-    """Return normalized field names from all source XML files."""
-    names: set[str] = set()
-    for path in source_paths:
-        names.update(xml_field_names(path))
-    return names
-
-
-def manifest_source_protocol_names(manifest: dict[str, Any]) -> set[str]:
-    """Return protocol names used as conversion sources."""
-    names: set[str] = set()
-    for conversion in manifest.get("conversions") or []:
-        for source in conversion.get("sources") or []:
-            name = str(source.get("protocol") or "").strip()
-            if name:
-                names.add(name)
-    return names
-
-
-def source_match_score(protocol: dict[str, Any], xml_names: set[str]) -> int:
-    """Score how well a manifest protocol matches a source XML file."""
-    score = 0
-    for field in protocol_fields(protocol):
-        candidates = {
-            normalize_key(field.get("label")),
-            normalize_key(field.get("path")),
-            normalize_key(str(field.get("path") or "").split("/")[-1]),
-            normalize_key(field.get("cpp_name")),
-        }
-        if candidates & xml_names:
-            score += 1
-    return score
-
-
-def auto_resolve_generated_dir(
-    generated_root: Path,
-    source_paths: list[Path],
-    source_port: int | None,
-) -> Path:
-    """Find an interface8 generated directory matching XML fields and port."""
-    xml_names = combined_xml_field_names(source_paths)
-    candidates: list[tuple[int, Path]] = []
-    for manifest_path in generated_root.glob("**/protocol_manifest.json"):
-        generated_dir = manifest_path.parent
-        if not (generated_dir / "codec.cpp").is_file():
+        if local == "Group":
+            labels = corr_labels(child.attrib.get("corr"))
+            max_repeat = parse_int(child.attrib.get("max"), None)
+            repeat = max_repeat
+            if repeat is None:
+                repeat = next((label_defaults.get(item) for item in labels if label_defaults.get(item) is not None), None)
+            repeat = max(1, int(repeat or 1))
+            for index in range(repeat):
+                group_label = f"{label}_{index + 1}" if repeat > 1 else label
+                fields.extend(flatten_children(child, label_defaults, path_parts + (group_label,)))
             continue
-        try:
-            manifest = load_manifest(generated_dir)
-            protocols = protocol_map(manifest)
-        except Exception:
-            continue
-        transport = (manifest.get("runtime") or {}).get("transport") or {}
-        if source_port is not None and int(transport.get("recv_port") or 0) != int(source_port):
-            continue
-        best_score = 0
-        for protocol_name in manifest_source_protocol_names(manifest):
-            protocol = protocols.get(protocol_name)
-            if protocol:
-                best_score = max(best_score, source_match_score(protocol, xml_names))
-        if best_score > 0:
-            candidates.append((best_score, generated_dir))
-
-    if not candidates:
-        port_text = f" 且接收端口为 {source_port}" if source_port is not None else ""
-        raise FileNotFoundError(f"未找到匹配源XML{port_text}的接口8生成目录")
-
-    candidates.sort(key=lambda item: (item[0], str(item[1])), reverse=True)
-    best_score, best_dir = candidates[0]
-    tied = [path for score, path in candidates if score == best_score]
-    if len(tied) > 1:
-        options = "\n".join(str(path) for path in tied[:8])
-        raise ValueError(f"匹配到多个接口8生成目录，请显式传 --generated-dir:\n{options}")
-    return best_dir
+        fields.extend(flatten_children(child, label_defaults, path_parts))
+    return fields
 
 
-def random_field_value(field: dict[str, Any], rng: random.Random) -> int:
-    """Generate a legal non-negative integer for a field bit width."""
-    bit_length = int(field.get("bit_length") or 0)
-    if bit_length <= 0:
-        return 0
-    capped_bits = min(bit_length, 30)
-    upper = (1 << capped_bits) - 1
-    return rng.randint(0, upper)
+def unique_key(path_parts: tuple[str, ...]) -> str:
+    """Build a stable ASCII-ish key for one XML field path."""
+
+    parts: list[str] = []
+    for part in path_parts:
+        normalized = normalize_key(part)
+        if normalized:
+            parts.append(normalized)
+    return "_".join(parts) or "field"
 
 
-def source_value_payload(
-    source_protocol: dict[str, Any],
-    source_xml: Path,
-    missing_value: int,
-    overrides: list[str],
-    value_mode: str,
+def parse_protocol(path: Path) -> XmlProtocol:
+    """Parse one protocol XML definition."""
+
+    root = ET.parse(path).getroot()
+    endian = "big"
+    for child in list(root):
+        if local_name(child.tag) == "Dimen":
+            raw = str(child.attrib.get("endian") or "").strip().lower()
+            endian = "little" if raw in {"0", "little", "le"} else "big"
+            break
+    defaults: dict[str, int | None] = {}
+    fields = flatten_children(root, defaults)
+    if not fields:
+        raise ValueError(f"XML 中没有可编码字段: {path}")
+    return XmlProtocol(name=type_name_from_path(path), path=path, endian=endian, fields=fields)
+
+
+def section_category(field: XmlField) -> str | None:
+    """Classify a field by protocol word section."""
+
+    head = (field.path.split("/", 1)[0] if field.path else "").lower()
+    if head.startswith("continue"):
+        return "continue"
+    if head.startswith("prolong"):
+        return "prolong"
+    if head.startswith("origin"):
+        return "origin"
+    return None
+
+
+def apply_placeholder_lengths(protocols: list[XmlProtocol]) -> None:
+    """Apply template ** placeholder lengths to concrete zero-length fields."""
+
+    placeholders: dict[str, list[int]] = {}
+    for protocol in protocols:
+        for field in protocol.fields:
+            category = section_category(field)
+            if field.label == "**" and category and field.bit_length > 0:
+                placeholders.setdefault(category, []).append(field.bit_length)
+    if not placeholders:
+        return
+
+    for protocol in protocols:
+        cursors = {key: 0 for key in placeholders}
+        for field in protocol.fields:
+            category = section_category(field)
+            if category is None or field.bit_length != 0 or category not in placeholders:
+                continue
+            values = placeholders[category]
+            index = min(cursors[category], len(values) - 1)
+            field.bit_length = values[index]
+            cursors[category] += 1
+
+
+def load_protocols(path: Path) -> list[XmlProtocol]:
+    """Load XML protocols and apply same-folder template placeholders."""
+
+    protocols = [parse_protocol(item) for item in parse_xml_files(path)]
+    apply_placeholder_lengths(protocols)
+    return protocols
+
+
+def protocol_values(
+    protocol: XmlProtocol,
+    args: argparse.Namespace,
     rng: random.Random,
 ) -> dict[str, int]:
-    """Build cpp-field values from XML defaults/random values and CLI overrides."""
-    defaults = xml_field_defaults(source_xml)
-    lookup: dict[str, int] = {}
-    for name, value in defaults.items():
-        lookup[normalize_key(name)] = value
+    """Build field values for one protocol."""
 
     values: dict[str, int] = {}
-    for field in protocol_fields(source_protocol):
-        if value_mode == "random":
-            values[str(field["cpp_name"])] = random_field_value(field, rng)
+    field_lookup: dict[str, XmlField] = {}
+    for field in protocol.fields:
+        for candidate in {field.key, field.label, field.path, field.path.split("/")[-1]}:
+            field_lookup[normalize_key(candidate)] = field
+        if args.value_mode == "default":
+            value = args.missing_value if field.default is None else field.default
         else:
-            candidates = [
-                field.get("label"),
-                field.get("path"),
-                str(field.get("path") or "").split("/")[-1],
-                field.get("cpp_name"),
-            ]
-            resolved = None
-            for candidate in candidates:
-                key = normalize_key(candidate)
-                if key in lookup:
-                    resolved = lookup[key]
-                    break
-            values[str(field["cpp_name"])] = missing_value if resolved is None else int(resolved)
+            value = rng.randint(0, (1 << min(field.bit_length, 30)) - 1)
+        values[field.key] = value
 
-    for pair in overrides:
+    for pair in args.set_pairs:
         if "=" not in pair:
             raise ValueError(f"--set 格式错误，应为 field=value: {pair}")
-        name, raw_value = pair.split("=", 1)
+        raw_name, raw_value = pair.split("=", 1)
+        field = field_lookup.get(normalize_key(raw_name))
+        if field is None:
+            raise KeyError(f"XML 中没有字段: {raw_name}")
         parsed = parse_int(raw_value)
         if parsed is None:
             raise ValueError(f"--set 值不是整数: {pair}")
-        values[name.strip()] = parsed
+        values[field.key] = parsed
     return values
 
 
-def conversion_source_names(manifest: dict[str, Any], source_override: str | None) -> list[str]:
-    """Resolve source protocol names for the first manifest conversion."""
-    if source_override:
-        return [source_override]
-    conversions = manifest.get("conversions") or []
-    if not conversions:
-        raise ValueError("manifest 中没有 conversions，无法推断源协议")
-    sources = conversions[0].get("sources") or []
-    names = [str(item.get("protocol") or "").strip() for item in sources]
-    names = [name for name in names if name]
-    if not names:
-        raise ValueError("manifest conversion 中没有 sources")
-    return names
+def append_bits(bits: list[int], value: int, bit_length: int, endian: str) -> None:
+    """Append one integer value as bits."""
+
+    if value < 0 or value >= (1 << bit_length):
+        raise ValueError(f"字段值 {value} 超出 {bit_length} bit 可表示范围")
+    if endian == "little":
+        bits.extend((value >> index) & 1 for index in range(bit_length))
+    else:
+        bits.extend((value >> index) & 1 for index in range(bit_length - 1, -1, -1))
 
 
-def conversion_target_name(manifest: dict[str, Any], target_override: str | None) -> str:
-    """Resolve the target protocol name for the first manifest conversion."""
-    if target_override:
-        return target_override
-    conversions = manifest.get("conversions") or []
-    if not conversions:
-        raise ValueError("manifest 中没有 conversions，无法推断目标协议")
-    target = str(conversions[0].get("target_protocol") or "").strip()
-    if not target:
-        raise ValueError("manifest conversion 中没有 target_protocol")
-    return target
+def bits_to_bytes(bits: list[int]) -> bytes:
+    """Pack bits into bytes using network bit order inside each byte."""
+
+    output = bytearray((len(bits) + 7) // 8)
+    for index, bit in enumerate(bits):
+        if bit:
+            output[index // 8] |= 1 << (7 - (index % 8))
+    return bytes(output)
 
 
-def match_source_xmls(
-    protocols: dict[str, dict[str, Any]],
-    source_names: list[str],
-    source_paths: list[Path],
-) -> dict[str, Path]:
-    """Match each source protocol to one XML file by field names."""
-    matched: dict[str, Path] = {}
-    used: set[Path] = set()
-    xml_name_cache = {path: xml_field_names(path) for path in source_paths}
-    for source_name in source_names:
-        protocol = ensure_protocol(protocols, source_name)
-        scored: list[tuple[int, Path]] = []
-        for path, names in xml_name_cache.items():
-            if path in used:
-                continue
-            scored.append((source_match_score(protocol, names), path))
-        scored.sort(key=lambda item: (item[0], str(item[1])), reverse=True)
-        if not scored or scored[0][0] <= 0:
-            raise ValueError(f"未在源XML目录中找到匹配协议 {source_name} 的XML")
-        matched[source_name] = scored[0][1]
-        used.add(scored[0][1])
-    return matched
+def encode_protocol(protocol: XmlProtocol, values: dict[str, int]) -> bytes:
+    """Encode one protocol message from XML field values."""
+
+    bits: list[int] = []
+    for field in protocol.fields:
+        append_bits(bits, int(values[field.key]), field.bit_length, protocol.endian)
+    return bits_to_bytes(bits)
 
 
-def run_command(command: list[str], cwd: Path) -> None:
-    """Run a subprocess and stream output."""
-    print(f"+ {' '.join(command)}")
-    subprocess.run(command, cwd=str(cwd), check=True)
+def read_bits(data: bytes, bit_offset: int, bit_length: int, endian: str) -> int:
+    """Read one integer from packed bytes."""
+
+    value = 0
+    if endian == "little":
+        for index in range(bit_length):
+            absolute = bit_offset + index
+            bit = (data[absolute // 8] >> (7 - (absolute % 8))) & 1
+            value |= bit << index
+        return value
+    for index in range(bit_length):
+        absolute = bit_offset + index
+        bit = (data[absolute // 8] >> (7 - (absolute % 8))) & 1
+        value = (value << 1) | bit
+    return value
 
 
-def resolve_output_dir(generated_dir: Path, output_dir: str | None) -> Path:
-    """Resolve the generated test-project directory."""
-    if output_dir:
-        return Path(output_dir).resolve()
-    return generated_dir.parent / f"{generated_dir.name}_message_test"
+def decode_protocol(protocol: XmlProtocol, data: bytes) -> dict[str, int]:
+    """Decode one message into XML field values."""
+
+    if len(data) < protocol.byte_length:
+        raise ValueError(f"数据长度 {len(data)} 小于协议 {protocol.name} 需要的 {protocol.byte_length}")
+    result: dict[str, int] = {}
+    offset = 0
+    for field in protocol.fields:
+        result[field.key] = read_bits(data, offset, field.bit_length, protocol.endian)
+        offset += field.bit_length
+    return result
 
 
-def build_values_file(
-    source_protocol: dict[str, Any],
-    source_xml: Path,
-    output_dir: Path,
-    missing_value: int,
-    overrides: list[str],
-    value_mode: str,
-    rng: random.Random,
-) -> Path:
-    """Create source_xml_values.json for one source protocol."""
-    values = source_value_payload(
-        source_protocol,
-        source_xml,
-        missing_value,
-        overrides,
-        value_mode,
-        rng,
-    )
-    values_path = output_dir / "source_xml_values.json"
-    write_json(values_path, values)
-    return values_path
+def write_json(path: Path, payload: Any) -> None:
+    """Write formatted UTF-8 JSON."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def build_test_binary(
-    generated_dir: Path,
-    output_dir: Path,
-    source_type: str,
-    target_type: str,
-    jobs: int,
-    no_build: bool,
-) -> Path:
-    """Generate and optionally compile one test binary."""
-    build_project(generated_dir, output_dir, source_type, target_type)
-    if no_build:
-        return output_dir / "build" / "xml_message_test"
-    build_dir = output_dir / "build"
-    build_dir.mkdir(parents=True, exist_ok=True)
-    run_command(["qmake", "../xml_message_test.pro"], build_dir)
-    run_command(["make", f"-j{max(1, int(jobs))}"], build_dir)
-    return build_dir / "xml_message_test"
+def send_datagram(ip: str, port: int, payload: bytes) -> None:
+    """Send one UDP datagram."""
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sent = sock.sendto(payload, (ip, port))
+    if sent != len(payload):
+        raise OSError(f"UDP 发送不完整: {sent}/{len(payload)} bytes")
 
 
-def run_test_binary(
-    binary: Path,
-    values_path: Path,
-    mode: str,
+def receive_datagram(ip: str, port: int, timeout_ms: int) -> tuple[bytes, tuple[str, int]]:
+    """Receive one UDP datagram."""
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((ip, port))
+        sock.settimeout(timeout_ms / 1000)
+        return sock.recvfrom(65535)
+
+
+def auto_target_xml(source_path: Path) -> Path | None:
+    """Find a sibling target_protocols directory when available."""
+
+    base = source_path if source_path.is_dir() else source_path.parent
+    candidates = [base.parent / "target_protocols", base / "target_protocols"]
+    return next((path for path in candidates if path.exists()), None)
+
+
+def load_target_protocols(args: argparse.Namespace, source_path: Path) -> list[XmlProtocol]:
+    """Load target XML protocols for optional received-message decoding."""
+
+    target_path = Path(args.target_xml).resolve() if args.target_xml else auto_target_xml(source_path)
+    if target_path is None:
+        return []
+    return load_protocols(target_path)
+
+
+def decode_received(data: bytes, targets: list[XmlProtocol]) -> dict[str, Any]:
+    """Decode received bytes using a target XML with matching byte length."""
+
+    result: dict[str, Any] = {"__bytes": data.hex(), "__byte_length": len(data)}
+    matches = [protocol for protocol in targets if protocol.byte_length == len(data)]
+    if len(matches) != 1:
+        if targets:
+            result["__decode_note"] = "没有唯一匹配目标 XML，保留原始字节"
+        return result
+    protocol = matches[0]
+    result["__protocol"] = protocol.name
+    result["fields"] = decode_protocol(protocol, data)
+    return result
+
+
+def source_protocols(source_path: Path) -> list[XmlProtocol]:
+    """Load source protocols in send order."""
+
+    protocols = load_protocols(source_path)
+    return list(reversed(protocols)) if source_path.is_dir() else protocols
+
+
+def build_source_messages(
+    protocols: list[XmlProtocol],
     args: argparse.Namespace,
-) -> None:
-    """Run one generated xml_message_test binary."""
-    command = [
-        str(binary),
-        "--mode",
-        mode,
-        "--values-json",
-        str(values_path),
-        "--timeout-ms",
-        str(args.timeout_ms),
-    ]
-    if args.source_ip:
-        command.extend(["--source-ip", args.source_ip])
-    if args.source_port is not None:
-        command.extend(["--source-port", str(args.source_port)])
-    if args.target_ip:
-        command.extend(["--target-ip", args.target_ip])
-    if args.target_port is not None:
-        command.extend(["--target-port", str(args.target_port)])
-    run_command(command, binary.parent)
-
-
-def run_single_source(
-    args: argparse.Namespace,
-    generated_dir: Path,
-    source_xml: Path,
     output_dir: Path,
-    source_type: str,
-    target_type: str,
-    source_protocol: dict[str, Any],
-    rng: random.Random,
-) -> None:
-    """Build and run a test for one source XML."""
-    binary = build_test_binary(generated_dir, output_dir, source_type, target_type, args.jobs, args.no_build)
-    values_path = build_values_file(
-        source_protocol,
-        source_xml,
-        output_dir,
-        args.missing_value,
-        args.set_pairs,
-        args.value_mode,
-        rng,
-    )
-    print(f"created test project: {output_dir}")
-    print(f"created source XML values: {values_path}")
-    if not args.no_build and not args.no_run:
-        run_test_binary(binary, values_path, args.mode, args)
+) -> list[dict[str, Any]]:
+    """Build source UDP payloads and persist values."""
+
+    rng = random.Random(args.seed)
+    messages: list[dict[str, Any]] = []
+    all_values: dict[str, Any] = {}
+    for protocol in protocols:
+        values = protocol_values(protocol, args, rng)
+        payload = encode_protocol(protocol, values)
+        all_values[protocol.name] = {"xml": str(protocol.path), "values": values, "bytes": payload.hex()}
+        messages.append({"protocol": protocol, "values": values, "payload": payload})
+    write_json(output_dir / "source_xml_values.json", all_values)
+    return messages
 
 
-def run_source_directory(
-    args: argparse.Namespace,
-    generated_dir: Path,
-    source_paths: list[Path],
-    output_dir: Path,
-    manifest: dict[str, Any],
-    rng: random.Random,
-) -> None:
-    """Build and run tests for all source XMLs in a directory."""
-    protocols = protocol_map(manifest)
-    source_names = conversion_source_names(manifest, args.source_protocol)
-    target_type = conversion_target_name(manifest, args.target_protocol)
-    matched_xmls = match_source_xmls(protocols, source_names, source_paths)
-    print("matched source XMLs:")
-    for source_name in source_names:
-        print(f"  {source_name}: {matched_xmls[source_name]}")
+def require_port(value: int | None, name: str) -> int:
+    """Require a UDP port for the selected mode."""
 
-    run_order = list(reversed(source_names))
-    for index, source_type in enumerate(run_order):
-        source_output_dir = output_dir / source_type
-        source_protocol = ensure_protocol(protocols, source_type)
-        binary = build_test_binary(
-            generated_dir,
-            source_output_dir,
-            source_type,
-            target_type,
-            args.jobs,
-            args.no_build,
-        )
-        values_path = build_values_file(
-            source_protocol,
-            matched_xmls[source_type],
-            source_output_dir,
-            args.missing_value,
-            args.set_pairs if len(source_names) == 1 else [],
-            args.value_mode,
-            rng,
-        )
-        print(f"created test project: {source_output_dir}")
-        print(f"created source XML values: {values_path}")
-        if args.no_build or args.no_run:
-            continue
-        mode = args.mode
-        if args.mode == "roundtrip" and index < len(run_order) - 1:
-            mode = "send"
-        run_test_binary(binary, values_path, mode, args)
+    if value is None:
+        raise ValueError(f"缺少 {name}")
+    return int(value)
 
 
 def main() -> int:
-    """Generate values from XML, build the test app, and run it."""
-    args = parse_args()
-    source_input_path = Path(args.source_xml or args.source_dir).resolve()
-    source_is_dir = source_input_path.is_dir()
-    source_paths = list_source_xmls(source_input_path) if source_is_dir else [source_input_path]
-    if args.generated_dir:
-        generated_dir = Path(args.generated_dir).resolve()
-    else:
-        generated_dir = auto_resolve_generated_dir(
-            Path(args.generated_root).resolve(),
-            source_paths,
-            args.source_port,
-        )
-    output_dir = resolve_output_dir(generated_dir, args.output_dir).resolve()
+    """Run the XML-driven UDP test."""
 
-    manifest = load_manifest(generated_dir)
-    rng = random.Random(args.seed)
-    if source_is_dir:
-        run_source_directory(args, generated_dir, source_paths, output_dir, manifest, rng)
-    else:
-        source_type, target_type = default_protocols(
-            manifest,
-            args.source_protocol,
-            args.target_protocol,
-        )
-        source_protocol = ensure_protocol(protocol_map(manifest), source_type)
-        run_single_source(
-            args,
-            generated_dir,
-            source_paths[0],
-            output_dir,
-            source_type,
-            target_type,
-            source_protocol,
-            rng,
-        )
-    return 0
+    args = parse_args()
+    source_path = Path(args.source_xml).resolve()
+    output_dir = Path(args.output_dir or "xml_message_test_output").resolve()
+    sources = source_protocols(source_path)
+    targets = load_target_protocols(args, source_path)
+    messages = build_source_messages(sources, args, output_dir)
+
+    if args.mode == "recv":
+        data, sender = receive_datagram(args.target_ip, require_port(args.target_port, "--target-port"), args.timeout_ms)
+        result = decode_received(data, targets)
+        result["__sender_ip"] = sender[0]
+        result["__sender_port"] = sender[1]
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    source_port = require_port(args.source_port, "--source-port")
+    sent: list[dict[str, Any]] = []
+    receiver: socket.socket | None = None
+    if args.mode == "roundtrip":
+        receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        receiver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        receiver.bind((args.target_ip, require_port(args.target_port, "--target-port")))
+        receiver.settimeout(args.timeout_ms / 1000)
+
+    try:
+        for message in messages:
+            protocol: XmlProtocol = message["protocol"]
+            payload: bytes = message["payload"]
+            send_datagram(args.source_ip, source_port, payload)
+            sent.append({"protocol": protocol.name, "xml": str(protocol.path), "byte_length": len(payload)})
+            time.sleep(0.05)
+
+        if args.mode == "send":
+            print(json.dumps({"status": "sent", "sent": sent, "values": str(output_dir / "source_xml_values.json")}, ensure_ascii=False, indent=2))
+            return 0
+
+        assert receiver is not None
+        data, sender = receiver.recvfrom(65535)
+        result = decode_received(data, targets)
+        result["status"] = "roundtrip"
+        result["sent"] = sent
+        result["__sender_ip"] = sender[0]
+        result["__sender_port"] = sender[1]
+        result["values"] = str(output_dir / "source_xml_values.json")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    finally:
+        if receiver is not None:
+            receiver.close()
 
 
 if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except subprocess.CalledProcessError as exc:
-        raise SystemExit(exc.returncode) from exc
+    raise SystemExit(main())
