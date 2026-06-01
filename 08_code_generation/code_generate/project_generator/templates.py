@@ -942,6 +942,7 @@ public slots:
     void getData(QString name, int time, int num, QByteArray& data, QString& ip, int& port, int& outTime);
 {extra_check}    void msgConvertThread();
     void onSendMessage(QByteArray msg);
+    QString resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const;
     void cacheGeneratedTarget(const QString& targetName, int num, const QByteArray& data);
 {process_decls}
 
@@ -1115,6 +1116,42 @@ def _render_process_function(
     return "\n".join(lines)
 
 
+def _unique_inbound_protocol_sizes(
+    conversions: list[ConversionSpec],
+    protocol_lookup: dict[str, ProtocolSpec],
+) -> dict[int, str]:
+    """Returns byte sizes that uniquely identify one inbound source protocol."""
+
+    source_protocols: list[str] = []
+    for conversion in conversions:
+        for source in conversion.sources:
+            if source.protocol not in source_protocols:
+                source_protocols.append(source.protocol)
+
+    size_to_names: dict[int, list[str]] = {}
+    for protocol_name in source_protocols:
+        protocol = protocol_lookup.get(protocol_name)
+        if protocol is None or protocol.total_bits <= 0:
+            continue
+        byte_size = (protocol.total_bits + 7) // 8
+        size_to_names.setdefault(byte_size, []).append(protocol.type_name)
+
+    return {size: names[0] for size, names in size_to_names.items() if len(names) == 1}
+
+
+def _render_inbound_protocol_resolver(unique_sizes: dict[int, str]) -> str:
+    """Renders runtime source protocol resolution for shared receive endpoints."""
+
+    lines = ["QString messageConvert::resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const", "{"]
+    if unique_sizes:
+        for byte_size, protocol_name in sorted(unique_sizes.items()):
+            lines.append(f"    if (data.size() == {byte_size}) return {_quoted(protocol_name)};")
+    else:
+        lines.append("    Q_UNUSED(data);")
+    lines.extend(["    return messageName;", "}", ""])
+    return "\n".join(lines)
+
+
 def render_messageconvert_cpp(
     conversions: list[ConversionSpec],
     protocol_lookup: dict[str, ProtocolSpec],
@@ -1127,6 +1164,7 @@ def render_messageconvert_cpp(
 ) -> str:
     """Renders messageconvert.cpp."""
 
+    inbound_resolver = _render_inbound_protocol_resolver(_unique_inbound_protocol_sizes(conversions, protocol_lookup))
     process_methods = [_method_name(conversion) for conversion in conversions]
     process_blocks = [
         _render_process_function(
@@ -1251,11 +1289,12 @@ void messageConvert::onSendMessage(QByteArray msg)
     for (auto var : udpSendList) udpSend->writeDatagram(msg, QHostAddress(var->ip), var->port);
 }}
 
+{inbound_resolver}
 void messageConvert::readPendingDatagrams(QString name, QHostAddress ip, quint16 port, QByteArray data)
 {{
     std::shared_ptr<msgDataInfo> d(new msgDataInfo);
     d->time.append(QDateTime::currentMSecsSinceEpoch());
-    d->name = name;
+    d->name = resolveInboundProtocolName(name, data);
     d->num = 1;
     d->data = data;
     d->ip = ip.toString();
