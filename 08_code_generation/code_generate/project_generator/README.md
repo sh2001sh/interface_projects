@@ -39,11 +39,10 @@ python -m project_generator build --protocol-dir input/protocols --mappings inpu
   - 目标缓存窗口
   - 多源时序矩阵
   - `messageconvert.cpp` 中的联合判定与缓存发送
-- 内建三套完整 reference profile：
-  - `newB`
-  - `newC`
-  - `newD`
-  在 `mappings.json` 顶层 `runtime.reference_profile` 指定后，生成器会直接输出与现有项目一致的完整实现文件
+- 生成结果在工程结构、运行时骨架和主要产物形式上对齐现有 `newB` / `newC` / `newD` 风格
+- `loop_config` 目前仅做旧输入兼容读取，不参与当前生成流程；循环逻辑仍以 XML 中的 `Group` / `Item` 结构解析结果为准
+- XML 根协议中的 `routes` 目前仅保留解析能力，供上游识别父协议下的子消息关系；接口 08 当前不把它接入运行时发送/分发链路
+- 字段映射源码采用统一模板生成：`Target convert_<conversion_name>(const Src1&, const Src2&, ...)`。因此会在命名、局部变量和赋值排版上与 `newB` 有差异，但这是模板化生成策略，不代表转换语义缺失
 
 ## 产物
 

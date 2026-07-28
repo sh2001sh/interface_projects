@@ -2,7 +2,7 @@
 
 ## 1. 适用范围
 
-本文档仅针对 [interface_projects](/home/hks/sh/interface_projects) 目录的独立部署与迁移，不依赖仓库外部脚本。
+本文档仅针对当前 `interface_projects` 目录的独立部署与迁移，不依赖仓库外部脚本。
 
 部署目标：
 
@@ -16,9 +16,17 @@
 部署时至少需要保留以下目录和文件：
 
 - `interface_projects/01_validate_protocol_files` 到 `interface_projects/10_rule_evaluate`
+- `interface_projects/configs/`
+- `interface_projects/scripts/generate_interface_configs.py`
 - `interface_projects/requirements-all.txt`
 - `interface_projects/deploy/`
 - `interface_projects/test/`
+
+说明：
+
+- 各接口运行时读取的是自己目录下的 `config.yaml`
+- 这些 `config.yaml` 是由统一母配置和每接口差异配置自动生成的
+- 不建议手工直接改各接口目录下的 `config.yaml`
 
 ## 3. 端口与接口
 
@@ -36,6 +44,13 @@
 | 10 | `10_rule_evaluate` | `6110` | `POST /api/knowledge/rule_evaluate` |
 
 所有接口都暴露 `GET /health`。
+
+索引相关补充：
+
+- `02_upload_split` 在上传拆分完成后，会立即按文档创建 PageIndex 文档索引
+- `04_semantic_chunk` 默认不再重复创建文档索引
+- 如需手工重建，调用 `POST /api/data/update_doc_index` 时优先传 `document_path` / `document_paths`
+- `07_protocol_generate_rules` 使用 PageIndex 时优先传 `index_registry_path`，可传单个 registry 文件或 registry 目录
 
 ## 4. 服务器基础环境
 
@@ -65,7 +80,7 @@ sudo apt-get install -y \
 推荐直接把整个 `interface_projects` 目录拷贝到目标服务器：
 
 ```bash
-rsync -av /home/hks/sh/interface_projects/ user@TARGET:/srv/interface_projects/
+rsync -av /path/to/interface_projects/ user@TARGET:/srv/interface_projects/
 ```
 
 以下文档默认部署目录为：
@@ -98,7 +113,34 @@ python -m pip install --upgrade pip setuptools wheel
 python -m pip install -r requirements-all.txt
 ```
 
-## 7. 环境变量配置
+## 7. 生成接口配置
+
+当前配置管理流程：
+
+- 公共配置：`configs/global.yaml`
+- 每接口差异配置：`configs/interfaces/*.yaml`
+- 生成目标：各接口目录下的 `config.yaml`
+
+首次部署或修改配置后，先执行：
+
+```bash
+cd /srv/interface_projects
+python3 scripts/generate_interface_configs.py
+```
+
+如果只想重生成部分接口：
+
+```bash
+python3 scripts/generate_interface_configs.py --interfaces 07_protocol_generate_rules,10_rule_evaluate
+```
+
+建议约定：
+
+- 改公共项：编辑 `configs/global.yaml`
+- 改单接口端口等差异项：编辑 `configs/interfaces/<接口名>.yaml`
+- 改完后重新执行生成脚本
+
+## 8. 环境变量配置
 
 复制环境变量模板：
 
@@ -112,7 +154,7 @@ cp deploy/env.example deploy/env.sh
 - `USE_VLLM`
 - `VLLM_URL`
 - `MODEL_CACHE_DIR`
-- `PROTOCOL_CONVERSION_NEO4J_*`
+- `PROTOCOL_CONVERSION_NEO4J_*`：仅接口 `07_protocol_generate_rules` 的规则生成与人工审核回写使用
 
 使用时执行：
 
@@ -120,9 +162,15 @@ cp deploy/env.example deploy/env.sh
 source deploy/env.sh
 ```
 
-## 8. 外部依赖安装与迁移
+说明：
 
-### 8.1 MySQL
+- 环境变量是**覆盖项**
+- 如果环境变量和各接口 `config.yaml` 同名项同时存在，当前实现会优先使用环境变量
+- 如果不需要覆盖，保持 `deploy/env.sh` 最小化即可
+
+## 9. 外部依赖安装与迁移
+
+### 9.1 MySQL
 
 适用接口：
 
@@ -163,12 +211,11 @@ export MYSQL_USE_SQLITE=true
 export MYSQL_AUTO_FALLBACK_SQLITE=true
 ```
 
-### 8.2 Neo4j
+### 9.2 Neo4j
 
 适用接口：
 
-- 7 推荐配置
-- 10 可选
+- 7 必需
 
 建议与当前环境保持一致，使用 Neo4j Community `5.26.19`。
 
@@ -208,13 +255,16 @@ export PROTOCOL_CONVERSION_NEO4J_URI="bolt://127.0.0.1:7687"
 export PROTOCOL_CONVERSION_NEO4J_USERNAME="neo4j"
 export PROTOCOL_CONVERSION_NEO4J_PASSWORD="change_me"
 export PROTOCOL_CONVERSION_NEO4J_DATABASE="neo4j"
+export PROTOCOL_CONVERSION_JSON_FALLBACK=false
 ```
 
-如果未配置 Neo4j，接口 7 会回退到本地 JSON 图谱：
+说明：
 
-- `07_protocol_generate_rules/data/protocol_conversion_kb/`
+- 当前只保留接口 `07` 使用知识图谱。
+- 当前不再保留本地 JSON 图谱读回退；Neo4j 未配置或不可达时，接口 `07` 会直接报错。
+- `07_protocol_generate_rules/data/protocol_conversion_kb/` 仅保留历史文件，不再作为运行时回退源。
 
-### 8.3 模型与 vLLM
+### 9.3 模型与 vLLM
 
 适用接口：
 
@@ -234,7 +284,7 @@ export PROTOCOL_CONVERSION_NEO4J_DATABASE="neo4j"
 拷贝源服务器模型缓存：
 
 ```bash
-rsync -av /home/hks/model_cache/ user@TARGET:/srv/model_cache/
+rsync -av /path/to/model_cache/ user@TARGET:/srv/model_cache/
 ```
 
 启动 vLLM 示例：
@@ -251,11 +301,22 @@ export MODEL_CACHE_DIR="/srv/model_cache"
 export USE_VLLM=true
 export VLLM_URL="http://127.0.0.1:8000"
 export LLM_MODEL_NAME="/srv/model_cache/Qwen3-4B"
-export EMBED_MODEL_NAME="/srv/model_cache/qwen3-0.6b-embedding"
-export RERANK_MODEL_NAME="/srv/model_cache/Qwen3-Reranker-0.6B"
+export EMBED_MODEL_DIR="/srv/model_cache/Qwen/Qwen3-Embedding-0___6B"
+export EMBED_MODEL_PATH="/srv/model_cache/Qwen/Qwen3-Embedding-0___6B"
+export RERANK_MODEL_DIR="/srv/model_cache/Qwen3-Reranker-0___6B"
 ```
 
-### 8.4 Milvus / milvus-lite
+如果不想通过环境变量覆盖，也可以直接把这些路径写入：
+
+- `configs/global.yaml`
+
+然后重新执行：
+
+```bash
+python3 scripts/generate_interface_configs.py
+```
+
+### 9.4 Milvus / milvus-lite
 
 适用接口：
 
@@ -266,9 +327,9 @@ export RERANK_MODEL_NAME="/srv/model_cache/Qwen3-Reranker-0.6B"
 
 如果需要独立 Milvus 服务，再按目标服务器实际方案部署。
 
-## 9. 启动方式
+## 10. 启动方式
 
-### 9.1 单接口启动
+### 10.1 单接口启动
 
 ```bash
 cd /srv/interface_projects
@@ -277,7 +338,7 @@ source deploy/env.sh
 bash deploy/start_one.sh 07_protocol_generate_rules
 ```
 
-### 9.2 全部接口启动
+### 10.2 全部接口启动
 
 ```bash
 cd /srv/interface_projects
@@ -297,7 +358,7 @@ bash deploy/start_all.sh
 bash deploy/stop_all.sh
 ```
 
-## 10. 按目录手工启动
+## 11. 按目录手工启动
 
 如果不用辅助脚本，也可以逐个目录启动：
 
@@ -308,7 +369,14 @@ source ../deploy/env.sh
 python app.py
 ```
 
-## 11. 统一测试
+如果你改过 `configs/global.yaml` 或 `configs/interfaces/*.yaml`，启动前先重新生成：
+
+```bash
+cd /srv/interface_projects
+python3 scripts/generate_interface_configs.py
+```
+
+## 12. 统一测试
 
 测试脚本与测试数据统一放在：
 
@@ -316,7 +384,7 @@ python app.py
 - `test/run_smoke_tests.sh`
 - `test/data/`
 
-### 11.1 快速健康检查
+### 12.1 快速健康检查
 
 ```bash
 cd /srv/interface_projects
@@ -325,19 +393,19 @@ source deploy/env.sh
 bash test/run_smoke_tests.sh --suites health
 ```
 
-### 11.2 健康检查 + 合同检查
+### 12.2 健康检查 + 合同检查
 
 ```bash
 bash test/run_smoke_tests.sh --suites health,contract
 ```
 
-### 11.3 增加接口 8 功能验证
+### 12.3 增加接口 8 功能验证
 
 ```bash
 bash test/run_smoke_tests.sh --suites health,contract,codegen --interfaces 08,10
 ```
 
-### 11.4 增加接口 10 规则评估验证
+### 12.4 增加接口 10 规则评估验证
 
 接口 10 可以在无模型模式下运行回退评估：
 
@@ -349,7 +417,7 @@ bash test/run_smoke_tests.sh --suites health,rule-eval --interfaces 10
 
 - `test/output/smoke_report.json`
 
-## 12. 接口依赖总览
+## 13. 接口依赖总览
 
 | 接口 | 必要依赖 | 建议依赖 |
 |------|----------|----------|
@@ -364,11 +432,13 @@ bash test/run_smoke_tests.sh --suites health,rule-eval --interfaces 10
 | 9 | Python、微调依赖 | GPU、模型权重 |
 | 10 | Python | Embedding、Reranker |
 
-## 13. 建议部署顺序
+## 14. 建议部署顺序
 
 1. 迁移 `interface_projects`
 2. 创建虚拟环境并安装 `requirements-all.txt`
-3. 配置 `deploy/env.sh`
-4. 安装 MySQL / Neo4j / 模型服务
-5. 启动 8、10，先跑最小功能验证
-6. 启动其余接口，再跑全量健康检查
+3. 修改 `configs/global.yaml` 与 `configs/interfaces/*.yaml`
+4. 执行 `python3 scripts/generate_interface_configs.py`
+5. 配置 `deploy/env.sh`（仅写需要覆盖的项）
+6. 安装 MySQL / Neo4j / 模型服务
+7. 启动 8、10，先跑最小功能验证
+8. 启动其余接口，再跑全量健康检查

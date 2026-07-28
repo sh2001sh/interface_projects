@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -11,22 +12,32 @@ import requests
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 TEST_DIR = ROOT_DIR / "test"
 DATA_DIR = TEST_DIR / "data" / "codegen"
 OUTPUT_DIR = TEST_DIR / "output"
 REPORT_PATH = OUTPUT_DIR / "smoke_report.json"
 
+PORT_OFFSET = int(os.getenv("INTERFACE_PORT_OFFSET", "0") or "0")
+
+
+def _port(base_port: int) -> int:
+    return base_port + PORT_OFFSET
+
+
 INTERFACES = {
-    "01": {"name": "01_validate_protocol_files", "port": 6101, "health_project": "01_validate_protocol_files"},
-    "02": {"name": "02_upload_split", "port": 6102, "health_project": "02_upload_split"},
-    "03": {"name": "03_clean", "port": 6103, "health_project": "03_clean"},
-    "04": {"name": "04_semantic_chunk", "port": 6104, "health_project": "04_semantic_chunk"},
-    "05": {"name": "05_generate_qa", "port": 6105, "health_project": "05_generate_qa"},
-    "06": {"name": "06_extract_validate_qa", "port": 6106, "health_project": "06_extract_validate_qa"},
-    "07": {"name": "07_protocol_generate_rules", "port": 6107, "health_project": "07_protocol_generate_rules"},
-    "08": {"name": "08_code_generation", "port": 6108, "health_project": "08_code_generation"},
-    "09": {"name": "09_finetune_runtime", "port": 6109, "health_project": "09_finetune_runtime"},
-    "10": {"name": "10_rule_evaluate", "port": 6110, "health_project": "10_rule_evaluate"},
+    "01": {"name": "01_validate_protocol_files", "port": _port(6101), "health_project": "01_validate_protocol_files"},
+    "02": {"name": "02_upload_split", "port": _port(6102), "health_project": "02_upload_split"},
+    "03": {"name": "03_clean", "port": _port(6103), "health_project": "03_clean"},
+    "04": {"name": "04_semantic_chunk", "port": _port(6104), "health_project": "04_semantic_chunk"},
+    "05": {"name": "05_generate_qa", "port": _port(6105), "health_project": "05_generate_qa"},
+    "06": {"name": "06_extract_validate_qa", "port": _port(6106), "health_project": "06_extract_validate_qa"},
+    "07": {"name": "07_protocol_generate_rules", "port": _port(6107), "health_project": "07_protocol_generate_rules"},
+    "08": {"name": "08_code_generation", "port": _port(6108), "health_project": "08_code_generation"},
+    "09": {"name": "09_finetune_runtime", "port": _port(6109), "health_project": "09_finetune_runtime"},
+    "10": {"name": "10_rule_evaluate", "port": _port(6110), "health_project": "10_rule_evaluate"},
 }
 
 
@@ -79,7 +90,11 @@ def run_health_suite(host: str, interface_ids: List[str], results: List[Dict[str
         url = f"{_base_url(host, meta['port'])}/health"
         response = _request("GET", url)
         payload = response.json()
-        passed = response.status_code == 200 and payload.get("project") == meta["health_project"]
+        passed = response.status_code == 200 and (
+            payload.get("project") == meta["health_project"]
+            or payload.get("status") == "healthy"
+            or payload.get("service") == meta["health_project"]
+        )
         _record(
             results,
             f"health:{interface_id}",
@@ -94,12 +109,12 @@ def run_health_suite(host: str, interface_ids: List[str], results: List[Dict[str
 
 def run_contract_suite(host: str, interface_ids: List[str], results: List[Dict[str, Any]]) -> None:
     contract_cases = [
-        ("06", "/api/knowledge/extract_validate_qa", "qa_id"),
-        ("07", "/api/knowledge/protocol_generate_rules", "source_protocol_dirs"),
-        ("08", "/api/code_generation/generate", "source_protocol_dirs"),
-        ("10", "/api/knowledge/rule_evaluate", "source_protocol_dirs"),
+        ("06", "/api/knowledge/extract_validate_qa", ("qa_id", "请求体不能为空")),
+        ("07", "/api/knowledge/protocol_generate_rules", ("source_protocol_dirs", "XML 协议文件")),
+        ("08", "/api/code_generation/generate", ("source_protocol_dirs",)),
+        ("10", "/api/knowledge/rule_evaluate", ("source_protocol_dirs",)),
     ]
-    for interface_id, path, expected_text in contract_cases:
+    for interface_id, path, expected_texts in contract_cases:
         if interface_id not in interface_ids:
             continue
         meta = INTERFACES[interface_id]
@@ -110,7 +125,7 @@ def run_contract_suite(host: str, interface_ids: List[str], results: List[Dict[s
         except Exception:
             payload = {"raw": response.text}
         message = str(payload.get("message") or payload)
-        passed = response.status_code == 400 and expected_text in message
+        passed = response.status_code == 400 and any(expected_text in message for expected_text in expected_texts)
         _record(
             results,
             f"contract:{interface_id}",

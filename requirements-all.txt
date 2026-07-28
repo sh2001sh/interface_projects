@@ -2,6 +2,7 @@ Flask>=2.3.0
 PyYAML>=6.0.0
 accelerate>=0.21.0
 datasets>=2.13.0
+docling>=2,<3
 langchain-core>=0.0.1
 langchain-text-splitters>=0.0.1
 milvus-lite>=2.4.0

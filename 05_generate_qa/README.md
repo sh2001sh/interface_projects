@@ -21,3 +21,4 @@ python app.py
 - 项目自带一份 `shared/` 副本，不依赖仓库根目录共享层。
 - 标准输入应来自上游接口沉淀后的 `block/chunk` 结果，例如 `source_block_ids`、`target_source_ids`、`dataset_id`。
 - 文件上传与解析在更前面的接口完成；接口5不直接接文件路径，PDF 仅是上游可能处理的一种原始文件类型。
+- 根入口 `POST /api/knowledge/generate_qa` 支持同路由 SSE：可传 `stream=true` 或 `X-Stream-Response: true`。

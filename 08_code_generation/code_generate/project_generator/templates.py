@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+import re
+
 from project_generator.models import (
+    MessageRuleDetailSpec,
     BranchNode,
     ChoreographySpec,
     ConversionSpec,
@@ -12,8 +16,24 @@ from project_generator.models import (
     ProtocolNode,
     ProtocolSpec,
     ScalarNode,
+    TransportSpec,
 )
 from project_generator.utils import normalize_token, to_snake_name
+
+
+_NUMERIC_LITERAL_RE = re.compile(r"^[+-]?(?:0|[1-9][0-9]*|0[xX][0-9A-Fa-f]+)$")
+_GROUP_BOOL_REPLACEMENTS = (
+    (re.compile(r"\band\b", re.IGNORECASE), "&&"),
+    (re.compile(r"\bor\b", re.IGNORECASE), "||"),
+)
+_GROUP_ASSIGN_RE = re.compile(r"(?<![!<>=])=(?!=)")
+_OPTIONAL_CONTROL_CPP_RE = re.compile(r"(?:^|_)(?:fpi|gpi)\d+$", re.IGNORECASE)
+
+
+def _msvc_utf8_preamble() -> str:
+    """Renders one MSVC-friendly UTF-8 preamble."""
+
+    return '#ifdef _MSC_VER\n#pragma execution_character_set("utf-8")\n#endif\n'
 
 
 def _cpp_field_name(path_parts: tuple[str, ...]) -> str:
@@ -33,20 +53,213 @@ def _indent(level: int, lines: list[str]) -> list[str]:
 def _quoted(text: str) -> str:
     """Renders one QStringLiteral value."""
 
-    return f'QStringLiteral("{text}")'
+    escaped: list[str] = []
+    for char in text:
+        codepoint = ord(char)
+        if char == "\\":
+            escaped.append("\\\\")
+        elif char == '"':
+            escaped.append('\\"')
+        elif char == "\n":
+            escaped.append("\\n")
+        elif char == "\r":
+            escaped.append("\\r")
+        elif char == "\t":
+            escaped.append("\\t")
+        elif 32 <= codepoint <= 126:
+            escaped.append(char)
+        elif codepoint <= 0xFFFF:
+            escaped.append(f"\\u{codepoint:04x}")
+        else:
+            escaped.append(f"\\U{codepoint:08x}")
+    return f'QStringLiteral("{"".join(escaped)}")'
+
+
+def _mapping_target_var_name(target_type: str) -> str:
+    """Builds one readable target variable name for generated mapping/runtime code."""
+
+    return f"{to_snake_name(target_type)}Target"
+
+
+def _xml_attr(text: str | None) -> str:
+    """Escapes one XML attribute value."""
+
+    raw = str(text or "")
+    return (
+        raw.replace("&", "&amp;")
+        .replace('"', "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _field_spec_for_path(protocol: ProtocolSpec, path_parts: tuple[str, ...]):
+    """Finds one flattened field spec by XML path."""
+
+    for field in protocol.fields:
+        if field.path_parts == path_parts:
+            return field
+    return None
+
+
+def _field_spec_for_cpp_name(protocol: ProtocolSpec, cpp_name: str):
+    """Finds one flattened field spec by bound C++ name."""
+
+    for field in protocol.fields:
+        if field.cpp_name == cpp_name:
+            return field
+    return None
+
+
+def _resolve_scalar_binding(
+    protocol: ProtocolSpec,
+    node: ScalarNode,
+    path_parts: tuple[str, ...],
+):
+    """Resolves one scalar node to its bound C++ field name and manifest entry."""
+
+    field = _field_spec_for_path(protocol, path_parts + (node.label,))
+    if field is not None:
+        return field.cpp_name, field
+    field_name = node.cpp_name
+    field = _field_spec_for_cpp_name(protocol, field_name)
+    return field_name, field
+
+
+def _typed_default_literal(field) -> str:
+    """Builds one typed default literal for a generated field."""
+
+    default_value = field.default_value
+    if default_value is None or not str(default_value).strip():
+        if field.cpp_type == "float":
+            return "0.0f"
+        if field.cpp_type == "double":
+            return "0.0"
+        if field.cpp_type == "char":
+            return "static_cast<char>(0)"
+        return "0"
+    raw = str(default_value).strip()
+    if field.cpp_type == "char":
+        return f"static_cast<char>({raw})"
+    if field.cpp_type in {"float", "double"}:
+        try:
+            decimal_value = Decimal(raw)
+            rendered = format(decimal_value, "f").rstrip("0").rstrip(".")
+            if not rendered:
+                rendered = "0"
+        except InvalidOperation:
+            rendered = raw
+        if field.cpp_type == "float" and "." not in rendered and "e" not in rendered.lower():
+            rendered = f"{rendered}.0"
+        if field.cpp_type == "double" and "." not in rendered and "e" not in rendered.lower():
+            rendered = f"{rendered}.0"
+        return f"{rendered}f" if field.cpp_type == "float" else rendered
+    return raw
+
+
+def _decode_value_expr(field, endian_func: str, bit_length: int) -> str:
+    """Builds one typed decode expression for a scalar field."""
+
+    read_expr = f"{endian_func}(raw, bitOffset, {bit_length})"
+    if field.cpp_type == "float" and bit_length == 32:
+        return f"bitsToFloat(static_cast<quint32>({read_expr}))"
+    if field.cpp_type == "double" and bit_length == 64:
+        return f"bitsToDouble(static_cast<quint64>({read_expr}))"
+    if field.cpp_type == "char":
+        return f"static_cast<char>({read_expr})"
+    return f"static_cast<{field.cpp_type}>({read_expr})"
+
+
+def _encode_value_expr(field_name: str, field, bit_length: int | None) -> str:
+    """Builds one typed encode expression for a scalar field."""
+
+    value_expr = f"value.{field_name}"
+    if field.cpp_type == "float":
+        return f"static_cast<quint64>(floatToBits({value_expr}))"
+    if field.cpp_type == "double":
+        return f"doubleToBits({value_expr})"
+    if field.cpp_type == "char":
+        if bit_length is None:
+            return f"static_cast<quint64>(static_cast<unsigned char>({value_expr}))"
+        return f"normalizeUnsignedBits(static_cast<qint64>(static_cast<unsigned char>({value_expr})), {bit_length})"
+    if bit_length is None:
+        return f"static_cast<quint64>({value_expr})"
+    return f"normalizeUnsignedBits(static_cast<qint64>({value_expr}), {bit_length})"
+
+
+def _collect_group_labels(nodes: list[ProtocolNode]) -> set[str]:
+    """Collects all scalar labels under one group."""
+
+    labels: set[str] = set()
+    for node in nodes:
+        if isinstance(node, ScalarNode):
+            labels.add(node.label)
+            continue
+        labels.update(_collect_group_labels(node.children))
+    return labels
+
+
+def _node_contains_any_label(node: ProtocolNode, labels: set[str]) -> bool:
+    """Checks whether one node subtree references any target label."""
+
+    if isinstance(node, ScalarNode):
+        return node.label in labels
+    return any(_node_contains_any_label(child, labels) for child in node.children)
+
+
+def _group_condition_anchor_index(nodes: list[ProtocolNode], labels: set[str]) -> int | None:
+    """Finds the last child index required to evaluate one group condition."""
+
+    if not labels:
+        return None
+    last_index: int | None = None
+    for index, child in enumerate(nodes):
+        if _node_contains_any_label(child, labels):
+            last_index = index
+    return last_index
+
+
+def _group_condition_expr(
+    node: GroupNode,
+    protocol: ProtocolSpec,
+    iteration_path: tuple[str, ...],
+) -> tuple[str | None, set[str]]:
+    """Builds one iteration-scoped condition expression for a conditional group."""
+
+    raw_condition = (node.condition or "").strip()
+    if not raw_condition:
+        return None, set()
+
+    expression = raw_condition
+    referenced_labels: set[str] = set()
+    candidate_labels = sorted(_collect_group_labels(node.children), key=len, reverse=True)
+    for label in candidate_labels:
+        field = _field_spec_for_path(protocol, iteration_path + (label,))
+        if field is None or label not in expression:
+            continue
+        expression = expression.replace(label, f"value.{field.cpp_name}")
+        referenced_labels.add(label)
+
+    for pattern, replacement in _GROUP_BOOL_REPLACEMENTS:
+        expression = pattern.sub(replacement, expression)
+    expression = _GROUP_ASSIGN_RE.sub("==", expression)
+    return expression, referenced_labels
 
 
 def render_main_cpp() -> str:
     """Renders the shared main.cpp file."""
 
-    return """#include <QCoreApplication>
+    return _msvc_utf8_preamble() + """#include <QCoreApplication>
 #include <QDebug>
 #include <QDomDocument>
 #include <QFile>
 #include <memory>
 #include "messageconvert.h"
 
-int readMessageXML(QString path, QVector<std::shared_ptr<messageConvert::NetInfo>>& netlist)
+int readMessageXML(
+    QString path,
+    QVector<std::shared_ptr<messageConvert::NetInfo>>& netlist,
+    QVector<std::shared_ptr<messageConvert::MessageRuleInfo>>& messageRuleList)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -64,22 +277,59 @@ int readMessageXML(QString path, QVector<std::shared_ptr<messageConvert::NetInfo
     QDomNodeList childNodes = root.childNodes();
     for (int index = 0; index < childNodes.count(); ++index) {
         QDomNode node = childNodes.at(index);
-        auto ip = node.attributes().namedItem("ip");
-        auto port = node.attributes().namedItem("port");
-        auto type = node.attributes().namedItem("type");
-        auto recv = node.attributes().namedItem("recv");
-        auto name = node.attributes().namedItem("name");
-        auto feedBackPort = node.attributes().namedItem("feedBackPort");
-        std::shared_ptr<messageConvert::NetInfo> net(new messageConvert::NetInfo);
-        net->ip = ip.nodeValue();
-        net->name = name.nodeValue();
-        net->port = port.nodeValue().toInt();
-        net->feedBackPort = feedBackPort.nodeValue().toInt();
-        net->bRecvTag = recv.nodeValue().toInt();
-        if (type.nodeValue().toUpper() == "TCP") net->netType = messageConvert::emTCP;
-        else if (type.nodeValue().toUpper() == "DDS") net->netType = messageConvert::emDDS;
-        else net->netType = messageConvert::emUDP;
-        netlist.push_back(net);
+        if (!node.isElement()) continue;
+        QDomElement element = node.toElement();
+        if (element.tagName() == "Item") {
+            auto ip = element.attributes().namedItem("ip");
+            auto port = element.attributes().namedItem("port");
+            auto type = element.attributes().namedItem("type");
+            auto recv = element.attributes().namedItem("recv");
+            auto name = element.attributes().namedItem("name");
+            auto feedBackPort = element.attributes().namedItem("feedBackPort");
+            std::shared_ptr<messageConvert::NetInfo> net(new messageConvert::NetInfo);
+            net->ip = ip.nodeValue();
+            net->name = name.nodeValue();
+            net->port = port.nodeValue().toInt();
+            net->feedBackPort = feedBackPort.nodeValue().toInt();
+            net->bRecvTag = recv.nodeValue().toInt();
+            if (type.nodeValue().toUpper() == "TCP") net->netType = messageConvert::emTCP;
+            else if (type.nodeValue().toUpper() == "DDS") net->netType = messageConvert::emDDS;
+            else net->netType = messageConvert::emUDP;
+            netlist.push_back(net);
+            continue;
+        }
+        if (element.tagName() == "Transport") {
+            QDomNodeList messageRuleNodes = element.childNodes();
+            for (int ruleIndex = 0; ruleIndex < messageRuleNodes.count(); ++ruleIndex) {
+                QDomNode ruleNode = messageRuleNodes.at(ruleIndex);
+                if (!ruleNode.isElement()) continue;
+                QDomElement ruleElement = ruleNode.toElement();
+                if (ruleElement.tagName() != "MessageRule") continue;
+                std::shared_ptr<messageConvert::MessageRuleInfo> rule(new messageConvert::MessageRuleInfo);
+                rule->messageName = ruleElement.attribute("messageName");
+                rule->delayRequirement = ruleElement.attribute("delayRequirement").toInt();
+                QDomNodeList filterNodes = ruleElement.childNodes();
+                for (int filterIndex = 0; filterIndex < filterNodes.count(); ++filterIndex) {
+                    QDomNode filterNode = filterNodes.at(filterIndex);
+                    if (!filterNode.isElement()) continue;
+                    QDomElement filterElement = filterNode.toElement();
+                    if (filterElement.tagName() == "CrcCheck") {
+                        rule->crcCheck.enabled = filterElement.attribute("enabled").toInt() != 0;
+                        rule->crcCheck.bindElement = filterElement.attribute("bindElement");
+                    } else if (filterElement.tagName() == "Aggregation") {
+                        rule->aggregation.mode = filterElement.attribute("mode");
+                        rule->aggregation.count = filterElement.attribute("count").isEmpty() ? -1 : filterElement.attribute("count").toInt();
+                        rule->aggregation.timeMs = filterElement.attribute("timeMs").isEmpty() ? -1 : filterElement.attribute("timeMs").toInt();
+                        rule->aggregation.compareOperator = filterElement.attribute("operator").trimmed().toUpper();
+                        rule->aggregation.compareValue = filterElement.attribute("value").trimmed();
+                    } else if (filterElement.tagName() == "AggregationType") {
+                        rule->aggregationType.type = filterElement.attribute("type");
+                        rule->aggregationType.bindElement = filterElement.attribute("bindElement");
+                    }
+                }
+                messageRuleList.push_back(rule);
+            }
+        }
     }
     return 0;
 }
@@ -88,16 +338,17 @@ int main(int argc, char* argv[])
 {
     QCoreApplication application(argc, argv);
     QVector<std::shared_ptr<messageConvert::NetInfo>> netlist;
+    QVector<std::shared_ptr<messageConvert::MessageRuleInfo>> messageRuleList;
     const QString configPath = QCoreApplication::applicationDirPath() + "/config.xml";
-    readMessageXML(configPath, netlist);
+    readMessageXML(configPath, netlist, messageRuleList);
     messageConvert converter;
-    converter.start(netlist);
+    converter.start(netlist, messageRuleList);
     return application.exec();
 }
 """
 
 
-def render_config_xml(endpoints: list[EndpointSpec]) -> str:
+def render_config_xml(endpoints: list[EndpointSpec], transport: TransportSpec | None = None) -> str:
     """Renders config.xml."""
 
     if not endpoints:
@@ -127,6 +378,39 @@ def render_config_xml(endpoints: list[EndpointSpec]) -> str:
             f'recv="{1 if endpoint.recv else 0}" feedBackPort="{endpoint.feedback_port}" '
             f'name="{endpoint.name}" />'
         )
+    if transport is not None:
+        items.append(
+            "    "
+            f'<Transport messageType="{_xml_attr(transport.message_type)}" '
+            f'recvIp="{_xml_attr(transport.recv_ip)}" recvPort="{transport.recv_port}" '
+            f'sendIp="{_xml_attr(transport.send_ip)}" sendPort="{transport.send_port}">'
+        )
+        for rule in transport.message_rules:
+            items.append(
+                "        "
+                f'<MessageRule messageName="{_xml_attr(rule.message_name)}" '
+                f'delayRequirement="{rule.delay_requirement}">'
+            )
+            items.append(
+                "            "
+                f'<CrcCheck enabled="{1 if rule.crc_check.enabled else 0}" '
+                f'bindElement="{_xml_attr(rule.crc_check.bind_element)}" />'
+            )
+            items.append(
+                "            "
+                f'<Aggregation mode="{_xml_attr(rule.aggregation.mode)}" '
+                f'count="{"" if rule.aggregation.count is None else rule.aggregation.count}" '
+                f'timeMs="{"" if rule.aggregation.time_ms is None else rule.aggregation.time_ms}" '
+                f'operator="{_xml_attr(rule.aggregation.operator)}" '
+                f'value="{_xml_attr(rule.aggregation.value)}" />'
+            )
+            items.append(
+                "            "
+                f'<AggregationType type="{_xml_attr(rule.aggregation_type.type)}" '
+                f'bindElement="{_xml_attr(rule.aggregation_type.bind_element)}" />'
+            )
+            items.append("        </MessageRule>")
+        items.append("    </Transport>")
     return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<NameSpace>\n" + "\n".join(items) + "\n</NameSpace>\n"
 
 
@@ -135,10 +419,14 @@ def render_protocol_header(protocol: ProtocolSpec) -> str:
 
     guard = f"{protocol.type_name.upper()}_DEF_H"
     field_lines = []
+    seen_fields: set[str] = set()
     for field in protocol.fields:
-        default_value = field.default_value if field.default_value is not None else "0"
-        field_lines.append(f"    long {field.cpp_name} = {default_value};  // {field.path}")
-    return f"""#ifndef {guard}
+        if field.cpp_name in seen_fields:
+            continue
+        seen_fields.add(field.cpp_name)
+        field_lines.append(f"    {field.cpp_type} {field.cpp_name} = {_typed_default_literal(field)};")
+    return f"""{_msvc_utf8_preamble()}
+#ifndef {guard}
 #define {guard}
 
 class {protocol.type_name} {{
@@ -161,7 +449,8 @@ def mapping_file_base(conversion: ConversionSpec) -> str:
 def render_codec_header(protocols: list[ProtocolSpec], mapping_headers: list[str]) -> str:
     """Renders codec.h."""
 
-    includes = [f'#include "{header}"' for header in mapping_headers]
+    protocol_headers = [f'{protocol.file_stem}_def.h' for protocol in protocols]
+    includes = [f'#include "{header}"' for header in [*protocol_headers, *mapping_headers]]
     declarations: list[str] = []
     for protocol in protocols:
         declarations.extend(
@@ -173,9 +462,12 @@ def render_codec_header(protocols: list[ProtocolSpec], mapping_headers: list[str
             ]
         )
     return (
-        "#ifndef CODEC_H\n#define CODEC_H\n\n"
+        f"{_msvc_utf8_preamble()}\n#ifndef CODEC_H\n#define CODEC_H\n\n"
         + "\n".join(includes)
-        + "\n#include <QByteArray>\n#include <QString>\n\n"
+        + "\n#include <QtGlobal>\n#include <QByteArray>\n#include <QString>\n\n"
+        + "bool applyRuntimeCrc(const QString& protocolName, const QString& bindElement, QByteArray& data);\n"
+        + "bool validateRuntimeCrc(const QString& protocolName, const QString& bindElement, const QByteArray& data);\n\n"
+        + "QString extractRuntimeFieldValue(const QString& protocolName, const QString& bindElement, const QByteArray& data);\n\n"
         + "\n".join(declarations).rstrip()
         + "\n\n#endif\n"
     )
@@ -225,16 +517,45 @@ def _render_decode_nodes(
     current_loop_index = loop_index
     for node in nodes:
         if isinstance(node, ScalarNode):
-            field_name = _cpp_field_name(path_parts + (node.label,))
+            field_name, field = _resolve_scalar_binding(protocol, node, path_parts)
             if node.bit_length is None:
                 lines.extend(_indent(level, [f"Q_UNUSED(value.{field_name});"]))
+                continue
+            if field is None:
+                lines.extend(_indent(level, [f"Q_UNUSED(value.{field_name});"]))
+                continue
+            if node.bit_length == 0:
+                if node.source_field:
+                    source_field = _resolve_protocol_field_name(protocol, node.source_field)
+                    lines.extend(
+                        _indent(
+                            level,
+                            [
+                                f"value.{field_name} = static_cast<decltype(value.{field_name})>(value.{source_field});",
+                            ],
+                        )
+                    )
+                else:
+                    lines.extend(_indent(level, [f"Q_UNUSED(value.{field_name});"]))
+                continue
+            if node.bit_length > 64:
+                lines.extend(
+                    _indent(
+                        level,
+                        [
+                            f"if (bitOffset + {node.bit_length} > len * 8) return;",
+                            f"value.{field_name} = static_cast<decltype(value.{field_name})>(0);",
+                            f"bitOffset += {node.bit_length};",
+                        ],
+                    )
+                )
                 continue
             lines.extend(
                 _indent(
                     level,
                     [
                         f"if (bitOffset + {node.bit_length} > len * 8) return;",
-                        f"value.{field_name} = static_cast<long>({endian_func}(raw, bitOffset, {node.bit_length}));",
+                        f"value.{field_name} = {_decode_value_expr(field, endian_func, node.bit_length)};",
                     ],
                 )
             )
@@ -257,17 +578,51 @@ def _render_decode_nodes(
         repeat_var = f"repeatCount_{current_loop_index}"
         current_loop_index += 1
         lines.extend(_indent(level, _group_repeat_expr(node, protocol, repeat_var)))
+        if node.condition:
+            continue_var = f"continueGroup_{current_loop_index - 1}"
+            lines.extend(_indent(level, [f"bool {continue_var} = true;"]))
         for index in range(node.repeat_count):
-            lines.extend(_indent(level, [f"if ({repeat_var} > {index}) {{"]))
-            nested_lines, current_loop_index = _render_decode_nodes(
-                node.children,
-                protocol,
-                path_parts + (f"{node.label}_{index + 1}" if node.repeat_count > 1 else node.label,),
-                level + 1,
-                endian_func,
-                current_loop_index,
-            )
-            lines.extend(nested_lines)
+            iteration_label = f"{node.label}_{index + 1}" if node.repeat_count > 1 else node.label
+            iteration_path = path_parts + (iteration_label,)
+            guard = f"{repeat_var} > {index}"
+            if node.condition:
+                guard = f"{guard} && {continue_var}"
+            lines.extend(_indent(level, [f"if ({guard}) {{"]))
+            condition_expr, referenced_labels = _group_condition_expr(node, protocol, iteration_path)
+            anchor_index = _group_condition_anchor_index(node.children, referenced_labels)
+            if node.condition and condition_expr and anchor_index is not None:
+                prefix_children = node.children[: anchor_index + 1]
+                suffix_children = node.children[anchor_index + 1 :]
+                prefix_lines, current_loop_index = _render_decode_nodes(
+                    prefix_children,
+                    protocol,
+                    iteration_path,
+                    level + 1,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(prefix_lines)
+                lines.extend(_indent(level + 1, [f"if ({condition_expr}) {{"]))
+                suffix_lines, current_loop_index = _render_decode_nodes(
+                    suffix_children,
+                    protocol,
+                    iteration_path,
+                    level + 2,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(suffix_lines)
+                lines.extend(_indent(level + 1, ["} else {", f"    {continue_var} = false;", "}"]))
+            else:
+                nested_lines, current_loop_index = _render_decode_nodes(
+                    node.children,
+                    protocol,
+                    iteration_path,
+                    level + 1,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(nested_lines)
             lines.extend(_indent(level, ["}"]))
     return lines, current_loop_index
 
@@ -286,13 +641,30 @@ def _render_encode_nodes(
     current_loop_index = loop_index
     for node in nodes:
         if isinstance(node, ScalarNode):
-            field_name = _cpp_field_name(path_parts + (node.label,))
+            field_name, field = _resolve_scalar_binding(protocol, node, path_parts)
             if node.bit_length is None:
+                continue
+            if field is None:
+                continue
+            if node.source_field:
+                source_field = _resolve_protocol_field_name(protocol, node.source_field)
+                lines.extend(
+                    _indent(
+                        level,
+                        [
+                            f"value.{field_name} = static_cast<decltype(value.{field_name})>(value.{source_field});",
+                        ],
+                    )
+                )
+            if node.bit_length == 0:
+                continue
+            if node.bit_length > 64:
+                lines.extend(_indent(level, [f"appendZeroBits(data, bitOffset, {node.bit_length});"]))
                 continue
             lines.extend(
                 _indent(
                     level,
-                    [f"{endian_func}(data, static_cast<quint64>(value.{field_name}), {node.bit_length});"],
+                    [f"{endian_func}(data, {_encode_value_expr(field_name, field, node.bit_length)}, bitOffset, {node.bit_length});"],
                 )
             )
             continue
@@ -314,17 +686,51 @@ def _render_encode_nodes(
         repeat_var = f"repeatCount_{current_loop_index}"
         current_loop_index += 1
         lines.extend(_indent(level, _group_repeat_expr(node, protocol, repeat_var)))
+        if node.condition:
+            continue_var = f"continueGroup_{current_loop_index - 1}"
+            lines.extend(_indent(level, [f"bool {continue_var} = true;"]))
         for index in range(node.repeat_count):
-            lines.extend(_indent(level, [f"if ({repeat_var} > {index}) {{"]))
-            nested_lines, current_loop_index = _render_encode_nodes(
-                node.children,
-                protocol,
-                path_parts + (f"{node.label}_{index + 1}" if node.repeat_count > 1 else node.label,),
-                level + 1,
-                endian_func,
-                current_loop_index,
-            )
-            lines.extend(nested_lines)
+            iteration_label = f"{node.label}_{index + 1}" if node.repeat_count > 1 else node.label
+            iteration_path = path_parts + (iteration_label,)
+            guard = f"{repeat_var} > {index}"
+            if node.condition:
+                guard = f"{guard} && {continue_var}"
+            lines.extend(_indent(level, [f"if ({guard}) {{"]))
+            condition_expr, referenced_labels = _group_condition_expr(node, protocol, iteration_path)
+            anchor_index = _group_condition_anchor_index(node.children, referenced_labels)
+            if node.condition and condition_expr and anchor_index is not None:
+                prefix_children = node.children[: anchor_index + 1]
+                suffix_children = node.children[anchor_index + 1 :]
+                prefix_lines, current_loop_index = _render_encode_nodes(
+                    prefix_children,
+                    protocol,
+                    iteration_path,
+                    level + 1,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(prefix_lines)
+                lines.extend(_indent(level + 1, [f"if ({condition_expr}) {{"]))
+                suffix_lines, current_loop_index = _render_encode_nodes(
+                    suffix_children,
+                    protocol,
+                    iteration_path,
+                    level + 2,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(suffix_lines)
+                lines.extend(_indent(level + 1, ["} else {", f"    {continue_var} = false;", "}"]))
+            else:
+                nested_lines, current_loop_index = _render_encode_nodes(
+                    node.children,
+                    protocol,
+                    iteration_path,
+                    level + 1,
+                    endian_func,
+                    current_loop_index,
+                )
+                lines.extend(nested_lines)
             lines.extend(_indent(level, ["}"]))
     return lines, current_loop_index
 
@@ -335,6 +741,13 @@ def _section_func_suffix(section_name: str) -> str:
     token = normalize_token(section_name)
     parts = [part for part in token.split("_") if part]
     return "".join(part[:1].upper() + part[1:] for part in parts) or "Origin"
+
+
+def _protocol_helper_name(protocol: ProtocolSpec, stem: str, label: str | None = None) -> str:
+    """Builds one protocol-scoped helper function name."""
+
+    suffix = _section_func_suffix(label or protocol.type_name)
+    return f"{stem}{protocol.type_name}{suffix}"
 
 
 def _member_condition(protocol: ProtocolSpec, member, value_name: str) -> str:
@@ -418,7 +831,11 @@ def _render_sequence_helpers(protocol: ProtocolSpec, include_verify: bool = True
     return "\n".join(lines) + "\n"
 
 
-def _render_verify_state_machine(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec) -> str:
+def _render_verify_state_machine(
+    protocol: ProtocolSpec,
+    verify_spec: ProtocolVerifySpec,
+    write_seq_func_names: dict[str, str],
+) -> str:
     """Renders verify and response-state helpers for one protocol."""
 
     lines: list[str] = []
@@ -469,7 +886,10 @@ def _render_verify_state_machine(protocol: ProtocolSpec, verify_spec: ProtocolVe
         if action.set_constraint:
             lines.append(f"    setConstraint_{action.set_constraint}(value);")
         if action.encode_seq:
-            lines.append(f"    write{action.encode_seq}(value, data);")
+            write_func_name = write_seq_func_names.get(action.encode_seq)
+            if write_func_name is None:
+                write_func_name = f"write{protocol.type_name}{_section_func_suffix(action.encode_seq)}"
+            lines.append(f"    {write_func_name}(value, data);")
         else:
             lines.append("    data.clear();")
         lines.extend(["    return true;", "}", ""])
@@ -507,6 +927,156 @@ def _render_verify_state_machine(protocol: ProtocolSpec, verify_spec: ProtocolVe
     return "\n".join(lines) + "\n"
 
 
+def _crc_bind_candidates(field) -> list[str]:
+    """Builds runtime bind-element candidate names for one field."""
+
+    candidates: list[str] = []
+    for candidate in (
+        str(field.label or "").strip(),
+        str(field.path_parts[-1] if field.path_parts else "").strip(),
+        str(field.cpp_name or "").strip(),
+    ):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
+def _render_crc_protocol_dispatch(protocol: ProtocolSpec, mode: str) -> str:
+    """Renders one protocol-level CRC dispatch helper."""
+
+    helper_name = f"{mode}RuntimeCrc{protocol.type_name}"
+    action_name = "validateCrcField" if mode == "validate" else "applyCrcField"
+    little_flag = "true" if protocol.endian == "little" else "false"
+    lines = [
+        f"static bool {helper_name}(const QString& bindElement, {'const QByteArray& data' if mode == 'validate' else 'QByteArray& data'})",
+        "{",
+    ]
+    for field in protocol.fields:
+        if field.bit_length is None or field.bit_length <= 0:
+            continue
+        comparisons = " || ".join(f"bindElement == {_quoted(candidate)}" for candidate in _crc_bind_candidates(field))
+        if not comparisons:
+            continue
+        lines.extend(
+            [
+                f"    if ({comparisons}) {{",
+                f"        return {action_name}(data, {field.bit_offset}, {field.bit_length}, {little_flag});",
+                "    }",
+            ]
+        )
+    lines.extend(["    return false;", "}"])
+    return "\n".join(lines)
+
+
+def _render_crc_dispatchers(protocols: list[ProtocolSpec]) -> str:
+    """Renders protocol-level CRC dispatcher functions."""
+
+    helper_blocks: list[str] = []
+    validate_dispatch: list[str] = [
+        "bool validateRuntimeCrc(const QString& protocolName, const QString& bindElement, const QByteArray& data)",
+        "{",
+    ]
+    apply_dispatch: list[str] = [
+        "bool applyRuntimeCrc(const QString& protocolName, const QString& bindElement, QByteArray& data)",
+        "{",
+    ]
+    for protocol in protocols:
+        helper_blocks.append(_render_crc_protocol_dispatch(protocol, "validate"))
+        helper_blocks.append(_render_crc_protocol_dispatch(protocol, "apply"))
+        validate_dispatch.extend(
+            [
+                f"    if (protocolName == {_quoted(protocol.type_name)}) return validateRuntimeCrc{protocol.type_name}(bindElement, data);",
+            ]
+        )
+        apply_dispatch.extend(
+            [
+                f"    if (protocolName == {_quoted(protocol.type_name)}) return applyRuntimeCrc{protocol.type_name}(bindElement, data);",
+            ]
+        )
+    validate_dispatch.extend(["    return false;", "}"])
+    apply_dispatch.extend(["    return false;", "}"])
+    return "\n\n".join([*helper_blocks, "\n".join(validate_dispatch), "\n".join(apply_dispatch)])
+
+
+def _render_runtime_value_protocol_dispatch(protocol: ProtocolSpec) -> str:
+    """Renders one protocol-level bind-element value extractor."""
+
+    helper_name = f"extractRuntimeFieldValue{protocol.type_name}"
+    little_flag = "true" if protocol.endian == "little" else "false"
+    lines = [
+        f"static QString {helper_name}(const QString& bindElement, const QByteArray& data)",
+        "{",
+    ]
+    for field in protocol.fields:
+        if field.bit_length is None or field.bit_length <= 0 or field.bit_length > 64:
+            continue
+        comparisons = " || ".join(f"bindElement == {_quoted(candidate)}" for candidate in _crc_bind_candidates(field))
+        if not comparisons:
+            continue
+        lines.extend(
+            [
+                f"    if ({comparisons}) {{",
+                f"        return QString::number(static_cast<qulonglong>(readFieldBits(data, {field.bit_offset}, {field.bit_length}, {little_flag})));",
+                "    }",
+            ]
+        )
+    lines.extend(["    return QString();", "}"])
+    return "\n".join(lines)
+
+
+def _render_runtime_value_dispatchers(protocols: list[ProtocolSpec]) -> str:
+    """Renders protocol-level runtime bind-element value dispatchers."""
+
+    helper_blocks: list[str] = []
+    dispatch_lines: list[str] = [
+        "QString extractRuntimeFieldValue(const QString& protocolName, const QString& bindElement, const QByteArray& data)",
+        "{",
+    ]
+    for protocol in protocols:
+        helper_blocks.append(_render_runtime_value_protocol_dispatch(protocol))
+        dispatch_lines.append(
+            f"    if (protocolName == {_quoted(protocol.type_name)}) return extractRuntimeFieldValue{protocol.type_name}(bindElement, data);"
+        )
+    dispatch_lines.extend(["    return QString();", "}"])
+    return "\n\n".join([*helper_blocks, "\n".join(dispatch_lines)])
+
+
+def _render_runtime_crc_validate_lines(
+    protocol: ProtocolSpec,
+    data_var: str,
+    transport: TransportSpec | None,
+    parent_aliases: list[str] | None = None,
+) -> list[str]:
+    """Renders receive-side CRC validation lines."""
+
+    lines: list[str] = []
+    for rule in _match_message_rules(transport, protocol, parent_aliases=parent_aliases):
+        if not rule.crc_check.enabled or not rule.crc_check.bind_element:
+            continue
+        lines.append(
+            f"if (!validateRuntimeCrc({_quoted(protocol.type_name)}, {_quoted(rule.crc_check.bind_element)}, {data_var})) continue;"
+        )
+    return lines
+
+
+def _render_runtime_crc_apply_lines(
+    protocol: ProtocolSpec,
+    data_var: str,
+    transport: TransportSpec | None,
+    parent_aliases: list[str] | None = None,
+) -> list[str]:
+    """Renders send-side CRC writeback lines."""
+
+    lines: list[str] = []
+    for rule in _match_message_rules(transport, protocol, parent_aliases=parent_aliases):
+        if not rule.crc_check.enabled or not rule.crc_check.bind_element:
+            continue
+        lines.append(
+            f"applyRuntimeCrc({_quoted(protocol.type_name)}, {_quoted(rule.crc_check.bind_element)}, {data_var});"
+        )
+    return lines
+
+
 def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec | None = None) -> str:
     """Renders codec.cpp functions for one protocol."""
 
@@ -517,6 +1087,8 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
     encode_section_calls: list[str] = []
     for section in protocol.sections:
         suffix = _section_func_suffix(section.name)
+        read_section_name = f"read{protocol.type_name}{suffix}"
+        write_section_name = f"write{protocol.type_name}{suffix}"
         decode_lines, _ = _render_decode_nodes(section.nodes, protocol, (), 1, read_func)
         encode_lines, _ = _render_encode_nodes(section.nodes, protocol, (), 1, append_func)
         if not decode_lines:
@@ -526,24 +1098,34 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
         section_helpers.append(
             "\n".join(
                 [
-                    f"static void read{suffix}({protocol.type_name}& value, const QByteArray& raw, int len, int& bitOffset)",
+                    f"static void {read_section_name}({protocol.type_name}& value, const QByteArray& raw, int len, int& bitOffset)",
                     "{",
                     *decode_lines,
                     "}",
                     "",
-                    f"static void write{suffix}({protocol.type_name}& value, QByteArray& data)",
+                    f"static void {write_section_name}({protocol.type_name}& value, QByteArray& data, int& bitOffset)",
                     "{",
                     *encode_lines,
                     "}",
                 ]
             )
         )
-        decode_calls.append(f"    read{suffix}(value, raw, len, bitOffset);")
-        encode_section_calls.append(f"    write{suffix}(value, data);")
+        decode_calls.append(f"    {read_section_name}(value, raw, len, bitOffset);")
+        encode_section_calls.append(f"    {write_section_name}(value, data, bitOffset);")
 
     sequences = protocol.sequences or []
     default_seq_name = sequences[0].name if sequences else "Seq_1"
     write_seq_names = [sequence.name for sequence in sequences] or [default_seq_name]
+    write_seq_func_names = {
+        seq_name: f"write{protocol.type_name}{_section_func_suffix(seq_name)}"
+        for seq_name in write_seq_names
+    }
+    default_write_seq_func = write_seq_func_names[default_seq_name]
+    check_encode_name = f"checkEncodeSeqNumber{protocol.type_name}"
+    verify_field_name = f"VerifyField{protocol.type_name}"
+    update_field_name = f"updateFieldValue{protocol.type_name}"
+    update_group_name = f"updateGroupFlag{protocol.type_name}"
+    branch_control_rules = _collect_branch_control_rules(protocol)
 
     seq_choose_lines = [
         f"    if (match{protocol.type_name}_{sequence.name}(value)) return {_quoted(sequence.name)};"
@@ -565,9 +1147,10 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
         write_seq_blocks.append(
             "\n".join(
                 [
-                    f"static void write{seq_name}({protocol.type_name}& value, QByteArray& data)",
+                    f"static void {write_seq_func_names[seq_name]}({protocol.type_name}& value, QByteArray& data)",
                     "{",
                     "    data.clear();",
+                    "    int bitOffset = 0;",
                     *encode_section_calls,
                     "}",
                 ]
@@ -575,19 +1158,27 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
         )
 
     encode_dispatch_lines = [
-        f"    if (seq == {_quoted(seq_name)}) {{ write{seq_name}(value, data); return; }}"
+        f"    if (seq == {_quoted(seq_name)}) {{ {write_seq_func_names[seq_name]}(value, data); return; }}"
         for seq_name in write_seq_names
     ]
     if not encode_dispatch_lines:
-        encode_dispatch_lines = [f"    write{default_seq_name}(value, data);", "    return;"]
+        encode_dispatch_lines = [f"    {default_write_seq_func}(value, data);", "    return;"]
 
     check_obj_dispatch_lines = [
-        f"    if (seq == {_quoted(seq_name)}) {{ write{seq_name}(value, data); return 0; }}"
+        f"    if (seq == {_quoted(seq_name)}) {{ {write_seq_func_names[seq_name]}(value, data); return 0; }}"
         for seq_name in write_seq_names
     ]
 
+    write_seq_forward_decl_text = "\n".join(
+        f"static void {write_seq_func_names[seq_name]}({protocol.type_name}& value, QByteArray& data);"
+        for seq_name in write_seq_names
+    )
     sequence_helpers_text = _render_sequence_helpers(protocol, include_verify=verify_spec is None)
-    verify_state_text = _render_verify_state_machine(protocol, verify_spec) if verify_spec is not None else ""
+    verify_state_text = (
+        _render_verify_state_machine(protocol, verify_spec, write_seq_func_names)
+        if verify_spec is not None
+        else ""
+    )
     section_helpers_text = "\n\n".join(section_helpers)
     write_seq_text = "\n\n".join(write_seq_blocks)
     decode_calls_text = "\n".join(decode_calls)
@@ -595,6 +1186,10 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
     decode_match_text = "\n".join(decode_match_lines)
     encode_dispatch_text = "\n".join(encode_dispatch_lines)
     check_obj_dispatch_text = "\n".join(check_obj_dispatch_lines)
+    update_group_text = "\n".join(
+        [f"    value.{control_cpp} = ({expr}) ? 1 : 0;" for control_cpp, expr in branch_control_rules]
+        or ["    Q_UNUSED(value);"]
+    )
 
     generic_check_obj_text = f"""int checkObjMaps(QString strVerify, QByteArray& data, {protocol.type_name}& value)
 {{
@@ -613,6 +1208,7 @@ def _render_codec_impl(protocol: ProtocolSpec, verify_spec: ProtocolVerifySpec |
 }}"""
 
     return f"""{sequence_helpers_text}
+{write_seq_forward_decl_text}
 {verify_state_text}
 {section_helpers_text}
 
@@ -628,36 +1224,36 @@ QString decodeMsg(uchar* pData, int len, {protocol.type_name}& value)
 {decode_match_text}
 }}
 
-static QString checkEncodeSeqNumber({protocol.type_name}& value)
+static QString {check_encode_name}({protocol.type_name}& value)
 {{
 {seq_choose_text}
 {encode_default_return_line}
 }}
 
-static void VerifyField({protocol.type_name}& value)
+static void {verify_field_name}({protocol.type_name}& value)
 {{
     Q_UNUSED(value);
 }}
 
-static void updateFieldValue({protocol.type_name}& value)
+static void {update_field_name}({protocol.type_name}& value)
 {{
     Q_UNUSED(value);
 }}
 
-static void updateGroupFlag({protocol.type_name}& value)
+static void {update_group_name}({protocol.type_name}& value)
 {{
-    Q_UNUSED(value);
+{update_group_text}
 }}
 
 void encodeMsg(QByteArray& data, {protocol.type_name}& value)
 {{
-    const QString seq = checkEncodeSeqNumber(value);
-    VerifyField(value);
-    updateFieldValue(value);
-    updateGroupFlag(value);
+    const QString seq = {check_encode_name}(value);
+    {verify_field_name}(value);
+    {update_field_name}(value);
+    {update_group_name}(value);
 {encode_dispatch_text}
     data.clear();
-    write{default_seq_name}(value, data);
+    {default_write_seq_func}(value, data);
 }}
 """
 
@@ -669,7 +1265,9 @@ def render_codec_cpp(
     """Renders codec.cpp."""
 
     blocks = [
+        _msvc_utf8_preamble().rstrip(),
         '#include "codec.h"',
+        "#include <cstring>",
         "#include <QStringList>",
         "#include <QtGlobal>",
         "",
@@ -692,17 +1290,30 @@ def render_codec_cpp(
         "quint64 readBitsLE(const QByteArray& data, int& bitOffset, int bitLength)",
         "{",
         "    quint64 value = 0;",
-        "    for (int index = 0; index < bitLength; ++index) {",
-        "        const quint64 bitValue = readBits(data, bitOffset, 1);",
-        "        value |= (bitValue << index);",
+        "    int remaining = bitLength;",
+        "    while (remaining > 0) {",
+        "        const int byteIndex = bitOffset / 8;",
+        "        const int usedBits = bitOffset % 8;",
+        "        if (byteIndex >= data.size()) return value;",
+        "        const int chunkBits = qMin(remaining, 8 - usedBits);",
+        "        const int firstBitIndex = 8 - usedBits - chunkBits;",
+        "        quint64 chunkValue = 0;",
+        "        for (int index = 0; index < chunkBits; ++index) {",
+        "            const int bitIndex = firstBitIndex + index;",
+        "            const quint8 byteValue = static_cast<quint8>(data.at(byteIndex));",
+        "            chunkValue = (chunkValue << 1) | ((byteValue >> (7 - bitIndex)) & 0x01);",
+        "        }",
+        "        value = (value << chunkBits) | chunkValue;",
+        "        bitOffset += chunkBits;",
+        "        remaining -= chunkBits;",
         "    }",
         "    return value;",
         "}",
         "",
-        "void appendBits(QByteArray& data, quint64 value, int bitLength)",
+        "void appendBits(QByteArray& data, quint64 value, int& bitOffset, int bitLength)",
         "{",
-        "    const int startBit = data.size() * 8;",
-        "    const int totalBits = startBit + bitLength;",
+        "    const int startBit = bitOffset;",
+        "    const int totalBits = bitOffset + bitLength;",
         "    const int requiredBytes = (totalBits + 7) / 8;",
         "    if (data.size() < requiredBytes) data.append(QByteArray(requiredBytes - data.size(), '\\0'));",
         "    for (int index = 0; index < bitLength; ++index) {",
@@ -715,16 +1326,139 @@ def render_codec_cpp(
         "        else byteValue = static_cast<char>(byteValue & ~(1 << bitIndex));",
         "        data[byteIndex] = byteValue;",
         "    }",
+        "    bitOffset += bitLength;",
         "}",
         "",
-        "void appendBitsLE(QByteArray& data, quint64 value, int bitLength)",
+        "void appendBitsLE(QByteArray& data, quint64 value, int& bitOffset, int bitLength)",
         "{",
-        "    for (int index = 0; index < bitLength; ++index) appendBits(data, (value >> index) & 0x01ULL, 1);",
+        "    int remaining = bitLength;",
+        "    while (remaining > 0) {",
+        "        const int byteIndex = bitOffset / 8;",
+        "        const int usedBits = bitOffset % 8;",
+        "        const int chunkBits = qMin(remaining, 8 - usedBits);",
+        "        const int totalBits = bitOffset + chunkBits;",
+        "        const int requiredBytes = (totalBits + 7) / 8;",
+        "        if (data.size() < requiredBytes) data.append(QByteArray(requiredBytes - data.size(), '\\0'));",
+        "        const int firstBitIndex = 8 - usedBits - chunkBits;",
+        "        const quint64 chunkValue = (value >> (remaining - chunkBits)) & ((chunkBits == 64) ? ~0ULL : ((1ULL << chunkBits) - 1));",
+        "        for (int index = 0; index < chunkBits; ++index) {",
+        "            const quint64 bitValue = (chunkValue >> (chunkBits - index - 1)) & 0x01ULL;",
+        "            char byteValue = data[byteIndex];",
+        "            const int bitIndex = firstBitIndex + index;",
+        "            if (bitValue != 0) byteValue = static_cast<char>(byteValue | (1 << (7 - bitIndex)));",
+        "            else byteValue = static_cast<char>(byteValue & ~(1 << (7 - bitIndex)));",
+        "            data[byteIndex] = byteValue;",
+        "        }",
+        "        bitOffset += chunkBits;",
+        "        remaining -= chunkBits;",
+        "    }",
+        "}",
+        "",
+        "void appendZeroBits(QByteArray& data, int& bitOffset, int bitLength)",
+        "{",
+        "    int remaining = bitLength;",
+        "    while (remaining > 0) {",
+        "        const int chunkBits = qMin(remaining, 64);",
+        "        appendBits(data, 0, bitOffset, chunkBits);",
+        "        remaining -= chunkBits;",
+        "    }",
+        "}",
+        "",
+        "float bitsToFloat(quint32 bits)",
+        "{",
+        "    float value = 0.0f;",
+        "    std::memcpy(&value, &bits, sizeof(value));",
+        "    return value;",
+        "}",
+        "",
+        "double bitsToDouble(quint64 bits)",
+        "{",
+        "    double value = 0.0;",
+        "    std::memcpy(&value, &bits, sizeof(value));",
+        "    return value;",
+        "}",
+        "",
+        "quint32 floatToBits(float value)",
+        "{",
+        "    quint32 bits = 0;",
+        "    std::memcpy(&bits, &value, sizeof(bits));",
+        "    return bits;",
+        "}",
+        "",
+        "quint64 doubleToBits(double value)",
+        "{",
+        "    quint64 bits = 0;",
+        "    std::memcpy(&bits, &value, sizeof(bits));",
+        "    return bits;",
+        "}",
+        "",
+        "quint16 computeGeneratedCrc16(const QByteArray& raw)",
+        "{",
+        "    quint16 crc = 0xFFFF;",
+        "    for (unsigned char byte : raw) {",
+        "        crc ^= static_cast<quint16>(byte);",
+        "        for (int index = 0; index < 8; ++index) {",
+        "            if (crc & 0x0001) crc = static_cast<quint16>((crc >> 1) ^ 0xA001);",
+        "            else crc = static_cast<quint16>(crc >> 1);",
+        "        }",
+        "    }",
+        "    return crc;",
+        "}",
+        "",
+        "quint64 crcBitMask(int bitLength)",
+        "{",
+        "    if (bitLength >= 64) return ~0ULL;",
+        "    return (1ULL << bitLength) - 1ULL;",
+        "}",
+        "",
+        "quint64 normalizeUnsignedBits(qint64 value, int bitLength)",
+        "{",
+        "    if (bitLength <= 0) return 0ULL;",
+        "    if (value <= 0) return 0ULL;",
+        "    if (bitLength >= 63) return static_cast<quint64>(value);",
+        "    const quint64 maxValue = (1ULL << bitLength) - 1ULL;",
+        "    const quint64 rawValue = static_cast<quint64>(value);",
+        "    return rawValue > maxValue ? maxValue : rawValue;",
+        "}",
+        "",
+        "quint64 readFieldBits(const QByteArray& data, int bitOffset, int bitLength, bool littleEndian)",
+        "{",
+        "    int runtimeOffset = bitOffset;",
+        "    return littleEndian ? readBitsLE(data, runtimeOffset, bitLength) : readBits(data, runtimeOffset, bitLength);",
+        "}",
+        "",
+        "void writeFieldBits(QByteArray& data, quint64 value, int bitOffset, int bitLength, bool littleEndian)",
+        "{",
+        "    int runtimeOffset = bitOffset;",
+        "    if (littleEndian) appendBitsLE(data, value, runtimeOffset, bitLength);",
+        "    else appendBits(data, value, runtimeOffset, bitLength);",
+        "}",
+        "",
+        "bool validateCrcField(const QByteArray& data, int bitOffset, int bitLength, bool littleEndian)",
+        "{",
+        "    const quint64 actual = readFieldBits(data, bitOffset, bitLength, littleEndian);",
+        "    QByteArray payload = data;",
+        "    writeFieldBits(payload, 0, bitOffset, bitLength, littleEndian);",
+        "    const quint64 expected = static_cast<quint64>(computeGeneratedCrc16(payload)) & crcBitMask(bitLength);",
+        "    return actual == expected;",
+        "}",
+        "",
+        "bool applyCrcField(QByteArray& data, int bitOffset, int bitLength, bool littleEndian)",
+        "{",
+        "    QByteArray payload = data;",
+        "    writeFieldBits(payload, 0, bitOffset, bitLength, littleEndian);",
+        "    const quint64 crc = static_cast<quint64>(computeGeneratedCrc16(payload)) & crcBitMask(bitLength);",
+        "    writeFieldBits(data, crc, bitOffset, bitLength, littleEndian);",
+        "    return true;",
         "}",
         "}  // namespace",
         "",
     ]
     verify_lookup = protocol_verifies or {}
+    blocks.append(_render_crc_dispatchers(protocols))
+    blocks.append("")
+    blocks.append(_render_runtime_value_dispatchers(protocols))
+    blocks.append("")
     blocks.extend(_render_codec_impl(protocol, verify_lookup.get(protocol.type_name)) for protocol in protocols)
     return "\n".join(blocks).rstrip() + "\n"
 
@@ -733,7 +1467,8 @@ def render_mapping_header(file_guard: str, function_signature: str, includes: li
     """Renders one mapping header."""
 
     include_lines = "\n".join(f'#include "{header}"' for header in includes)
-    return f"""#ifndef {file_guard}
+    return f"""{_msvc_utf8_preamble()}
+#ifndef {file_guard}
 #define {file_guard}
 
 {include_lines}
@@ -744,24 +1479,22 @@ def render_mapping_header(file_guard: str, function_signature: str, includes: li
 """
 
 
-def render_mapping_cpp(header_name: str, function_signature: str, target_protocol: str, body: str) -> str:
+def render_mapping_cpp(
+    header_name: str,
+    function_signature: str,
+    target_protocol: str,
+    target_var_name: str,
+    body: str,
+) -> str:
     """Renders one mapping source file."""
 
-    return f"""#include "{header_name}"
-#include <algorithm>
-#include <cmath>
-
-namespace {{
-inline double clamp(double value, double low, double high)
-{{
-    return std::max(low, std::min(value, high));
-}}
-}}
+    return f"""{_msvc_utf8_preamble()}
+#include "{header_name}"
 
 {function_signature}
 {{
-    {target_protocol} target;
-{body}    return target;
+    {target_protocol} {target_var_name};
+{body}    return {target_var_name};
 }}
 """
 
@@ -769,11 +1502,14 @@ inline double clamp(double value, double low, double high)
 def render_choreography_header() -> str:
     """Renders the choreography header."""
 
-    return """#ifndef TO_CODE_CHOREOGRAPHY_H
+    return _msvc_utf8_preamble() + """#ifndef TO_CODE_CHOREOGRAPHY_H
 #define TO_CODE_CHOREOGRAPHY_H
 
 #include <QMap>
 #include <QObject>
+#include <QString>
+#include <QVector>
+#include <QtGlobal>
 
 class code_test {
 public:
@@ -802,7 +1538,8 @@ def render_choreography_cpp(spec: ChoreographySpec) -> str:
         rendered = ",".join("-1" if value is None else str(value) for value in row)
         matrix_cpp_rows.append("{" + rendered + "}")
     matrix_cpp = ",".join(matrix_cpp_rows) if matrix_cpp_rows else "{0}"
-    return f"""#include "to_code_Choreography.h"
+    return f"""{_msvc_utf8_preamble()}
+#include "to_code_Choreography.h"
 
 QVector<QString> destProtoList_41 = {{{dest_proto_list}}};
 QVector<QString> templateList_41 = {{{template_list}}};
@@ -902,13 +1639,15 @@ def render_messageconvert_header(process_methods: list[str], joint: bool) -> str
     extra_slot = "    void onCheckDataTimer();\n" if joint else ""
     extra_member = "    QTimer checkDataTimer;\n" if joint else ""
     extra_check = "    void checkData(QString name, int time);\n" if joint else ""
-    state_decl = "QStringList state = {};" if joint else "int state = 0;"
+    state_decl = "QStringList state = {};"
     process_decls = "\n".join(f"    void {method}();" for method in process_methods)
-    return f"""#ifndef MESSAGECONVERT_H
+    return f"""{_msvc_utf8_preamble()}
+#ifndef MESSAGECONVERT_H
 #define MESSAGECONVERT_H
 
 #include <QObject>
 #include <QHostAddress>
+#include <QMap>
 #include <QMutex>
 #include <QStringList>
 #include <QTimer>
@@ -923,7 +1662,18 @@ public:
     explicit messageConvert(QObject* parent = nullptr);
     enum NetType {{ emTCP, emUDP, emDDS }};
     class NetInfo {{ public: QString name; QString ip; int port = 0; quint16 feedBackPort = 0; int netType = emUDP; bool bRecvTag = true; }};
-    class msgDataInfo {{ public: QByteArray data; QVector<qulonglong> time; QString name; QString ip; quint16 port = 0; {state_decl} int num = 0; }};
+    class CrcCheckInfo {{ public: bool enabled = false; QString bindElement; }};
+    class AggregationInfo {{ public: QString mode = QStringLiteral("SINGLE"); int count = -1; int timeMs = -1; QString compareOperator; QString compareValue; }};
+    class AggregationTypeInfo {{ public: QString type = QStringLiteral("TIME"); QString bindElement; }};
+    class MessageRuleInfo {{
+    public:
+        QString messageName;
+        int delayRequirement = 0;
+        CrcCheckInfo crcCheck;
+        AggregationInfo aggregation;
+        AggregationTypeInfo aggregationType;
+    }};
+    class msgDataInfo {{ public: QByteArray data; QVector<qulonglong> time; QString name; QString protocolName; QString cacheName; QString ip; quint16 port = 0; {state_decl} int num = 0; int cacheNum = 0; bool cacheOnly = false; bool jointControlled = false; }};
 
 signals:
     void showMessage(QString msg);
@@ -936,18 +1686,36 @@ public slots:
     std::shared_ptr<QUdpSocket> udpSend;
     QVector<std::shared_ptr<NetInfo>> udpSendList;
     QVector<std::shared_ptr<QUdpSocket>> udpRecvList;
+    QVector<std::shared_ptr<MessageRuleInfo>> messageRuleList;
+    QMap<QString, QString> crcValueMap;
     QVector<std::shared_ptr<msgDataInfo>> dataInfo;
     QMutex dataMutex;
 {extra_member}    void pushData(std::shared_ptr<msgDataInfo> data);
-    void getData(QString name, int time, int num, QByteArray& data, QString& ip, int& port, int& outTime);
+    void getData(QString protocolName, QString name, QString consumerKey, int time, int num, QByteArray& data, QString& ip, int& port, int& outTime);
+    void getDataBatch(QString protocolName, QString name, QString consumerKey, int time, int num, int maxBatchSize, QVector<QByteArray>& batchData, QVector<QString>& batchIps, QVector<int>& batchPorts, QVector<int>& batchTimes);
 {extra_check}    void msgConvertThread();
     void onSendMessage(QByteArray msg);
-    QString resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const;
+    void onSendMessage(const QString& protocolName, const QString& targetName, QByteArray msg);
+    QString computeCrc16Hex(const QString& raw) const;
+    void cacheCrcValue(const QString& messageName, const QString& bindElement, const QString& rawValue);
     void cacheGeneratedTarget(const QString& targetName, int num, const QByteArray& data);
+    QString normalizeRuntimeMessageName(const QString& value) const;
+    QString resolveCanonicalRuntimeMessageName(const QString& protocolName, const QString& messageName) const;
+    QString resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const;
+    std::shared_ptr<MessageRuleInfo> findMessageRule(const QString& protocolName, const QString& messageName) const;
+    bool isLoopAggregationSource(const QString& protocolName, const QString& messageName) const;
+    QString resolveAggregationBindValue(const QString& protocolName, const QString& bindElement, const QByteArray& data) const;
+    bool compareRuleConditionValue(const QString& operatorName, const QString& actualValue, const QString& expectedValue) const;
+    bool shouldApplyRuleCondition(const QString& protocolName, const QString& messageName, const QByteArray& data) const;
+    QVector<int> collectReadyBatchIndexes(const QVector<std::shared_ptr<msgDataInfo>>& queue, const QString& protocolName, const QString& messageName, int time, int num, bool forceTimeWindow) const;
+    QVector<int> normalizeAggregatedBatchIndexes(const QVector<std::shared_ptr<msgDataInfo>>& queue, const QVector<int>& batchIndexes, const QString& protocolName, const QString& messageName) const;
+    void removeQueueIndexes(QVector<std::shared_ptr<msgDataInfo>>& queue, const QVector<int>& indexes);
+    void trimQueue(QVector<std::shared_ptr<msgDataInfo>>& queue, const QString& messageName, int maxEntries);
+    void routeGeneratedTarget(const QString& protocolName, const QString& targetName, const QString& cacheName, int cacheNum, bool jointControlled, bool cacheOnly, const QByteArray& data);
 {process_decls}
 
 public:
-    int start(QVector<std::shared_ptr<NetInfo>> netlist, int maxThread = 5);
+    int start(QVector<std::shared_ptr<NetInfo>> netlist, QVector<std::shared_ptr<MessageRuleInfo>> ruleList, int maxThread = 5);
     int stop();
 }};
 
@@ -964,15 +1732,621 @@ def _fetch_runtime_source(conversion: ConversionSpec, alias: str):
     return None
 
 
+def _resolve_route_target_protocol(
+    protocol_lookup: dict[str, ProtocolSpec],
+    route_target: str,
+) -> ProtocolSpec | None:
+    """Resolves one root-route target protocol against loaded XML specs."""
+
+    target_key = normalize_token(route_target)
+    for protocol in protocol_lookup.values():
+        if target_key in {
+            normalize_token(protocol.type_name),
+            normalize_token(protocol.file_stem),
+        }:
+            return protocol
+    return None
+
+
+def _build_route_alias_maps(
+    protocol_lookup: dict[str, ProtocolSpec],
+    used_protocol_names: set[str],
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Builds parent-child alias maps for runtime route compatibility."""
+
+    used_keys = {normalize_token(name) for name in used_protocol_names}
+    parent_to_children: dict[str, list[str]] = {}
+    child_to_parents: dict[str, list[str]] = {}
+    for parent_protocol in protocol_lookup.values():
+        seen_children: set[str] = set()
+        for route in parent_protocol.routes:
+            child_protocol = _resolve_route_target_protocol(protocol_lookup, route.target_protocol)
+            if child_protocol is None:
+                continue
+            if normalize_token(child_protocol.type_name) not in used_keys:
+                continue
+            if child_protocol.type_name in seen_children:
+                continue
+            seen_children.add(child_protocol.type_name)
+            parent_to_children.setdefault(parent_protocol.type_name, []).append(child_protocol.type_name)
+            child_to_parents.setdefault(child_protocol.type_name, []).append(parent_protocol.type_name)
+    return parent_to_children, child_to_parents
+
+
+def _render_route_runtime_helpers(
+    protocol_lookup: dict[str, ProtocolSpec],
+    used_protocol_names: set[str],
+    inbound_protocol_names: set[str] | None = None,
+) -> str:
+    """Renders runtime helpers that consume parent XML route metadata."""
+
+    parent_to_children, child_to_parents = _build_route_alias_maps(protocol_lookup, used_protocol_names)
+    inbound_names = inbound_protocol_names or used_protocol_names
+
+    canonical_lines = [
+        "QString messageConvert::resolveCanonicalRuntimeMessageName(const QString& protocolName, const QString& messageName) const",
+        "{",
+        "    const QString normalizedProtocol = normalizeRuntimeMessageName(protocolName);",
+        "    const QString normalizedMessage = normalizeRuntimeMessageName(messageName);",
+        "    if (normalizedMessage.isEmpty()) return protocolName;",
+        "    if (normalizedProtocol == normalizedMessage) return protocolName;",
+    ]
+    for child_name, parent_names in child_to_parents.items():
+        canonical_lines.append(
+            f"    if (normalizedProtocol == normalizeRuntimeMessageName({_quoted(child_name)})) {{"
+        )
+        for parent_name in parent_names:
+            canonical_lines.append(
+                f"        if (normalizedMessage == normalizeRuntimeMessageName({_quoted(parent_name)})) return {_quoted(child_name)};"
+            )
+        canonical_lines.append("    }")
+    for parent_name, child_names in parent_to_children.items():
+        if len(child_names) != 1:
+            continue
+        canonical_lines.append(
+            f"    if (normalizedProtocol == normalizeRuntimeMessageName({_quoted(parent_name)}) && "
+            f"normalizedMessage == normalizeRuntimeMessageName({_quoted(parent_name)})) return {_quoted(child_names[0])};"
+        )
+    canonical_lines.extend(["    return messageName;", "}"])
+
+    inbound_lines = [
+        "QString messageConvert::resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const",
+        "{",
+        "    const QString normalizedMessage = normalizeRuntimeMessageName(messageName);",
+    ]
+    for parent_name, child_names in parent_to_children.items():
+        parent_protocol = protocol_lookup[parent_name]
+        inbound_lines.append(
+            f"    if (normalizedMessage == normalizeRuntimeMessageName({_quoted(parent_name)})) {{"
+        )
+        for route in parent_protocol.routes:
+            child_protocol = _resolve_route_target_protocol(protocol_lookup, route.target_protocol)
+            if child_protocol is None or child_protocol.type_name not in child_names:
+                continue
+            expected_values = [part.strip() for part in str(route.value or "").split(",")]
+            comparisons: list[str] = []
+            if route.control_fields and len(route.control_fields) == len(expected_values):
+                for control_field, expected_value in zip(route.control_fields, expected_values):
+                    if not control_field or not expected_value:
+                        comparisons = []
+                        break
+                    comparisons.append(
+                        f'extractRuntimeFieldValue({_quoted(parent_protocol.type_name)}, {_quoted(control_field)}, data) == {_quoted(expected_value)}'
+                    )
+            if comparisons:
+                inbound_lines.append(f"        if ({' && '.join(comparisons)}) return {_quoted(child_protocol.type_name)};")
+        if len(child_names) == 1:
+            inbound_lines.append(f"        return {_quoted(child_names[0])};")
+        inbound_lines.append("    }")
+    direct_frame_sizes: dict[int, list[str]] = {}
+    for protocol_name in sorted(inbound_names):
+        protocol = protocol_lookup.get(protocol_name)
+        if protocol is None or protocol.total_bits <= 0:
+            continue
+        direct_frame_sizes.setdefault((protocol.total_bits + 7) // 8, []).append(protocol.type_name)
+    for byte_size, protocol_names in sorted(direct_frame_sizes.items()):
+        if len(protocol_names) != 1:
+            continue
+        inbound_lines.append(f"    if (data.size() == {byte_size}) return {_quoted(protocol_names[0])};")
+    inbound_lines.extend(
+        [
+            "    return resolveCanonicalRuntimeMessageName(messageName, messageName);",
+            "}",
+        ]
+    )
+    return "\n\n".join(["\n".join(canonical_lines), "\n".join(inbound_lines)])
+
+
+def _match_message_rules(
+    transport: TransportSpec | None,
+    protocol: ProtocolSpec,
+    parent_aliases: list[str] | None = None,
+) -> list[MessageRuleDetailSpec]:
+    """Returns runtime message rules applicable to one protocol."""
+
+    if transport is None:
+        return []
+    protocol_keys = {
+        normalize_token(protocol.type_name),
+        normalize_token(protocol.file_stem),
+    }
+    for alias in parent_aliases or []:
+        protocol_keys.add(normalize_token(alias))
+    return [
+        rule
+        for rule in transport.message_rules
+        if normalize_token(rule.message_name) in protocol_keys
+    ]
+
+
+def _resolve_bind_field(protocol: ProtocolSpec, bind_element: str | None) -> str | None:
+    """Resolves one bind-element display name to a flattened C++ field name."""
+
+    candidate = str(bind_element or "").strip()
+    if not candidate:
+        return None
+    candidate_key = normalize_token(candidate)
+    mapped = protocol.label_to_cpp.get(candidate)
+    if mapped:
+        return mapped
+    for field in protocol.fields:
+        keys = {
+            normalize_token(field.cpp_name),
+            normalize_token(field.label),
+            normalize_token(field.path_parts[-1] if field.path_parts else field.cpp_name),
+        }
+        if candidate_key in keys:
+            return field.cpp_name
+    return None
+
+
+def _render_crc_capture_lines(
+    protocol: ProtocolSpec,
+    value_var: str,
+    transport: TransportSpec | None,
+    parent_aliases: list[str] | None = None,
+) -> list[str]:
+    """Renders CRC calculation lines for one decoded/encoded protocol object."""
+
+    lines: list[str] = []
+    for rule in _match_message_rules(transport, protocol, parent_aliases=parent_aliases):
+        if not rule.crc_check.enabled:
+            continue
+        field_name = _resolve_bind_field(protocol, rule.crc_check.bind_element)
+        if not field_name:
+            continue
+        lines.append(
+            f'cacheCrcValue({_quoted(rule.message_name)}, {_quoted(rule.crc_check.bind_element or "")}, '
+            f'QString::number(static_cast<qlonglong>({value_var}.{field_name})));'
+        )
+    return lines
+
+
 def _method_name(conversion: ConversionSpec) -> str:
     """Returns one generated process method name."""
 
     if conversion.runtime.process_method:
         return conversion.runtime.process_method
     if len(conversion.sources) == 1:
-        return f"{conversion.sources[0].protocol}dataPro"
+        return f"{conversion.sources[0].protocol}_to_{conversion.target_protocol}dataPro"
     source_part = "_".join(source.protocol for source in conversion.sources)
-    return f"{source_part}dataPro"
+    return f"{source_part}_to_{conversion.target_protocol}dataPro"
+
+
+def _group_iteration_label(node: GroupNode, index: int) -> str:
+    """Returns one iteration label for a repeated XML group."""
+
+    return f"{node.label}_{index + 1}" if node.repeat_count > 1 else node.label
+
+
+def _collect_scalar_cpp_fields(
+    protocol: ProtocolSpec,
+    nodes: list[ProtocolNode],
+    path_parts: tuple[str, ...],
+) -> list[str]:
+    """Collects flattened scalar field names under one XML subtree."""
+
+    fields: list[str] = []
+    for node in nodes:
+        if isinstance(node, ScalarNode):
+            field_name, field = _resolve_scalar_binding(protocol, node, path_parts)
+            resolved_name = field.cpp_name if field is not None else field_name
+            if resolved_name and resolved_name not in fields:
+                fields.append(resolved_name)
+            continue
+        if isinstance(node, BranchNode):
+            nested = _collect_scalar_cpp_fields(protocol, node.children, path_parts + (node.label,))
+            for field_name in nested:
+                if field_name not in fields:
+                    fields.append(field_name)
+            continue
+        for index in range(node.repeat_count):
+            nested = _collect_scalar_cpp_fields(
+                protocol,
+                node.children,
+                path_parts + (_group_iteration_label(node, index),),
+            )
+            for field_name in nested:
+                if field_name not in fields:
+                    fields.append(field_name)
+    return fields
+
+
+def _collect_branch_control_rules(protocol: ProtocolSpec) -> list[tuple[str, str]]:
+    """Collects optional-branch control updates for one protocol."""
+
+    rules: dict[str, str] = {}
+
+    def collect_descendant_control_fields(nodes: list[ProtocolNode]) -> set[str]:
+        names: set[str] = set()
+        for item in nodes:
+            if isinstance(item, ScalarNode):
+                continue
+            if item.control_fields:
+                control_cpp = protocol.label_to_cpp.get(item.control_fields[0], "")
+                if control_cpp:
+                    names.add(control_cpp)
+            names.update(collect_descendant_control_fields(item.children))
+        return names
+
+    def walk(nodes: list[ProtocolNode], path_parts: tuple[str, ...] = ()) -> None:
+        for node in nodes:
+            if isinstance(node, ScalarNode):
+                continue
+            if isinstance(node, BranchNode):
+                branch_path = path_parts + (node.label,)
+                walk(node.children, branch_path)
+                control_cpp = protocol.label_to_cpp.get(node.control_fields[0], "") if node.control_fields else ""
+                if not control_cpp:
+                    continue
+                descendant_controls = collect_descendant_control_fields(node.children)
+                checks: list[str] = []
+                for field_name in _collect_scalar_cpp_fields(protocol, node.children, branch_path):
+                    if (
+                        field_name == control_cpp
+                        or field_name in descendant_controls
+                        or _OPTIONAL_CONTROL_CPP_RE.search(field_name)
+                    ):
+                        continue
+                    field = _field_spec_for_cpp_name(protocol, field_name)
+                    if field is None:
+                        continue
+                    checks.append(f"value.{field_name} != {_typed_default_literal(field)}")
+                if not checks:
+                    continue
+                expr = " || ".join(checks)
+                if control_cpp in rules:
+                    rules[control_cpp] = f"({rules[control_cpp]}) || ({expr})"
+                else:
+                    rules[control_cpp] = expr
+                continue
+            walk(node.children, path_parts + (node.label,))
+
+    walk(protocol.nodes)
+    return [(control_cpp, expr) for control_cpp, expr in rules.items()]
+
+
+def _collect_top_repeated_group_families(protocol: ProtocolSpec) -> list[dict[str, object]]:
+    """Collects top-level repeated-group field families for one protocol."""
+
+    families: list[dict[str, object]] = []
+
+    def walk(
+        nodes: list[ProtocolNode],
+        path_parts: tuple[str, ...] = (),
+        repeated_ancestor: bool = False,
+    ) -> None:
+        for node in nodes:
+            if isinstance(node, ScalarNode):
+                continue
+            if isinstance(node, BranchNode):
+                walk(node.children, path_parts + (node.label,), repeated_ancestor)
+                continue
+            if node.repeat_count > 1 and not repeated_ancestor:
+                iterations: list[list[str]] = []
+                for index in range(node.repeat_count):
+                    iteration_fields = _collect_scalar_cpp_fields(
+                        protocol,
+                        node.children,
+                        path_parts + (_group_iteration_label(node, index),),
+                    )
+                    iterations.append(iteration_fields)
+                control_cpp = protocol.label_to_cpp.get(node.control_fields[0], "") if node.control_fields else ""
+                families.append(
+                    {
+                        "name": "_".join((*path_parts, node.label)) or node.label,
+                        "repeat_count": node.repeat_count,
+                        "control_cpp": control_cpp,
+                        "iterations": iterations,
+                    }
+                )
+                continue
+            walk(node.children, path_parts + (node.label,), repeated_ancestor or node.repeat_count > 1)
+
+    walk(protocol.nodes)
+    return families
+
+
+def _uses_batch_loop_fill(conversion: ConversionSpec, protocol_lookup: dict[str, ProtocolSpec]) -> bool:
+    """Checks whether one conversion should aggregate fixed messages into a target loop."""
+
+    if len(conversion.sources) != 1:
+        return False
+    source_protocol = protocol_lookup[conversion.sources[0].protocol]
+    target_protocol = protocol_lookup[conversion.target_protocol]
+    return (
+        not _collect_top_repeated_group_families(source_protocol)
+        and bool(_collect_top_repeated_group_families(target_protocol))
+    )
+
+
+def _uses_source_loop_split(conversion: ConversionSpec, protocol_lookup: dict[str, ProtocolSpec]) -> bool:
+    """Checks whether one conversion should split one looped source into fixed targets."""
+
+    if len(conversion.sources) != 1:
+        return False
+    source_protocol = protocol_lookup[conversion.sources[0].protocol]
+    target_protocol = protocol_lookup[conversion.target_protocol]
+    return (
+        bool(_collect_top_repeated_group_families(source_protocol))
+        and not _collect_top_repeated_group_families(target_protocol)
+    )
+
+
+def _batch_helper_name(conversion: ConversionSpec) -> str:
+    """Returns one generated batch-conversion helper name."""
+
+    return f"convert_{to_snake_name(conversion.name)}_batch"
+
+
+def _split_helper_name(conversion: ConversionSpec) -> str:
+    """Returns one generated split-conversion helper name."""
+
+    return f"convert_{to_snake_name(conversion.name)}_split"
+
+
+def _render_repeated_group_helpers(protocol: ProtocolSpec) -> str:
+    """Renders protocol-scoped helpers for repeated group normalization/copying."""
+
+    families = _collect_top_repeated_group_families(protocol)
+    if not families:
+        return ""
+
+    protocol_type = protocol.type_name
+    suffix = normalize_token(protocol_type)
+    clear_name = f"clearRepeatedGroups{suffix}"
+    count_name = f"repeatedGroupCount{suffix}"
+    capacity_name = f"repeatedGroupCapacity{suffix}"
+    load_name = f"loadRepeatedGroupIteration{suffix}"
+    copy_name = f"copyCanonicalRepeatedGroupToIndex{suffix}"
+    set_count_name = f"setRepeatedGroupCount{suffix}"
+
+    repeated_fields: list[str] = []
+    control_fields: list[tuple[str, int]] = []
+    multi_family_slots = len(families) > 1
+    capacity_limit = len(families) if multi_family_slots else int(families[0]["repeat_count"])
+    count_lines = ["static int " + count_name + f"(const {protocol_type}& value)", "{", "    int count = 0;"]
+
+    for family in families:
+        repeat_count = int(family["repeat_count"])
+        control_cpp = str(family["control_cpp"] or "")
+        for iteration_fields in family["iterations"]:
+            for field_name in iteration_fields:
+                if field_name not in repeated_fields:
+                    repeated_fields.append(field_name)
+        if control_cpp:
+            if (control_cpp, repeat_count) not in control_fields:
+                control_fields.append((control_cpp, repeat_count))
+            if multi_family_slots:
+                count_lines.append(f"    if (static_cast<int>(value.{control_cpp}) > 0) count += 1;")
+            else:
+                count_lines.append(
+                    f"    count = std::max(count, std::min(std::max(0, static_cast<int>(value.{control_cpp})), {repeat_count}));"
+                )
+        else:
+            if multi_family_slots:
+                count_lines.append("    count += 1;")
+            else:
+                count_lines.append(f"    count = std::max(count, {repeat_count});")
+    count_lines.extend(["    return count;", "}"])
+
+    clear_lines = ["static void " + clear_name + f"({protocol_type}& value)", "{"]
+    for field_name in repeated_fields:
+        field = _field_spec_for_cpp_name(protocol, field_name)
+        if field is None:
+            continue
+        clear_lines.append(f"    value.{field_name} = {_typed_default_literal(field)};")
+    for control_cpp, _repeat_count in control_fields:
+        clear_lines.append(f"    value.{control_cpp} = 0;")
+    clear_lines.append("}")
+
+    load_slots: list[dict[str, object]] = []
+    copy_slots: list[dict[str, object]] = []
+    if multi_family_slots:
+        for family in families:
+            control_cpp = str(family["control_cpp"] or "")
+            first_iteration = family["iterations"][0]
+            load_slots.append(
+                {
+                    "source_fields": first_iteration,
+                    "target_fields": first_iteration,
+                    "control_cpp": control_cpp,
+                }
+            )
+            copy_slots.append(
+                {
+                    "source_fields": first_iteration,
+                    "target_fields": first_iteration,
+                    "control_cpp": control_cpp,
+                }
+            )
+    else:
+        family = families[0]
+        control_cpp = str(family["control_cpp"] or "")
+        iterations = family["iterations"]
+        for iteration_fields in iterations:
+            load_slots.append(
+                {
+                    "source_fields": iteration_fields,
+                    "target_fields": iterations[0],
+                    "control_cpp": control_cpp,
+                }
+            )
+        for iteration_fields in iterations:
+            copy_slots.append(
+                {
+                    "source_fields": iterations[0],
+                    "target_fields": iteration_fields,
+                    "control_cpp": control_cpp,
+                }
+            )
+
+    load_lines = [
+        "static void " + load_name + f"(const {protocol_type}& source, int index, {protocol_type}& value)",
+        "{",
+        f"    {clear_name}(value);",
+        "    switch (index) {",
+    ]
+    for case_index, slot in enumerate(load_slots):
+        case_lines = [f"    case {case_index}:"]
+        has_copy = False
+        source_fields = list(slot["source_fields"])
+        target_fields = list(slot["target_fields"])
+        for target_field, source_field in zip(target_fields, source_fields):
+            case_lines.append(f"        value.{target_field} = source.{source_field};")
+            has_copy = True
+        control_cpp = str(slot["control_cpp"] or "")
+        if control_cpp:
+            case_lines.append(f"        value.{control_cpp} = 1;")
+        case_lines.append("        break;")
+        if has_copy:
+            load_lines.extend(case_lines)
+    load_lines.extend(["    default:", "        break;", "    }", "}"])
+
+    copy_lines = [
+        "static void " + copy_name + f"(const {protocol_type}& source, int index, {protocol_type}& target)",
+        "{",
+        "    switch (index) {",
+    ]
+    for case_index, slot in enumerate(copy_slots):
+        case_lines = [f"    case {case_index}:"]
+        has_copy = False
+        source_fields = list(slot["source_fields"])
+        target_fields = list(slot["target_fields"])
+        for target_field, source_field in zip(target_fields, source_fields):
+            case_lines.append(f"        target.{target_field} = source.{source_field};")
+            has_copy = True
+        control_cpp = str(slot["control_cpp"] or "")
+        if control_cpp:
+            case_lines.append(f"        target.{control_cpp} = 1;")
+        case_lines.append("        break;")
+        if has_copy:
+            copy_lines.extend(case_lines)
+    copy_lines.extend(["    default:", "        break;", "    }", "}"])
+
+    set_count_lines = [
+        "static void " + set_count_name + f"(int count, {protocol_type}& value)",
+        "{",
+        "    if (count < 0) count = 0;",
+    ]
+    if multi_family_slots:
+        for index, (control_cpp, _repeat_count) in enumerate(control_fields):
+            set_count_lines.append(f"    value.{control_cpp} = (count > {index}) ? 1 : 0;")
+    else:
+        for control_cpp, repeat_count in control_fields:
+            set_count_lines.append(f"    value.{control_cpp} = std::min(count, {repeat_count});")
+    set_count_lines.append("}")
+
+    capacity_lines = [
+        "static int " + capacity_name + "()",
+        "{",
+        f"    return {capacity_limit};",
+        "}",
+    ]
+
+    return "\n".join(
+        [
+            "\n".join(count_lines),
+            "",
+            "\n".join(capacity_lines),
+            "",
+            "\n".join(clear_lines),
+            "",
+            "\n".join(load_lines),
+            "",
+            "\n".join(copy_lines),
+            "",
+            "\n".join(set_count_lines),
+        ]
+    )
+
+
+def _render_batch_conversion_helper(
+    conversion: ConversionSpec,
+    protocol_lookup: dict[str, ProtocolSpec],
+) -> str:
+    """Renders one fixed-to-loop batch helper for a conversion."""
+
+    if not _uses_batch_loop_fill(conversion, protocol_lookup):
+        return ""
+    source_protocol = protocol_lookup[conversion.sources[0].protocol]
+    target_protocol = protocol_lookup[conversion.target_protocol]
+    target_type = target_protocol.type_name
+    source_type = source_protocol.type_name
+    target_suffix = normalize_token(target_type)
+    helper_name = _batch_helper_name(conversion)
+    base_convert = f"convert_{to_snake_name(conversion.name)}"
+    return "\n".join(
+        [
+            f"static {target_type} {helper_name}(const QVector<{source_type}>& batch)",
+            "{",
+            f"    {target_type} result = {{0}};",
+            "    if (batch.isEmpty()) return result;",
+            "    const int capacity = repeatedGroupCapacity" + target_suffix + "();",
+            "    const int usedCount = std::min(static_cast<int>(batch.size()), capacity);",
+            f"    result = {base_convert}(batch.first());",
+            f"    clearRepeatedGroups{target_suffix}(result);",
+            "    for (int index = 0; index < usedCount; ++index) {",
+            f"        {target_type} itemTarget = {base_convert}(batch[index]);",
+            f"        copyCanonicalRepeatedGroupToIndex{target_suffix}(itemTarget, index, result);",
+            "    }",
+            f"    setRepeatedGroupCount{target_suffix}(usedCount, result);",
+            "    return result;",
+            "}",
+        ]
+    )
+
+
+def _render_split_conversion_helper(
+    conversion: ConversionSpec,
+    protocol_lookup: dict[str, ProtocolSpec],
+) -> str:
+    """Renders one loop-to-fixed split helper for a conversion."""
+
+    if not _uses_source_loop_split(conversion, protocol_lookup):
+        return ""
+    source_protocol = protocol_lookup[conversion.sources[0].protocol]
+    target_protocol = protocol_lookup[conversion.target_protocol]
+    source_type = source_protocol.type_name
+    target_type = target_protocol.type_name
+    source_suffix = normalize_token(source_type)
+    helper_name = _split_helper_name(conversion)
+    base_convert = f"convert_{to_snake_name(conversion.name)}"
+    return "\n".join(
+        [
+            f"static QVector<{target_type}> {helper_name}(const {source_type}& source)",
+            "{",
+            f"    QVector<{target_type}> outputs;",
+            f"    const int itemCount = repeatedGroupCount{source_suffix}(source);",
+            "    for (int index = 0; index < itemCount; ++index) {",
+            f"        {source_type} item = source;",
+            f"        loadRepeatedGroupIteration{source_suffix}(source, index, item);",
+            f"        outputs.append({base_convert}(item));",
+            "    }",
+            "    return outputs;",
+            "}",
+        ]
+    )
 
 
 def _render_process_function(
@@ -982,16 +2356,21 @@ def _render_process_function(
     source_protocol_names: dict[str, str],
     target_protocol_names: dict[str, str],
     joint: bool,
+    transport: TransportSpec | None,
+    child_to_parents: dict[str, list[str]] | None = None,
 ) -> str:
     """Renders one conversion process method."""
 
     method_name = _method_name(conversion)
+    batch_loop_fill = _uses_batch_loop_fill(conversion, protocol_lookup)
+    source_loop_split = _uses_source_loop_split(conversion, protocol_lookup)
     lines = [f"void messageConvert::{method_name}()", "{"]
     if joint:
         lines.extend(_indent(1, ["QStringList msgNameList;", "QVector<int> msgTimeList;"]))
     for source in conversion.sources:
         runtime_source = _fetch_runtime_source(conversion, source.alias)
         protocol = protocol_lookup[source.protocol]
+        parent_aliases = (child_to_parents or {}).get(protocol.type_name, [])
         message_name = (
             runtime_source.message_name
             if runtime_source and runtime_source.message_name
@@ -1007,54 +2386,125 @@ def _render_process_function(
         cycles = ", ".join(str(item.cycle_ms) for item in fetches)
         count_size = len(fetches)
         base = source.alias
-        lines.extend(
-            _indent(
-                1,
-                [
-                    f"QByteArray {base}Data;",
-                    f"{protocol.type_name} {base} = {{0}};",
-                    f"int {base}Flag = 0;",
-                    f"QString {base}Ip;",
-                    f"int {base}Port = 0;",
-                    f"int {base}Time = 0;",
-                    f"int count_{base}[{count_size}] = {{ {counts} }};",
-                    f"int cycle_{base}[{count_size}] = {{ {cycles} }};",
-                    f"int num_{base} = {count_size};",
-                    f"while (num_{base}-- > 0) {{",
-                    f"    getData({_quoted(message_name)}, cycle_{base}[num_{base}], count_{base}[num_{base}], {base}Data, {base}Ip, {base}Port, {base}Time);",
-                    f"    if ({base}Data.isEmpty() == false) {{",
-                    f"        QString ret = decodeMsg((uchar*){base}Data.data(), {base}Data.size(), {base});",
-                    "        if (ret.isEmpty() == false) {",
-                    "            QByteArray sdata;",
-                    f"            int iret = checkObjMaps(ret, sdata, {base});",
-                    f"            if (iret == 0) {base}Flag = 1;",
-                ],
+        if batch_loop_fill:
+            target_protocol = protocol_lookup[conversion.target_protocol]
+            target_suffix = normalize_token(target_protocol.type_name)
+            lines.extend(
+                _indent(
+                    1,
+                    [
+                        f"QVector<QByteArray> {base}BatchData;",
+                        f"QVector<QString> {base}BatchIps;",
+                        f"QVector<int> {base}BatchPorts;",
+                        f"QVector<int> {base}BatchTimes;",
+                        f"QVector<{protocol.type_name}> {base}Batch;",
+                        f"QString {base}Ip;",
+                        f"int {base}Port = 0;",
+                        f"int {base}Time = 0;",
+                        f"int count_{base}[{count_size}] = {{ {counts} }};",
+                        f"int cycle_{base}[{count_size}] = {{ {cycles} }};",
+                        f"int num_{base} = {count_size};",
+                        f"while (num_{base}-- > 0) {{",
+                        f"    getDataBatch({_quoted(protocol.type_name)}, {_quoted(message_name)}, {_quoted(method_name)}, cycle_{base}[num_{base}], count_{base}[num_{base}], repeatedGroupCapacity{target_suffix}(), {base}BatchData, {base}BatchIps, {base}BatchPorts, {base}BatchTimes);",
+                        f"    if ({base}BatchData.isEmpty() == false) {{",
+                        f"        for (int batchIndex = 0; batchIndex < {base}BatchData.size(); ++batchIndex) {{",
+                        f"            QByteArray itemData = {base}BatchData[batchIndex];",
+                        f"            {protocol.type_name} item = {{0}};",
+                        *_render_runtime_crc_validate_lines(protocol, "itemData", transport, parent_aliases=parent_aliases),
+                        f"            QString ret = decodeMsg((uchar*)itemData.data(), itemData.size(), item);",
+                        "            if (ret.isEmpty() == false) {",
+                        f"                if (!shouldApplyRuleCondition({_quoted(protocol.type_name)}, {_quoted(message_name)}, itemData)) continue;",
+                        "                QByteArray sdata;",
+                        "                int iret = checkObjMaps(ret, sdata, item);",
+                        "                if (iret == 0) {",
+                        f"                    {base}Batch.append(item);",
+                        "                }",
+                    ],
+                )
             )
-        )
-        if conversion.runtime.response_enabled:
+            if conversion.runtime.response_enabled:
+                lines.extend(
+                    _indent(
+                        4,
+                        [
+                            f"if (iret != -1 && batchIndex < {base}BatchPorts.size() && {base}BatchPorts[batchIndex] > 0) {{",
+                            "    QUdpSocket soc;",
+                            f"    qint64 written = soc.writeDatagram(sdata, QHostAddress({base}BatchIps[batchIndex]), {base}BatchPorts[batchIndex]);",
+                            f"    logUdpSendResult(QStringLiteral(\"[UDP FEEDBACK]\"), QStringLiteral(\"{protocol.type_name}\"), QStringLiteral(\"{message_name}\"), QString(), {base}BatchIps[batchIndex], {base}BatchPorts[batchIndex], sdata.size(), written, soc.errorString());",
+                            "}",
+                        ],
+                    )
+                )
+            lines.extend(
+                _indent(
+                    4,
+                    [
+                        "            }",
+                        "        }",
+                        f"        if ({base}Batch.isEmpty() == false) {{",
+                        f"            {base}Ip = {base}BatchIps.isEmpty() ? QString() : {base}BatchIps.first();",
+                        f"            {base}Port = {base}BatchPorts.isEmpty() ? 0 : {base}BatchPorts.first();",
+                        f"            {base}Time = {base}BatchTimes.isEmpty() ? 0 : {base}BatchTimes.first();",
+                        "            break;",
+                        "        }",
+                        "    }",
+                        "}",
+                        f"if ({base}Batch.isEmpty()) return;",
+                    ],
+                )
+            )
+        else:
+            lines.extend(
+                _indent(
+                    1,
+                    [
+                        f"QByteArray {base}Data;",
+                        f"{protocol.type_name} {base} = {{0}};",
+                        f"int {base}Flag = 0;",
+                        f"QString {base}Ip;",
+                        f"int {base}Port = 0;",
+                        f"int {base}Time = 0;",
+                        f"int count_{base}[{count_size}] = {{ {counts} }};",
+                        f"int cycle_{base}[{count_size}] = {{ {cycles} }};",
+                        f"int num_{base} = {count_size};",
+                        f"while (num_{base}-- > 0) {{",
+                        f"    getData({_quoted(protocol.type_name)}, {_quoted(message_name)}, {_quoted(method_name)}, cycle_{base}[num_{base}], count_{base}[num_{base}], {base}Data, {base}Ip, {base}Port, {base}Time);",
+                        f"    if ({base}Data.isEmpty() == false) {{",
+                        *_render_runtime_crc_validate_lines(protocol, f"{base}Data", transport, parent_aliases=parent_aliases),
+                        f"        QString ret = decodeMsg((uchar*){base}Data.data(), {base}Data.size(), {base});",
+                        "        if (ret.isEmpty() == false) {",
+                        f"            if (!shouldApplyRuleCondition({_quoted(protocol.type_name)}, {_quoted(message_name)}, {base}Data)) break;",
+                        "            QByteArray sdata;",
+                        f"            int iret = checkObjMaps(ret, sdata, {base});",
+                        f"            if (iret == 0) {base}Flag = 1;",
+                    ],
+                )
+            )
+            if conversion.runtime.response_enabled:
+                lines.extend(
+                    _indent(
+                        3,
+                        [
+                            f"if (iret != -1 && {base}Port > 0) {{",
+                            "    QUdpSocket soc;",
+                            f"    qint64 written = soc.writeDatagram(sdata, QHostAddress({base}Ip), {base}Port);",
+                            f"    logUdpSendResult(QStringLiteral(\"[UDP FEEDBACK]\"), QStringLiteral(\"{protocol.type_name}\"), QStringLiteral(\"{message_name}\"), QString(), {base}Ip, {base}Port, sdata.size(), written, soc.errorString());",
+                            "}",
+                        ],
+                    )
+                )
             lines.extend(
                 _indent(
                     3,
                     [
-                        f"if (iret != -1 && {base}Port > 0) {{",
-                        "    QUdpSocket soc;",
-                        f"    soc.writeDatagram(sdata, QHostAddress({base}Ip), {base}Port);",
                         "}",
+                        "break;",
+                        "    }",
+                        "}",
+                        f"if (1 != {base}Flag) return;",
                     ],
                 )
             )
-        lines.extend(
-            _indent(
-                3,
-                [
-                    "}",
-                    "break;",
-                    "    }",
-                    "}",
-                    f"if (1 != {base}Flag) return;",
-                ],
-            )
-        )
         if joint:
             lines.extend(_indent(1, [f"msgNameList.append({_quoted(display_name)});", f"msgTimeList.append({base}Time);"]))
     if joint:
@@ -1077,78 +2527,55 @@ def _render_process_function(
         )
     args = ", ".join(source.alias for source in conversion.sources)
     target_protocol = protocol_lookup[conversion.target_protocol]
+    target_parent_aliases = (child_to_parents or {}).get(target_protocol.type_name, [])
+    target_var_name = _mapping_target_var_name(target_protocol.type_name)
     target_name = target_protocol_names.get(conversion.target_protocol, conversion.target_protocol)
     cache_name = conversion.runtime.cache_name or target_protocol.type_name
     send_mode = conversion.runtime.send_mode or "direct"
-    lines.extend(
-        _indent(
-            1,
-            [
-                f"{target_protocol.type_name} target = convert_{to_snake_name(conversion.name)}({args});",
-                "QByteArray sendData;",
-                "encodeMsg(sendData, target);",
-            ],
-        )
-    )
-    if joint:
+    if batch_loop_fill:
         lines.extend(
             _indent(
                 1,
                 [
-                    "code_test check;",
-                    f"int sflag = check.getStatus_41({_quoted(target_name)});",
-                    "if (0 == sflag) onSendMessage(sendData);",
-                    f"else cacheGeneratedTarget({_quoted(cache_name)}, {conversion.runtime.cache_num}, sendData);",
+                    f"{target_protocol.type_name} {target_var_name} = {_batch_helper_name(conversion)}({conversion.sources[0].alias}Batch);",
+                    "QByteArray sendData;",
+                    f"encodeMsg(sendData, {target_var_name});",
+                    *_render_runtime_crc_apply_lines(target_protocol, "sendData", transport, parent_aliases=target_parent_aliases),
+                    f"routeGeneratedTarget({_quoted(target_protocol.type_name)}, {_quoted(target_name)}, {_quoted(cache_name)}, {conversion.runtime.cache_num}, {'true' if joint else 'false'}, {'true' if send_mode == 'cache' else 'false'}, sendData);",
+                ],
+            )
+        )
+    elif source_loop_split:
+        lines.extend(
+            _indent(
+                1,
+                [
+                    f"QVector<{target_protocol.type_name}> generatedTargets = {_split_helper_name(conversion)}({args});",
+                    "if (generatedTargets.isEmpty()) return;",
+                    "for (int targetIndex = 0; targetIndex < generatedTargets.size(); ++targetIndex) {",
+                    "    QByteArray sendData;",
+                    "    auto generatedTarget = generatedTargets[targetIndex];",
+                    "    encodeMsg(sendData, generatedTarget);",
+                    *_indent(1, _render_runtime_crc_apply_lines(target_protocol, "sendData", transport, parent_aliases=target_parent_aliases)),
+                    f"    routeGeneratedTarget({_quoted(target_protocol.type_name)}, {_quoted(target_name)}, {_quoted(cache_name)}, {conversion.runtime.cache_num}, {'true' if joint else 'false'}, {'true' if send_mode == 'cache' else 'false'}, sendData);",
+                    "}",
                 ],
             )
         )
     else:
-        if send_mode == "cache":
-            lines.extend(
-                _indent(
-                    1,
-                    [f"cacheGeneratedTarget({_quoted(cache_name)}, {conversion.runtime.cache_num}, sendData);"],
-                )
+        lines.extend(
+            _indent(
+                1,
+                [
+                    f"{target_protocol.type_name} {target_var_name} = convert_{to_snake_name(conversion.name)}({args});",
+                    "QByteArray sendData;",
+                    f"encodeMsg(sendData, {target_var_name});",
+                    *_render_runtime_crc_apply_lines(target_protocol, "sendData", transport, parent_aliases=target_parent_aliases),
+                    f"routeGeneratedTarget({_quoted(target_protocol.type_name)}, {_quoted(target_name)}, {_quoted(cache_name)}, {conversion.runtime.cache_num}, {'true' if joint else 'false'}, {'true' if send_mode == 'cache' else 'false'}, sendData);",
+                ],
             )
-        else:
-            lines.extend(_indent(1, ["onSendMessage(sendData);"]))
+        )
     lines.append("}")
-    return "\n".join(lines)
-
-
-def _unique_inbound_protocol_sizes(
-    conversions: list[ConversionSpec],
-    protocol_lookup: dict[str, ProtocolSpec],
-) -> dict[int, str]:
-    """Returns byte sizes that uniquely identify one inbound source protocol."""
-
-    source_protocols: list[str] = []
-    for conversion in conversions:
-        for source in conversion.sources:
-            if source.protocol not in source_protocols:
-                source_protocols.append(source.protocol)
-
-    size_to_names: dict[int, list[str]] = {}
-    for protocol_name in source_protocols:
-        protocol = protocol_lookup.get(protocol_name)
-        if protocol is None or protocol.total_bits <= 0:
-            continue
-        byte_size = (protocol.total_bits + 7) // 8
-        size_to_names.setdefault(byte_size, []).append(protocol.type_name)
-
-    return {size: names[0] for size, names in size_to_names.items() if len(names) == 1}
-
-
-def _render_inbound_protocol_resolver(unique_sizes: dict[int, str]) -> str:
-    """Renders runtime source protocol resolution for shared receive endpoints."""
-
-    lines = ["QString messageConvert::resolveInboundProtocolName(const QString& messageName, const QByteArray& data) const", "{"]
-    if unique_sizes:
-        for byte_size, protocol_name in sorted(unique_sizes.items()):
-            lines.append(f"    if (data.size() == {byte_size}) return {_quoted(protocol_name)};")
-    else:
-        lines.append("    Q_UNUSED(data);")
-    lines.extend(["    return messageName;", "}", ""])
     return "\n".join(lines)
 
 
@@ -1161,10 +2588,46 @@ def render_messageconvert_cpp(
     joint: bool,
     loop_sleep_ms: int,
     check_data_interval_ms: int,
+    transport: TransportSpec | None,
 ) -> str:
     """Renders messageconvert.cpp."""
 
-    inbound_resolver = _render_inbound_protocol_resolver(_unique_inbound_protocol_sizes(conversions, protocol_lookup))
+    used_protocol_names: set[str] = set()
+    inbound_protocol_names: set[str] = set()
+    repeated_helper_protocols: dict[str, ProtocolSpec] = {}
+    for conversion in conversions:
+        for source in conversion.sources:
+            protocol = protocol_lookup[source.protocol]
+            used_protocol_names.add(protocol.type_name)
+            inbound_protocol_names.add(protocol.type_name)
+            if _collect_top_repeated_group_families(protocol):
+                repeated_helper_protocols[protocol.type_name] = protocol
+        target_protocol = protocol_lookup[conversion.target_protocol]
+        used_protocol_names.add(target_protocol.type_name)
+        if _collect_top_repeated_group_families(target_protocol):
+            repeated_helper_protocols[target_protocol.type_name] = target_protocol
+    _parent_to_children, child_to_parents = _build_route_alias_maps(protocol_lookup, used_protocol_names)
+    route_runtime_helpers = _render_route_runtime_helpers(
+        protocol_lookup,
+        used_protocol_names,
+        inbound_protocol_names=inbound_protocol_names,
+    )
+    repeated_helper_blocks = [
+        _render_repeated_group_helpers(protocol)
+        for protocol in repeated_helper_protocols.values()
+    ]
+    conversion_helper_blocks = [
+        block
+        for conversion in conversions
+        for block in (
+            _render_batch_conversion_helper(conversion, protocol_lookup),
+            _render_split_conversion_helper(conversion, protocol_lookup),
+        )
+        if block
+    ]
+    helper_block = "\n\n".join(
+        block for block in [*repeated_helper_blocks, *conversion_helper_blocks] if block
+    )
     process_methods = [_method_name(conversion) for conversion in conversions]
     process_blocks = [
         _render_process_function(
@@ -1174,6 +2637,8 @@ def render_messageconvert_cpp(
             source_protocol_names,
             target_protocol_names,
             joint,
+            transport,
+            child_to_parents=child_to_parents,
         )
         for conversion in conversions
     ]
@@ -1195,7 +2660,7 @@ def render_messageconvert_cpp(
                 "    QMutexLocker lock(&dataMutex);",
                 "    for (int i = 0; i < dataInfo.size(); ++i) {",
                 "        int ll = static_cast<int>(QDateTime::currentMSecsSinceEpoch() - dataInfo[i]->time.last());",
-                "        if (ll > time && name == dataInfo[i]->name) {",
+                "        if (ll > time && normalizeRuntimeMessageName(name) == normalizeRuntimeMessageName(dataInfo[i]->name)) {",
                 "            dataInfo.remove(i);",
                 "            return;",
                 "        }",
@@ -1233,23 +2698,118 @@ def render_messageconvert_cpp(
         )
         get_data_condition = "if (name == item->name && (num <= item->num) && item->state == 0) {"
         get_data_mark = "            item->state = 1;"
+    joint_flush_dispatch = ""
+    joint_direct_dispatch = ""
+    if joint:
+        joint_flush_dispatch = """    if (jointControlled) {
+        code_test check;
+        int sflag = check.getStatus_41(targetName);
+        if (0 == sflag) onSendMessage(selected->data);
+        else cacheGeneratedTarget(cacheName, cacheNum, selected->data);
+        return;
+    }
+"""
+        joint_direct_dispatch = """    if (jointControlled) {
+        code_test check;
+        int sflag = check.getStatus_41(targetName);
+        if (0 == sflag) onSendMessage(data);
+        else cacheGeneratedTarget(cacheName, cacheNum, data);
+        return;
+    }
+"""
+    batch_aggregation_entries: list[tuple[str, str]] = []
+    for conversion in conversions:
+        if not _uses_batch_loop_fill(conversion, protocol_lookup):
+            continue
+        source = conversion.sources[0]
+        runtime_source = _fetch_runtime_source(conversion, source.alias)
+        message_name = (
+            runtime_source.message_name
+            if runtime_source and runtime_source.message_name
+            else source_cache_keys.get(source.protocol, source.protocol)
+        )
+        batch_aggregation_entries.append((source.protocol, message_name))
+    batch_aggregation_lines = []
+    for protocol_name, message_name in batch_aggregation_entries:
+        batch_aggregation_lines.append(
+            "    if (normalizedProtocol == normalizeRuntimeMessageName("
+            + _quoted(protocol_name)
+            + ") && normalizedMessage == normalizeRuntimeMessageName("
+            + _quoted(message_name)
+            + ")) return true;"
+        )
+    if not batch_aggregation_lines:
+        batch_aggregation_lines.append("    Q_UNUSED(normalizedProtocol);")
+        batch_aggregation_lines.append("    Q_UNUSED(normalizedMessage);")
+    batch_aggregation_helper = "\n".join(
+        [
+            "bool messageConvert::isLoopAggregationSource(const QString& protocolName, const QString& messageName) const",
+            "{",
+            "    const QString normalizedProtocol = normalizeRuntimeMessageName(",
+            "        resolveCanonicalRuntimeMessageName(protocolName, protocolName)",
+            "    );",
+            "    const QString normalizedMessage = normalizeRuntimeMessageName(",
+            "        resolveCanonicalRuntimeMessageName(protocolName, messageName)",
+            "    );",
+            *batch_aggregation_lines,
+            "    return false;",
+            "}",
+            "",
+        ]
+    )
     process_calls = "\n".join(f"        {method}();" for method in process_methods)
-    return f"""#include "messageconvert.h"
+    return f"""{_msvc_utf8_preamble()}
+#include "messageconvert.h"
 #include "codec.h"
+#include <algorithm>
 #include <QDateTime>
 #include <QDebug>
 #include <QMutexLocker>
+#include <QThread>
 #include <QtConcurrent>
 {joint_include}
+{helper_block}
+
+static void logUdpSendResult(
+    const QString& tag,
+    const QString& protocolName,
+    const QString& targetName,
+    const QString& endpointName,
+    const QString& ip,
+    int port,
+    int size,
+    qint64 written,
+    const QString& errorText)
+{{
+    if (written < 0) {{
+        qDebug() << tag
+                 << "protocol" << protocolName
+                 << "target" << targetName
+                 << "endpoint" << endpointName
+                 << "to" << ip << port
+                 << "size" << size
+                 << "written" << written
+                 << "error" << errorText;
+        return;
+    }}
+    qDebug() << tag
+             << "protocol" << protocolName
+             << "target" << targetName
+             << "endpoint" << endpointName
+             << "to" << ip << port
+             << "size" << size
+             << "written" << written;
+}}
+
 messageConvert::messageConvert(QObject* parent)
     : QObject(parent)
 {{
 }}
 
-int messageConvert::start(QVector<std::shared_ptr<NetInfo>> netlist, int maxThread)
+int messageConvert::start(QVector<std::shared_ptr<NetInfo>> netlist, QVector<std::shared_ptr<MessageRuleInfo>> ruleList, int maxThread)
 {{
     _maxThread = maxThread;
-    udpSend.reset(new QUdpSocket());
+    messageRuleList = ruleList;
     for (auto serv : netlist) {{
         if (serv->bRecvTag == false) {{
             udpSendList.push_back(serv);
@@ -1262,7 +2822,7 @@ int messageConvert::start(QVector<std::shared_ptr<NetInfo>> netlist, int maxThre
                     qint64 size = soc->pendingDatagramSize();
                     QByteArray buffer(size, 0);
                     soc->readDatagram(buffer.data(), size, &sender, &senderPort);
-                    readPendingDatagrams(serv->name, sender, serv->feedBackPort, buffer);
+                    readPendingDatagrams(serv->name, sender, senderPort, buffer);
                 }}
             }});
             if (!soc->bind(QHostAddress::Any, serv->port)) return -1;
@@ -1273,28 +2833,94 @@ int messageConvert::start(QVector<std::shared_ptr<NetInfo>> netlist, int maxThre
 {joint_start}    return 0;
 }}
 
+QString messageConvert::computeCrc16Hex(const QString& raw) const
+{{
+    QByteArray bytes = raw.toUtf8();
+    quint16 crc = 0xFFFF;
+    for (unsigned char byte : bytes) {{
+        crc ^= static_cast<quint16>(byte);
+        for (int i = 0; i < 8; ++i) {{
+            if (crc & 0x0001) crc = static_cast<quint16>((crc >> 1) ^ 0xA001);
+            else crc = static_cast<quint16>(crc >> 1);
+        }}
+    }}
+    return QStringLiteral("%1").arg(crc, 4, 16, QChar('0')).toUpper();
+}}
+
+void messageConvert::cacheCrcValue(const QString& messageName, const QString& bindElement, const QString& rawValue)
+{{
+    const QString crc = computeCrc16Hex(rawValue);
+    const QString key = messageName + QStringLiteral(":") + bindElement;
+    crcValueMap.insert(key, crc);
+    qDebug() << "CRC_VALUE" << key << crc;
+}}
+
 int messageConvert::stop()
 {{
     _threadExit = 1;
 {joint_stop}    for (auto var : udpRecvList) {{
         if (var->isOpen()) var->close();
     }}
-    if (udpSend && udpSend->isOpen()) udpSend->close();
     udpRecvList.clear();
     return 0;
 }}
 
 void messageConvert::onSendMessage(QByteArray msg)
 {{
-    for (auto var : udpSendList) udpSend->writeDatagram(msg, QHostAddress(var->ip), var->port);
+    QUdpSocket sender;
+    for (auto var : udpSendList) {{
+        if (!var) continue;
+        qint64 written = sender.writeDatagram(msg, QHostAddress(var->ip), var->port);
+        logUdpSendResult(QStringLiteral("[UDP SEND OK]"), QString(), QString(), var->name, var->ip, var->port, msg.size(), written, sender.errorString());
+    }}
 }}
 
-{inbound_resolver}
+void messageConvert::onSendMessage(const QString& protocolName, const QString& targetName, QByteArray msg)
+{{
+    const QString normalizedProtocol = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, protocolName)
+    );
+    const QString normalizedTarget = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, targetName)
+    );
+    QUdpSocket sender;
+    bool matched = false;
+    for (auto var : udpSendList) {{
+        if (!var) continue;
+        const QString normalizedEndpoint = normalizeRuntimeMessageName(var->name);
+        const bool protocolMatch = !normalizedProtocol.isEmpty() && (
+            normalizedEndpoint == normalizedProtocol
+            || normalizedEndpoint.contains(normalizedProtocol)
+            || normalizedProtocol.contains(normalizedEndpoint)
+        );
+        const bool targetMatch = !normalizedTarget.isEmpty() && (
+            normalizedEndpoint == normalizedTarget
+            || normalizedEndpoint.contains(normalizedTarget)
+            || normalizedTarget.contains(normalizedEndpoint)
+        );
+        if (!protocolMatch && !targetMatch) continue;
+        qint64 written = sender.writeDatagram(msg, QHostAddress(var->ip), var->port);
+        logUdpSendResult(QStringLiteral("[UDP SEND MATCHED]"), protocolName, targetName, var->name, var->ip, var->port, msg.size(), written, sender.errorString());
+        matched = true;
+    }}
+    if (matched) return;
+    for (auto var : udpSendList) {{
+        if (!var) continue;
+        qint64 written = sender.writeDatagram(msg, QHostAddress(var->ip), var->port);
+        logUdpSendResult(QStringLiteral("[UDP SEND FALLBACK]"), protocolName, targetName, var->name, var->ip, var->port, msg.size(), written, sender.errorString());
+    }}
+}}
+
 void messageConvert::readPendingDatagrams(QString name, QHostAddress ip, quint16 port, QByteArray data)
 {{
+    const QString resolvedProtocol = resolveInboundProtocolName(name, data);
+    const QString resolvedMessage = normalizeRuntimeMessageName(resolvedProtocol) == normalizeRuntimeMessageName(name)
+        ? resolveCanonicalRuntimeMessageName(resolvedProtocol, name)
+        : resolvedProtocol;
     std::shared_ptr<msgDataInfo> d(new msgDataInfo);
     d->time.append(QDateTime::currentMSecsSinceEpoch());
-    d->name = resolveInboundProtocolName(name, data);
+    d->name = resolvedMessage;
+    d->protocolName = resolvedProtocol;
     d->num = 1;
     d->data = data;
     d->ip = ip.toString();
@@ -1305,36 +2931,330 @@ void messageConvert::readPendingDatagrams(QString name, QHostAddress ip, quint16
 void messageConvert::pushData(std::shared_ptr<msgDataInfo> data)
 {{
     QMutexLocker lock(&dataMutex);
-    for (int i = 0; i < dataInfo.size(); ++i) {{
-        if (data->name == dataInfo[i]->name) {{
-            if (data->data != dataInfo[i]->data) {{
-                dataInfo[i] = data;
-                dataInfo[i]->time = data->time;
-{push_data_reset_line}
-            }} else {{
-{push_data_duplicate_lines}
-            }}
-            return;
+    const auto rule = findMessageRule(data->protocolName, data->name);
+    QString aggregationMode = isLoopAggregationSource(data->protocolName, data->name)
+        ? (rule ? rule->aggregation.mode.trimmed().toUpper() : QStringLiteral("SINGLE"))
+        : QStringLiteral("SINGLE");
+    if (aggregationMode == QStringLiteral("COUNT")) aggregationMode = QStringLiteral("BY_COUNT");
+    if (aggregationMode == QStringLiteral("TIME")) aggregationMode = QStringLiteral("BY_TIME");
+    if (aggregationMode == QStringLiteral("BY_COUNT") || aggregationMode == QStringLiteral("BY_TIME")) {{
+        dataInfo.push_back(data);
+        trimQueue(dataInfo, data->name, 256);
+        return;
+    }}
+    const QString normalizedName = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(data->protocolName, data->name)
+    );
+    for (int index = 0; index < dataInfo.size(); ++index) {{
+        if (normalizeRuntimeMessageName(
+                resolveCanonicalRuntimeMessageName(dataInfo[index]->protocolName, dataInfo[index]->name)
+            ) != normalizedName) continue;
+        if (data->data != dataInfo[index]->data) {{
+            dataInfo[index] = data;
+            dataInfo[index]->state.clear();
+        }} else {{
+            dataInfo[index]->num++;
+            if (!data->time.isEmpty()) dataInfo[index]->time.append(data->time.last());
+            dataInfo[index]->state.clear();
         }}
+        return;
     }}
     dataInfo.push_back(data);
+    trimQueue(dataInfo, data->name, 256);
 }}
 
-void messageConvert::getData(QString name, int time, int num, QByteArray& data, QString& ip, int& port, int& outTime)
+QString messageConvert::normalizeRuntimeMessageName(const QString& value) const
 {{
-    QMutexLocker lock(&dataMutex);
-    for (auto item : dataInfo) {{
-        {get_data_condition}
-            for (int i = item->time.size() - 1; i >= 1; --i) {{
-                if (item->time[i] - item->time[i - 1] <= time) return;
+    QString normalized = value.trimmed().toLower();
+    normalized.replace('.', '_');
+    normalized.replace('-', '_');
+    normalized.replace(' ', '_');
+    const QStringList suffixes = {{
+        QStringLiteral("_recv"),
+        QStringLiteral("_send"),
+        QStringLiteral("_cache"),
+        QStringLiteral("_input"),
+        QStringLiteral("_output")
+    }};
+    bool changed = true;
+    while (changed) {{
+        changed = false;
+        for (const QString& suffix : suffixes) {{
+            if (normalized.endsWith(suffix)) {{
+                normalized.chop(suffix.size());
+                changed = true;
+                break;
             }}
-            ip = item->ip;
-            port = item->port;
-            data = item->data;
-            outTime = static_cast<int>(item->time.first());
-{get_data_mark}
-            return;
         }}
+    }}
+    QString compact;
+    compact.reserve(normalized.size());
+    for (const QChar& ch : normalized) {{
+        if (ch.isLetterOrNumber()) compact.append(ch);
+    }}
+    return compact;
+}}
+
+{route_runtime_helpers}
+{batch_aggregation_helper}
+
+std::shared_ptr<messageConvert::MessageRuleInfo> messageConvert::findMessageRule(const QString& protocolName, const QString& messageName) const
+{{
+    const QString normalizedProtocol = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, protocolName)
+    );
+    const QString normalizedMessage = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, messageName)
+    );
+    for (const auto& rule : messageRuleList) {{
+        if (!rule) continue;
+        const QString normalizedRuleName = normalizeRuntimeMessageName(
+            resolveCanonicalRuntimeMessageName(protocolName, rule->messageName)
+        );
+        if (normalizedRuleName == normalizedMessage || normalizedRuleName == normalizedProtocol) {{
+            return rule;
+        }}
+    }}
+    return nullptr;
+}}
+
+QString messageConvert::resolveAggregationBindValue(const QString& protocolName, const QString& bindElement, const QByteArray& data) const
+{{
+    QString value = extractRuntimeFieldValue(protocolName, bindElement, data);
+    if (!value.isEmpty()) return value;
+    return QString::fromLatin1(data.toHex());
+}}
+
+bool messageConvert::compareRuleConditionValue(const QString& operatorName, const QString& actualValue, const QString& expectedValue) const
+{{
+    bool actualOk = false;
+    bool expectedOk = false;
+    const double actualNumber = actualValue.toDouble(&actualOk);
+    const double expectedNumber = expectedValue.toDouble(&expectedOk);
+    if (!actualOk || !expectedOk) return false;
+    if (operatorName == QStringLiteral("GT")) return actualNumber > expectedNumber;
+    if (operatorName == QStringLiteral("LT")) return actualNumber < expectedNumber;
+    if (operatorName == QStringLiteral("EQ")) return actualNumber == expectedNumber;
+    if (operatorName == QStringLiteral("GTE")) return actualNumber >= expectedNumber;
+    if (operatorName == QStringLiteral("LTE")) return actualNumber <= expectedNumber;
+    if (operatorName == QStringLiteral("NEQ")) return actualNumber != expectedNumber;
+    return false;
+}}
+
+bool messageConvert::shouldApplyRuleCondition(const QString& protocolName, const QString& messageName, const QByteArray& data) const
+{{
+    const auto rule = findMessageRule(protocolName, messageName);
+    if (!rule) return true;
+
+    const QString operatorName = rule->aggregation.compareOperator.trimmed().toUpper();
+    const QString expectedValue = rule->aggregation.compareValue.trimmed();
+    if (operatorName.isEmpty() || expectedValue.isEmpty()) return true;
+
+    const QString bindElement = rule->aggregationType.bindElement.trimmed();
+    if (bindElement.isEmpty()) return false;
+
+    const QString actualValue = extractRuntimeFieldValue(protocolName, bindElement, data).trimmed();
+    if (actualValue.isEmpty()) return false;
+
+    return compareRuleConditionValue(operatorName, actualValue, expectedValue);
+}}
+
+QVector<int> messageConvert::collectReadyBatchIndexes(
+    const QVector<std::shared_ptr<msgDataInfo>>& queue,
+    const QString& protocolName,
+    const QString& messageName,
+    int time,
+    int num,
+    bool forceTimeWindow) const
+{{
+    QVector<int> matchingIndexes;
+    const QString normalizedName = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, messageName)
+    );
+    for (int index = 0; index < queue.size(); ++index) {{
+        const auto& item = queue[index];
+        if (!item) continue;
+        if (normalizeRuntimeMessageName(
+                resolveCanonicalRuntimeMessageName(item->protocolName, item->name)
+            ) == normalizedName) matchingIndexes.push_back(index);
+    }}
+    if (matchingIndexes.isEmpty()) return {{}};
+
+    const auto rule = findMessageRule(protocolName, messageName);
+    QString aggregationMode = rule ? rule->aggregation.mode.trimmed().toUpper() : QStringLiteral("SINGLE");
+    if (aggregationMode == QStringLiteral("COUNT")) aggregationMode = QStringLiteral("BY_COUNT");
+    if (aggregationMode == QStringLiteral("TIME")) aggregationMode = QStringLiteral("BY_TIME");
+
+    int requiredCount = num > 0 ? num : 1;
+    if (rule && rule->aggregation.count > requiredCount) requiredCount = rule->aggregation.count;
+
+    if (aggregationMode == QStringLiteral("BY_COUNT")) {{
+        if (matchingIndexes.size() < requiredCount) return {{}};
+        return matchingIndexes.mid(0, requiredCount);
+    }}
+
+    if (aggregationMode == QStringLiteral("BY_TIME")) {{
+        int windowMs = 0;
+        if (rule && rule->aggregation.timeMs > 0) windowMs = rule->aggregation.timeMs;
+        else if (time > 0) windowMs = time;
+        if (windowMs <= 0) windowMs = 1;
+
+        const qint64 firstTime = queue[matchingIndexes.first()]->time.isEmpty() ? 0 : queue[matchingIndexes.first()]->time.last();
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (!forceTimeWindow && (now - firstTime) < windowMs) return {{}};
+
+        QVector<int> windowIndexes;
+        for (int index : matchingIndexes) {{
+            const qint64 itemTime = queue[index]->time.isEmpty() ? firstTime : queue[index]->time.last();
+            if ((itemTime - firstTime) <= windowMs) windowIndexes.push_back(index);
+            else break;
+        }}
+        if (windowIndexes.size() < requiredCount) return {{}};
+        return windowIndexes;
+    }}
+
+    if (matchingIndexes.size() < requiredCount) return {{}};
+    return matchingIndexes.mid(0, requiredCount);
+}}
+
+QVector<int> messageConvert::normalizeAggregatedBatchIndexes(
+    const QVector<std::shared_ptr<msgDataInfo>>& queue,
+    const QVector<int>& batchIndexes,
+    const QString& protocolName,
+    const QString& messageName) const
+{{
+    if (batchIndexes.size() <= 1) return batchIndexes;
+    const auto rule = findMessageRule(protocolName, messageName);
+    QString aggregationType = rule ? rule->aggregationType.type.trimmed().toUpper() : QStringLiteral("TIME");
+    const QString bindElement = rule ? rule->aggregationType.bindElement.trimmed() : QString();
+    QVector<int> normalizedIndexes = batchIndexes;
+
+    if (aggregationType == QStringLiteral("ORDER") && !bindElement.isEmpty()) {{
+        std::sort(normalizedIndexes.begin(), normalizedIndexes.end(), [this, &queue, &protocolName, &bindElement](int left, int right) {{
+            const QString leftValue = resolveAggregationBindValue(protocolName, bindElement, queue[left]->data);
+            const QString rightValue = resolveAggregationBindValue(protocolName, bindElement, queue[right]->data);
+            bool leftOk = false;
+            bool rightOk = false;
+            const qlonglong leftNumber = leftValue.toLongLong(&leftOk);
+            const qlonglong rightNumber = rightValue.toLongLong(&rightOk);
+            if (leftOk && rightOk) return leftNumber < rightNumber;
+            return leftValue < rightValue;
+        }});
+        return normalizedIndexes;
+    }}
+
+    if (aggregationType == QStringLiteral("DISTINCT") && !bindElement.isEmpty()) {{
+        QStringList seenValues;
+        QVector<int> uniqueIndexes;
+        for (int index : normalizedIndexes) {{
+            const QString value = resolveAggregationBindValue(protocolName, bindElement, queue[index]->data);
+            if (seenValues.indexOf(value) != -1) continue;
+            seenValues.append(value);
+            uniqueIndexes.append(index);
+        }}
+        return uniqueIndexes;
+    }}
+
+    return normalizedIndexes;
+}}
+
+void messageConvert::removeQueueIndexes(QVector<std::shared_ptr<msgDataInfo>>& queue, const QVector<int>& indexes)
+{{
+    QVector<int> ordered = indexes;
+    std::sort(ordered.begin(), ordered.end(), std::greater<int>());
+    for (int index : ordered) {{
+        if (index >= 0 && index < queue.size()) queue.remove(index);
+    }}
+}}
+
+void messageConvert::trimQueue(QVector<std::shared_ptr<msgDataInfo>>& queue, const QString& messageName, int maxEntries)
+{{
+    QVector<int> matchingIndexes;
+    const QString normalizedName = normalizeRuntimeMessageName(messageName);
+    for (int index = 0; index < queue.size(); ++index) {{
+        const auto& item = queue[index];
+        if (!item) continue;
+        if (normalizeRuntimeMessageName(item->name) == normalizedName) matchingIndexes.push_back(index);
+    }}
+    const int overflow = matchingIndexes.size() - maxEntries;
+    if (overflow <= 0) return;
+    QVector<int> staleIndexes = matchingIndexes.mid(0, overflow);
+    removeQueueIndexes(queue, staleIndexes);
+}}
+
+void messageConvert::getDataBatch(QString protocolName, QString name, QString consumerKey, int time, int num, int maxBatchSize, QVector<QByteArray>& batchData, QVector<QString>& batchIps, QVector<int>& batchPorts, QVector<int>& batchTimes)
+{{
+    batchData.clear();
+    batchIps.clear();
+    batchPorts.clear();
+    batchTimes.clear();
+    if (maxBatchSize <= 0) maxBatchSize = 1;
+
+    const auto rule = findMessageRule(protocolName, name);
+    QString aggregationMode = rule ? rule->aggregation.mode.trimmed().toUpper() : QStringLiteral("SINGLE");
+    if (aggregationMode == QStringLiteral("COUNT")) aggregationMode = QStringLiteral("BY_COUNT");
+    if (aggregationMode == QStringLiteral("TIME")) aggregationMode = QStringLiteral("BY_TIME");
+    if (aggregationMode != QStringLiteral("BY_COUNT") && aggregationMode != QStringLiteral("BY_TIME")) {{
+        QByteArray singleData;
+        QString singleIp;
+        int singlePort = 0;
+        int singleTime = 0;
+        getData(protocolName, name, consumerKey, time, num, singleData, singleIp, singlePort, singleTime);
+        if (singleData.isEmpty()) return;
+        batchData.append(singleData);
+        batchIps.append(singleIp);
+        batchPorts.append(singlePort);
+        batchTimes.append(singleTime);
+        return;
+    }}
+
+    QMutexLocker lock(&dataMutex);
+    QVector<int> batchIndexes = collectReadyBatchIndexes(dataInfo, protocolName, name, time, num, false);
+    if (batchIndexes.isEmpty()) return;
+    QVector<int> normalizedIndexes = normalizeAggregatedBatchIndexes(dataInfo, batchIndexes, protocolName, name);
+    if (normalizedIndexes.isEmpty()) return;
+    if (normalizedIndexes.size() > maxBatchSize) normalizedIndexes = normalizedIndexes.mid(0, maxBatchSize);
+    for (int index : normalizedIndexes) {{
+        const auto& item = dataInfo[index];
+        if (!item) continue;
+        batchData.append(item->data);
+        batchIps.append(item->ip);
+        batchPorts.append(item->port);
+        batchTimes.append(item->time.isEmpty() ? 0 : static_cast<int>(item->time.first()));
+    }}
+    removeQueueIndexes(dataInfo, batchIndexes);
+}}
+
+void messageConvert::getData(QString protocolName, QString name, QString consumerKey, int time, int num, QByteArray& data, QString& ip, int& port, int& outTime)
+{{
+    data.clear();
+    ip.clear();
+    port = 0;
+    outTime = 0;
+    QMutexLocker lock(&dataMutex);
+    const QString normalizedName = normalizeRuntimeMessageName(
+        resolveCanonicalRuntimeMessageName(protocolName, name)
+    );
+    const QString normalizedStateKey = normalizeRuntimeMessageName(
+        consumerKey.isEmpty() ? normalizedName : consumerKey
+    );
+    const int requiredCount = num > 0 ? num : 1;
+    for (const auto& item : dataInfo) {{
+        if (!item) continue;
+        if (normalizeRuntimeMessageName(
+                resolveCanonicalRuntimeMessageName(item->protocolName, item->name)
+            ) != normalizedName) continue;
+        if (item->num != requiredCount) continue;
+        if (item->state.indexOf(normalizedStateKey) != -1) continue;
+        for (int index = item->time.size() - 1; index >= 1; --index) {{
+            if (item->time[index] - item->time[index - 1] <= static_cast<qulonglong>(time)) return;
+        }}
+        ip = item->ip;
+        port = item->port;
+        data = item->data;
+        item->state.append(normalizedStateKey);
+        outTime = item->time.isEmpty() ? 0 : static_cast<int>(item->time.first());
+        return;
     }}
 }}
 
@@ -1343,11 +3263,24 @@ void messageConvert::cacheGeneratedTarget(const QString& targetName, int num, co
     std::shared_ptr<msgDataInfo> d(new msgDataInfo);
     d->time.append(QDateTime::currentMSecsSinceEpoch());
     d->name = targetName;
+    d->protocolName = targetName;
+    d->cacheName = targetName;
     d->num = num;
+    d->cacheNum = num;
+    d->cacheOnly = true;
     d->data = data;
     d->ip = QStringLiteral("127.0.0.1");
     d->port = 0;
     pushData(d);
+}}
+
+void messageConvert::routeGeneratedTarget(const QString& protocolName, const QString& targetName, const QString& cacheName, int cacheNum, bool jointControlled, bool cacheOnly, const QByteArray& data)
+{{
+    Q_UNUSED(protocolName);
+    Q_UNUSED(targetName);
+    Q_UNUSED(jointControlled);
+{joint_direct_dispatch}    if (cacheOnly) cacheGeneratedTarget(cacheName, cacheNum, data);
+    else onSendMessage(protocolName, targetName, data);
 }}
 
 {timer_block}{chr(10).join(process_blocks)}
@@ -1356,7 +3289,7 @@ void messageConvert::msgConvertThread()
 {{
     while (0 == _threadExit) {{
 {process_calls}
-        _sleep({loop_sleep_ms});
+        QThread::msleep(static_cast<unsigned long>({loop_sleep_ms}));
     }}
 }}
 """

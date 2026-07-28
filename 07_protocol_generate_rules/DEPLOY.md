@@ -13,9 +13,14 @@
 
 - 必需：Python 虚拟环境、`requirements-all.txt`
 - 必需：LLM 或 vLLM
-- 推荐：Neo4j
+- 必需：Neo4j
 - 推荐：MySQL
-- 可选：本地 JSON 图谱回退
+- 不使用：本地 JSON 图谱读回退
+
+说明：
+
+- 当前只有接口 `07` 使用知识图谱。
+- 当前 Neo4j 不可用时会直接报错，不会回退到本地 `protocol_conversion_kb`。
 
 ## 启动
 

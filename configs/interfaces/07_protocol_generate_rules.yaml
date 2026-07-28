@@ -1,0 +1,22 @@
+server:
+  host: 0.0.0.0
+  port: 6107
+  debug: true
+  threaded: false
+
+databases:
+  neo4j:
+    enabled: true
+    uri: bolt://127.0.0.1:7687
+    username: neo4j
+    password: change_me
+    database: neo4j
+    timeout_seconds: 30
+    connection_timeout_seconds: 30
+    max_connection_pool_size: 50
+    auto_init: true
+    schema_mode: legacy_entity_graph
+    read_statuses:
+      - approved
+      - verified
+    write_status: candidate

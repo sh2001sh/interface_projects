@@ -1,0 +1,11 @@
+server:
+  host: 0.0.0.0
+  port: 6102
+  debug: true
+  threaded: true
+
+processing:
+  docling_worker_timeout_seconds: 1800
+  huge_pdf_page_threshold: 1000
+  huge_pdf_docling_enhance_max_pages: 0
+  huge_pdf_docling_enhance_batch_size: 8

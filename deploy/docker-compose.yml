@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: interface_projects_mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-protocol_db}
+      MYSQL_USER: ${MYSQL_USER:-protocol_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ${MYSQL_DATA_DIR:-./runtime_data/mysql}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  neo4j:
+    image: neo4j:5.26.19-community
+    container_name: interface_projects_neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-123456}
+      NEO4J_dbms_security_auth__minimum__password__length: 6
+      NEO4J_server_memory_heap_initial__size: 1G
+      NEO4J_server_memory_heap_max__size: 2G
+      NEO4J_server_default__listen__address: 0.0.0.0
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ${NEO4J_DATA_DIR:-./runtime_data/neo4j/data}:/data
+      - ${NEO4J_LOGS_DIR:-./runtime_data/neo4j/logs}:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -a bolt://127.0.0.1:7687 -u neo4j -p $${NEO4J_PASSWORD:-123456} 'RETURN 1;' >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s

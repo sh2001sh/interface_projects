@@ -1,0 +1,2797 @@
+from __future__ import annotations
+
+import ast
+import copy
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+
+ROOT_DIR = Path(__file__).resolve().parent
+
+
+def _resolve_project_generator_root(anchor: Path) -> Path:
+    """Finds the local self-contained generator package root."""
+
+    for base in (anchor, *anchor.parents):
+        for dirname in ("code_generate", "code_generation"):
+            candidate = base / dirname
+            if (candidate / "project_generator").is_dir():
+                return candidate
+    raise ImportError(f"未找到当前接口目录内可用的 project_generator 目录: {anchor}")
+
+
+PROJECT_GENERATOR_ROOT = _resolve_project_generator_root(ROOT_DIR)
+if str(PROJECT_GENERATOR_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_GENERATOR_ROOT))
+
+from project_generator.loaders import load_choreography, load_mappings  # type: ignore
+from project_generator.renderer import render_project  # type: ignore
+from project_generator.utils import normalize_token  # type: ignore
+from project_generator.xml_parser import load_protocols  # type: ignore
+
+
+_JSON_PATH_KEYS = ("path", "file", "file_path")
+_MAPPING_PAIR_PATTERN = re.compile(r"\s*([^=,]+?)\s*=\s*([^,]+?)\s*(?:,|$)")
+_FIELD_REF_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b")
+
+
+def _normalize_runtime_name(value: Any) -> str:
+    return re.sub(r"[^0-9A-Za-z]+", "_", str(value or "").strip()).strip("_").lower()
+
+
+def _strip_balanced_outer_parentheses(text: str) -> str:
+    normalized = str(text or "").strip()
+    while normalized.startswith("(") and normalized.endswith(")"):
+        depth = 0
+        balanced = True
+        quote: Optional[str] = None
+        escape = False
+        for index, char in enumerate(normalized):
+            if quote:
+                if escape:
+                    escape = False
+                    continue
+                if char == "\\":
+                    escape = True
+                    continue
+                if char == quote:
+                    quote = None
+                continue
+            if char in {"'", '"'}:
+                quote = char
+                continue
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth < 0:
+                    balanced = False
+                    break
+                if depth == 0 and index != len(normalized) - 1:
+                    balanced = False
+                    break
+        if not balanced or depth != 0:
+            break
+        normalized = normalized[1:-1].strip()
+    return normalized
+
+
+def _split_top_level_generator_ternary(text: str) -> Optional[Tuple[str, str, str]]:
+    normalized = str(text or "").strip()
+    if not normalized:
+        return None
+    depth = 0
+    question_index = -1
+    nested_ternary_depth = 0
+    quote: Optional[str] = None
+    escape = False
+    for index, char in enumerate(normalized):
+        if quote:
+            if escape:
+                escape = False
+                continue
+            if char == "\\":
+                escape = True
+                continue
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            continue
+        if char in "([{":
+            depth += 1
+            continue
+        if char in ")]}":
+            depth = max(depth - 1, 0)
+            continue
+        if depth != 0:
+            continue
+        if char == "?":
+            if question_index < 0:
+                question_index = index
+            else:
+                nested_ternary_depth += 1
+            continue
+        if char == ":" and question_index >= 0:
+            if nested_ternary_depth == 0:
+                return (
+                    normalized[:question_index].strip(),
+                    normalized[question_index + 1:index].strip(),
+                    normalized[index + 1:].strip(),
+                )
+            nested_ternary_depth -= 1
+    return None
+
+
+def _normalize_generator_boolean_ops_for_response(text: str) -> str:
+    normalized = str(text or "").strip()
+    if not normalized:
+        return normalized
+    normalized = normalized.replace("&&", " and ").replace("||", " or ")
+    normalized = re.sub(r"(?<![=!<>])!(?!=)", " not ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _normalize_formula_for_response(formula: Any) -> str:
+    normalized = str(formula or "").strip()
+    if not normalized or "\n" in normalized:
+        return normalized
+    normalized = _strip_balanced_outer_parentheses(normalized)
+    ternary_parts = _split_top_level_generator_ternary(normalized)
+    if ternary_parts is not None:
+        condition, when_true, when_false = ternary_parts
+        rendered_condition = _normalize_generator_boolean_ops_for_response(
+            _normalize_formula_for_response(condition)
+        )
+        rendered_true = _normalize_formula_for_response(when_true)
+        rendered_false = _normalize_formula_for_response(when_false)
+        return f"({rendered_true} if {rendered_condition} else {rendered_false})"
+    return _normalize_generator_boolean_ops_for_response(normalized)
+
+
+def _normalize_manifest_for_response(manifest: Dict[str, Any]) -> Dict[str, Any]:
+    normalized_manifest = copy.deepcopy(manifest)
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in {"formula", "when", "check", "condition", "expression"} and value is not None:
+                    node[key] = _normalize_formula_for_response(value)
+                else:
+                    _walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                _walk(item)
+
+    _walk(normalized_manifest)
+    return normalized_manifest
+
+
+def _load_json_like(value: Any, field_name: str) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return copy.deepcopy(value)
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        candidate = Path(raw)
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8-sig"))
+        if raw[0] in "{[":
+            return json.loads(raw)
+    raise ValueError(f"{field_name} 必须是 JSON 对象、数组或可读取的 JSON 文件路径")
+
+
+def _load_text_file(path_like: Any, field_name: str) -> str:
+    path = Path(str(path_like or "").strip())
+    if not path.exists() or not path.is_file():
+        raise ValueError(f"{field_name} 对应文件不存在: {path}")
+    return path.read_text(encoding="utf-8-sig")
+
+
+def _resolve_protocol_dir(path_like: Any, field_name: str) -> Path:
+    directory = Path(str(path_like or "").strip())
+    if not directory.exists() or not directory.is_dir():
+        raise ValueError(f"{field_name} 不存在: {directory}")
+    return directory
+
+
+def _resolve_protocol_dirs(path_like: Any, field_name: str) -> List[Path]:
+    if isinstance(path_like, (list, tuple)):
+        if not path_like:
+            raise ValueError(f"{field_name} 不能为空")
+        return [
+            _resolve_protocol_dir(item, f"{field_name}[{index}]")
+            for index, item in enumerate(path_like)
+        ]
+    return [_resolve_protocol_dir(path_like, field_name)]
+
+
+def _list_protocol_xml_files(directory: Path, field_name: str) -> List[Path]:
+    xml_files = sorted(directory.glob("*.xml"))
+    if not xml_files:
+        raise ValueError(f"{field_name} 下未找到 XML 文件: {directory}")
+    return xml_files
+
+
+def _preferred_field_display_name(
+    actual_field: str,
+    label: Optional[str],
+    path_parts: Optional[Iterable[Any]],
+) -> str:
+    for candidate in (
+        str(label or "").strip(),
+        str((list(path_parts or [])[-1]) if path_parts else "").strip(),
+        str(actual_field or "").strip(),
+    ):
+        if candidate:
+            return candidate
+    return str(actual_field or "").strip()
+
+
+def read_protocol_dir_content(path_like: Any, field_name: str = "source_protocol_dir") -> str:
+    contents: List[str] = []
+    for index, directory in enumerate(_resolve_protocol_dirs(path_like, field_name)):
+        label = field_name if index == 0 and not isinstance(path_like, (list, tuple)) else f"{field_name}[{index}]"
+        xml_files = _list_protocol_xml_files(directory, label)
+        contents.extend(xml_file.read_text(encoding="utf-8-sig") for xml_file in xml_files)
+    return "\n\n".join(contents)
+
+
+def resolve_protocol_type_names(path_like: Any, field_name: str) -> List[str]:
+    protocol_names: List[str] = []
+    seen = set()
+    for directory in _resolve_protocol_dirs(path_like, field_name):
+        for protocol_name in _normalize_protocol_names(directory):
+            if protocol_name in seen:
+                continue
+            seen.add(protocol_name)
+            protocol_names.append(protocol_name)
+    return protocol_names
+
+
+def resolve_protocol_field_specs(path_like: Any, field_name: str) -> List[Dict[str, Any]]:
+    specs: List[Dict[str, Any]] = []
+    seen = set()
+    for directory in _resolve_protocol_dirs(path_like, field_name):
+        for protocol in load_protocols(directory):
+            for item in protocol.fields:
+                actual_field = str(item.cpp_name or item.label or "").strip()
+                if not actual_field:
+                    continue
+                signature = (protocol.type_name, actual_field)
+                if signature in seen:
+                    continue
+                seen.add(signature)
+                display_field = _preferred_field_display_name(
+                    actual_field=actual_field,
+                    label=str(item.label or "").strip() or None,
+                    path_parts=item.path_parts,
+                )
+                specs.append(
+                    {
+                        "protocol": protocol.type_name,
+                        "field_name": display_field,
+                        "actual_field": actual_field,
+                        "default_value": item.default_value,
+                        "bit_length": item.bit_length,
+                        "label": str(item.label or "").strip() or display_field,
+                        "path_parts": list(item.path_parts or []),
+                    }
+                )
+    return specs
+
+
+def _materialize_protocol_dirs(
+    source_protocol_dir: Any,
+    target_protocol_dir: Any,
+    workspace_root: Path,
+) -> Tuple[Path, Optional[Path]]:
+    materialized_root = workspace_root / "protocols"
+    materialized_root.mkdir(parents=True, exist_ok=True)
+
+    copied_names: set[str] = set()
+    for field_name, path_like in (
+        ("source_protocol_dir", source_protocol_dir),
+        ("target_protocol_dir", target_protocol_dir),
+    ):
+        is_multi_dir = isinstance(path_like, (list, tuple))
+        for index, directory in enumerate(_resolve_protocol_dirs(path_like, field_name)):
+            label = field_name if not is_multi_dir else f"{field_name}[{index}]"
+            for xml_file in _list_protocol_xml_files(directory, label):
+                target_path = materialized_root / xml_file.name
+                if xml_file.name in copied_names:
+                    if target_path.read_text(encoding="utf-8-sig") != xml_file.read_text(encoding="utf-8-sig"):
+                        raise ValueError(f"{label} 中存在重名但内容不同的 XML 文件: {xml_file.name}")
+                    continue
+                target_path.write_text(xml_file.read_text(encoding="utf-8-sig"), encoding="utf-8")
+                copied_names.add(xml_file.name)
+    return materialized_root, materialized_root
+
+
+def _build_protocol_family_maps(
+    protocol_dir: Path,
+) -> Tuple[List[Any], List[str], Dict[str, List[str]], Dict[str, List[str]]]:
+    protocols = load_protocols(protocol_dir)
+    protocol_lookup: Dict[str, Any] = {}
+    for protocol in protocols:
+        for key in {
+            normalize_token(protocol.type_name),
+            normalize_token(protocol.file_stem),
+        }:
+            if key and key not in protocol_lookup:
+                protocol_lookup[key] = protocol
+
+    parent_to_children: Dict[str, List[str]] = {}
+    child_to_parents: Dict[str, List[str]] = {}
+    descriptor_names: set[str] = set()
+    for parent_protocol in protocols:
+        seen_children: set[str] = set()
+        for route in getattr(parent_protocol, "routes", []) or []:
+            child_protocol = protocol_lookup.get(normalize_token(route.target_protocol))
+            if child_protocol is None:
+                continue
+            child_name = str(child_protocol.type_name or "").strip()
+            if not child_name or child_name in seen_children:
+                continue
+            seen_children.add(child_name)
+            descriptor_names.add(str(parent_protocol.type_name or "").strip())
+            parent_to_children.setdefault(parent_protocol.type_name, []).append(child_name)
+            child_to_parents.setdefault(child_name, []).append(parent_protocol.type_name)
+
+    concrete_protocol_names = [
+        str(protocol.type_name or "").strip()
+        for protocol in protocols
+        if str(protocol.type_name or "").strip()
+        and str(protocol.type_name or "").strip() not in descriptor_names
+    ]
+    if not concrete_protocol_names:
+        concrete_protocol_names = [
+            str(protocol.type_name or "").strip()
+            for protocol in protocols
+            if str(protocol.type_name or "").strip()
+        ]
+
+    return protocols, concrete_protocol_names, parent_to_children, child_to_parents
+
+
+def _normalize_protocol_names(protocol_dir: Path) -> List[str]:
+    _protocols, concrete_protocol_names, _parent_to_children, _child_to_parents = _build_protocol_family_maps(protocol_dir)
+    return concrete_protocol_names
+
+
+def _protocol_field_index(protocol_dir: Path) -> Dict[str, List[Tuple[str, str]]]:
+    index: Dict[str, List[Tuple[str, str]]] = {}
+    for protocol in load_protocols(protocol_dir):
+        for field in protocol.fields:
+            actual_field = str(field.cpp_name or field.label or "").strip()
+            if not actual_field:
+                continue
+            for candidate in {
+                actual_field,
+                str(field.label or "").strip(),
+                str(field.path_parts[-1] if field.path_parts else "").strip(),
+            }:
+                if not candidate:
+                    continue
+                key = candidate.upper()
+                entries = index.setdefault(key, [])
+                entry = (protocol.type_name, actual_field)
+                if entry not in entries:
+                    entries.append(entry)
+    return index
+
+
+def _protocol_field_display_index(protocol_dir: Path) -> Dict[Tuple[str, str], str]:
+    index: Dict[Tuple[str, str], str] = {}
+    for protocol in load_protocols(protocol_dir):
+        for field in protocol.fields:
+            actual_field = str(field.cpp_name or field.label or "").strip()
+            if not actual_field:
+                continue
+            index[(protocol.type_name, actual_field.upper())] = _preferred_field_display_name(
+                actual_field=actual_field,
+                label=str(field.label or "").strip() or None,
+                path_parts=field.path_parts,
+            )
+    return index
+
+
+def _build_target_protocol_field_lookup(
+    protocol_dir: Optional[Path],
+    target_protocol_name: Optional[str],
+) -> Tuple[Dict[str, str], set[str], set[str]]:
+    if not protocol_dir or not target_protocol_name:
+        return {}, set(), set()
+
+    target_specs = [
+        item
+        for item in resolve_protocol_field_specs(protocol_dir, "protocol_dir")
+        if str(item.get("protocol") or "").strip() == str(target_protocol_name).strip()
+    ]
+    if not target_specs:
+        return {}, set(), set()
+
+    lookup_candidates: Dict[str, set[str]] = {}
+    preferred_legacy_lookup: Dict[str, str] = {}
+    actual_fields: set[str] = set()
+    for spec in target_specs:
+        actual_field = str(spec.get("actual_field") or spec.get("field_name") or "").strip()
+        if not actual_field:
+            continue
+        actual_fields.add(actual_field)
+        candidate_keys = {
+            actual_field.upper(),
+            str(spec.get("field_name") or "").strip().upper(),
+            str(spec.get("label") or "").strip().upper(),
+        }
+        preferred_legacy_keys: List[str] = []
+        for part in spec.get("path_parts") or []:
+            candidate_keys.add(str(part).strip().upper())
+        simplified_actual = re.sub(r"_(\d+)(?=_[^_]+$)", "", actual_field)
+        if simplified_actual:
+            candidate_keys.add(simplified_actual.upper())
+            candidate_keys.add(f"origin_{simplified_actual}".upper())
+            preferred_legacy_keys.extend(
+                [
+                    simplified_actual.upper(),
+                    f"origin_{simplified_actual}".upper(),
+                ]
+            )
+        path_parts = [str(part).strip() for part in (spec.get("path_parts") or []) if str(part).strip()]
+        if path_parts:
+            candidate_keys.add("_".join(path_parts).upper())
+            candidate_keys.add("/".join(path_parts).upper())
+            simplified_parts: List[str] = []
+            for index, part in enumerate(path_parts):
+                token = normalize_token(part)
+                if index < len(path_parts) - 1:
+                    token = re.sub(r"_\d+$", "", token)
+                simplified_parts.append(token)
+            simplified_path_actual = "_".join(part for part in simplified_parts if part)
+            if simplified_path_actual:
+                candidate_keys.add(simplified_path_actual.upper())
+                candidate_keys.add(f"origin_{simplified_path_actual}".upper())
+                preferred_legacy_keys.extend(
+                    [
+                        simplified_path_actual.upper(),
+                        f"origin_{simplified_path_actual}".upper(),
+                    ]
+                )
+        for key in candidate_keys:
+            if not key:
+                continue
+            lookup_candidates.setdefault(key, set()).add(actual_field)
+        for key in preferred_legacy_keys:
+            if key and key not in preferred_legacy_lookup:
+                preferred_legacy_lookup[key] = actual_field
+
+    resolved_lookup: Dict[str, str] = {}
+    ambiguous_keys: set[str] = set()
+    for key, values in lookup_candidates.items():
+        if len(values) == 1:
+            resolved_lookup[key] = next(iter(values))
+        else:
+            ambiguous_keys.add(key)
+    for key, actual_field in preferred_legacy_lookup.items():
+        resolved_lookup.setdefault(key, actual_field)
+        ambiguous_keys.discard(key)
+    return resolved_lookup, actual_fields, ambiguous_keys
+
+
+def _build_protocol_spec_maps(
+    protocol_dir: Optional[Path],
+    protocol_name: Optional[str],
+) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+    if not protocol_dir or not protocol_name:
+        return {}, {}
+    actual_to_spec: Dict[str, Dict[str, Any]] = {}
+    path_to_actual: Dict[str, str] = {}
+    for spec in resolve_protocol_field_specs(protocol_dir, "protocol_dir"):
+        if str(spec.get("protocol") or "").strip() != str(protocol_name or "").strip():
+            continue
+        actual_field = str(spec.get("actual_field") or spec.get("field_name") or "").strip()
+        if not actual_field:
+            continue
+        actual_to_spec[actual_field] = spec
+        path = "/".join(str(part).strip() for part in (spec.get("path_parts") or []) if str(part).strip())
+        if path:
+            path_to_actual[path.upper()] = actual_field
+    return actual_to_spec, path_to_actual
+
+
+def _build_target_concept_spec_lookup(
+    protocol_dir: Optional[Path],
+    protocol_name: Optional[str],
+) -> Dict[str, List[Dict[str, Any]]]:
+    if not protocol_dir or not protocol_name:
+        return {}
+    concept_lookup: Dict[str, List[Dict[str, Any]]] = {}
+    for spec in resolve_protocol_field_specs(protocol_dir, "protocol_dir"):
+        if str(spec.get("protocol") or "").strip() != str(protocol_name or "").strip():
+            continue
+        keys = {
+            str(spec.get("field_name") or "").strip().upper(),
+            str(spec.get("label") or "").strip().upper(),
+        }
+        path_parts = [str(part).strip() for part in (spec.get("path_parts") or []) if str(part).strip()]
+        for part in path_parts:
+            keys.add(part.upper())
+        if path_parts:
+            keys.add("_".join(path_parts).upper())
+            keys.add("/".join(path_parts).upper())
+        for key in keys:
+            if not key:
+                continue
+            concept_lookup.setdefault(key, []).append(spec)
+    return concept_lookup
+
+
+def _resolve_target_field_from_rule(
+    rule: Dict[str, Any],
+    target_protocol_name: Optional[str],
+    protocol_field_index: Dict[str, List[Tuple[str, str]]],
+    target_field_lookup: Dict[str, str],
+    target_actual_to_spec: Dict[str, Dict[str, Any]],
+    target_path_to_actual: Dict[str, str],
+) -> str:
+    explicit_actual = str(rule.get("target_actual_field") or "").strip()
+    if explicit_actual and explicit_actual in target_actual_to_spec:
+        return explicit_actual
+    explicit_path = str(rule.get("target_path") or "").strip()
+    if explicit_path:
+        resolved_from_path = target_path_to_actual.get(explicit_path.upper())
+        if resolved_from_path:
+            return resolved_from_path
+    raw_target_field = _strip_relation_protocol_prefix(
+        str(rule.get("target_field") or "").strip(),
+        target_protocol_name,
+    )
+    normalized_target_key = raw_target_field.upper()
+    if normalized_target_key in target_field_lookup:
+        return target_field_lookup[normalized_target_key]
+    return _resolve_protocol_field_name(
+        raw_target_field,
+        target_protocol_name,
+        protocol_field_index,
+    )
+
+
+def _resolve_target_field_with_fallback(
+    rule: Dict[str, Any],
+    target_protocol_name: Optional[str],
+    protocol_field_index: Dict[str, List[Tuple[str, str]]],
+    target_field_lookup: Dict[str, str],
+    target_actual_to_spec: Dict[str, Dict[str, Any]],
+    target_path_to_actual: Dict[str, str],
+) -> str:
+    """Resolves target field while tolerating legacy simplified actual-field names."""
+
+    explicit_actual = str(rule.get("target_actual_field") or "").strip()
+    if explicit_actual and explicit_actual in target_actual_to_spec:
+        return explicit_actual
+    return _resolve_target_field_from_rule(
+        rule=rule,
+        target_protocol_name=target_protocol_name,
+        protocol_field_index=protocol_field_index,
+        target_field_lookup=target_field_lookup,
+        target_actual_to_spec=target_actual_to_spec,
+        target_path_to_actual=target_path_to_actual,
+    )
+
+
+def _display_protocol_field_name(
+    actual_field: str,
+    protocol_name: Optional[str],
+    protocol_display_index: Dict[Tuple[str, str], str],
+) -> str:
+    normalized = str(actual_field or "").strip()
+    if not normalized or not protocol_name:
+        return normalized
+    return protocol_display_index.get((protocol_name, normalized.upper()), normalized)
+
+
+def _normalize_target_protocol_name(
+    explicit_target: Optional[str],
+    protocol_names: List[str],
+    rules_payload: List[Dict[str, Any]],
+) -> str:
+    if explicit_target:
+        return explicit_target
+    for rule in rules_payload:
+        target = str(rule.get("target_protocol_type") or rule.get("target_protocol_name") or "").strip()
+        if target:
+            return target
+    if len(protocol_names) == 1:
+        return protocol_names[0]
+    if protocol_names:
+        raise ValueError(
+            "存在多个可选目标协议，无法自动推断，请显式提供 target_protocol_name 或在规则中写明 target_protocol_type"
+        )
+    raise ValueError("无法推断目标协议名称，请显式提供 target_protocol_name 或 target_protocol.protocol_type")
+
+
+def _normalize_source_protocol_name(
+    explicit_source: Optional[str],
+    protocol_names: List[str],
+    resolved_target: str,
+    rules_payload: List[Dict[str, Any]],
+) -> str:
+    if explicit_source:
+        return explicit_source
+    for rule in rules_payload:
+        source_name = str(rule.get("source_protocol_type") or rule.get("source_protocol_name") or "").strip()
+        if source_name:
+            return source_name
+    inferred_sources = [name for name in protocol_names if name != resolved_target]
+    if len(inferred_sources) == 1:
+        return inferred_sources[0]
+    raise ValueError("无法推断源协议名称，请显式提供 source_protocol_name 或 source_protocol.protocol_type")
+
+
+def _rewrite_formula_with_alias(formula: str, source_fields: List[str], alias: str) -> str:
+    resolved = str(formula or "").strip()
+    if not resolved:
+        return resolved
+    if source_fields:
+        primary = source_fields[0]
+        resolved = re.sub(r"(?<![A-Za-z0-9_\.])value\b", f"{alias}.{primary}", resolved)
+        for field in source_fields:
+            resolved = re.sub(rf"(?<![A-Za-z0-9_\.]){re.escape(field)}\b", f"{alias}.{field}", resolved)
+    return resolved
+
+
+def _rewrite_formula_with_alias_map(formula: str, field_ref_map: Dict[str, str]) -> str:
+    resolved = str(formula or "").strip()
+    if not resolved:
+        return resolved
+    unique_refs = {field_ref for field_ref in field_ref_map.values() if field_ref}
+    if len(unique_refs) == 1 and field_ref_map:
+        resolved = re.sub(r"(?<![A-Za-z0-9_\.])value\b", next(iter(unique_refs)), resolved)
+    for field in sorted(field_ref_map, key=len, reverse=True):
+        if "." not in field:
+            resolved = re.sub(
+                rf"\b[A-Za-z_][A-Za-z0-9_]*\.{re.escape(field)}\b",
+                field_ref_map[field],
+                resolved,
+            )
+        resolved = re.sub(rf"(?<![A-Za-z0-9_\.]){re.escape(field)}\b", field_ref_map[field], resolved)
+    return resolved
+
+
+def _build_legacy_target_formula_tokens(
+    rule: Dict[str, Any],
+    target_protocol_name: Optional[str],
+) -> List[str]:
+    """Builds legacy target-token variants that may appear inside formulas."""
+
+    raw_values = [
+        str(rule.get("target_field") or "").strip(),
+        str(rule.get("target_actual_field") or "").strip(),
+        str(rule.get("target_path") or "").strip(),
+        str(rule.get("target_var") or "").strip(),
+    ]
+    values = [value for value in raw_values if value]
+    if not values:
+        return []
+
+    tokens: set[str] = set(values)
+    protocol_variants = {
+        str(target_protocol_name or "").strip(),
+        _normalize_runtime_name(target_protocol_name),
+        _to_relation_formula_token(target_protocol_name),
+    }
+    protocol_variants = {value for value in protocol_variants if value}
+    compact_protocols = {
+        re.sub(r"[^0-9A-Za-z]+", "", value).lower()
+        for value in protocol_variants
+        if value
+    }
+
+    for value in list(tokens):
+        if "." in value:
+            _prefix, remainder = value.split(".", 1)
+            if remainder.strip():
+                tokens.add(remainder.strip())
+
+    base_values = list(tokens)
+    for base in base_values:
+        for protocol_variant in protocol_variants:
+            tokens.add(f"{protocol_variant}.{base}")
+            tokens.add(f"{protocol_variant}_{base}")
+        compact_base = re.sub(r"[^0-9A-Za-z]+", "", base).lower()
+        if not compact_base:
+            continue
+        for compact_protocol in compact_protocols:
+            tokens.add(f"{compact_protocol}.{base}")
+            tokens.add(f"{compact_protocol}_{base}")
+            if compact_base.startswith(compact_protocol):
+                suffix = base[len(str(target_protocol_name or "").strip()) :].strip("._")
+                if suffix:
+                    tokens.add(f"{compact_protocol}.{suffix}")
+                    tokens.add(f"{compact_protocol}_{suffix}")
+
+    return sorted((token for token in tokens if token), key=len, reverse=True)
+
+
+def _sanitize_legacy_target_formula(
+    formula: Any,
+    target_tokens: List[str],
+) -> str:
+    """Rewrites legacy target assignments/references to one placeholder token."""
+
+    normalized = str(formula or "").strip()
+    if not normalized or not target_tokens:
+        return normalized
+
+    placeholder = "__target__"
+    sanitized = normalized
+    for token in target_tokens:
+        sanitized = re.sub(
+            rf"(?<![A-Za-z0-9_\.]){re.escape(token)}\b",
+            placeholder,
+            sanitized,
+            flags=re.IGNORECASE,
+        )
+    sanitized = re.sub(
+        r"(^[ \t]*)(?:result|[A-Za-z_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff.]*)\s*=",
+        rf"\1{placeholder} =",
+        sanitized,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    return sanitized
+
+
+def _strip_self_referential_target_guard(expression: Any, target_token: Any) -> str:
+    normalized_expression = str(expression or "").strip()
+    normalized_target = str(target_token or "").strip()
+    if not normalized_expression or not normalized_target:
+        return normalized_expression
+
+    def _true_branch_matches_compared_value(true_branch: str, compared_value: str) -> str | None:
+        true_unwrapped = _strip_balanced_outer_parentheses(true_branch)
+        compared_unwrapped = _strip_balanced_outer_parentheses(compared_value)
+        if true_unwrapped == compared_unwrapped or compared_unwrapped in true_unwrapped:
+            return true_unwrapped
+        return None
+
+    escaped_target = re.escape(normalized_target)
+    ternary_parts = _split_top_level_generator_ternary(_strip_balanced_outer_parentheses(normalized_expression))
+    if ternary_parts is not None:
+        condition, when_true, when_false = ternary_parts
+        if re.fullmatch(r"0(?:\.0|U|L)?", _strip_balanced_outer_parentheses(when_false)):
+            condition_patterns = [
+                re.compile(rf"^(?P<left>.+?)\s*==\s*{escaped_target}$", flags=re.IGNORECASE),
+                re.compile(rf"^{escaped_target}\s*==\s*(?P<right>.+?)$", flags=re.IGNORECASE),
+            ]
+            for condition_pattern in condition_patterns:
+                condition_match = condition_pattern.fullmatch(_strip_balanced_outer_parentheses(condition))
+                if not condition_match:
+                    continue
+                compared_value = (
+                    condition_match.groupdict().get("left")
+                    or condition_match.groupdict().get("right")
+                    or ""
+                ).strip()
+                matched_true = _true_branch_matches_compared_value(when_true, compared_value)
+                if matched_true:
+                    return matched_true
+
+    same_value_then_zero_patterns = [
+        re.compile(
+            rf"^\(?\s*(?P<value>.+?)\s*==\s*{escaped_target}\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+        ),
+        re.compile(
+            rf"^\(?\s*{escaped_target}\s*==\s*(?P<value>.+?)\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+        ),
+    ]
+    for pattern in same_value_then_zero_patterns:
+        match = pattern.fullmatch(normalized_expression)
+        if match:
+            return match.group("value").strip()
+
+    python_same_value_then_zero_patterns = [
+        re.compile(
+            rf"^\(?\s*(?P<value>.+?)\s+if\s+(?P<condition>.+?)\s+else\s+0(?:\.0)?\s*\)?$",
+            flags=re.IGNORECASE,
+        ),
+    ]
+    for pattern in python_same_value_then_zero_patterns:
+        match = pattern.fullmatch(normalized_expression)
+        if not match:
+            continue
+        value = match.group("value").strip()
+        condition = match.group("condition").strip()
+        condition_patterns = [
+            re.compile(rf"^(?P<left>.+?)\s*==\s*{escaped_target}$", flags=re.IGNORECASE),
+            re.compile(rf"^{escaped_target}\s*==\s*(?P<right>.+?)$", flags=re.IGNORECASE),
+        ]
+        for condition_pattern in condition_patterns:
+            condition_match = condition_pattern.fullmatch(condition)
+            if not condition_match:
+                continue
+            compared_value = (
+                condition_match.groupdict().get("left")
+                or condition_match.groupdict().get("right")
+                or ""
+            ).strip()
+            matched_true = _true_branch_matches_compared_value(value, compared_value)
+            if matched_true:
+                return matched_true
+    return normalized_expression
+
+
+def _convert_python_expr_to_generator(expr: str) -> str:
+    normalized = str(expr or "").strip()
+    if not normalized:
+        return normalized
+    if (
+        " if " not in normalized
+        and " and " not in normalized
+        and " or " not in normalized
+        and " not " not in normalized
+        and "//" not in normalized
+        and "**" not in normalized
+    ):
+        return normalized
+
+    def _render(node: ast.AST) -> str:
+        if isinstance(node, ast.Expression):
+            return _render(node.body)
+        if isinstance(node, ast.IfExp):
+            return f"({_render(node.test)} ? {_render(node.body)} : {_render(node.orelse)})"
+        if isinstance(node, ast.BoolOp):
+            op = "&&" if isinstance(node.op, ast.And) else "||"
+            return f"({f' {op} '.join(_render(value) for value in node.values)})"
+        if isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.Not):
+                return f"!({_render(node.operand)})"
+            if isinstance(node.op, ast.USub):
+                return f"-({_render(node.operand)})"
+            if isinstance(node.op, ast.UAdd):
+                return f"+({_render(node.operand)})"
+        if isinstance(node, ast.BinOp):
+            operator_map = {
+                ast.Add: "+",
+                ast.Sub: "-",
+                ast.Mult: "*",
+                ast.Div: "/",
+                ast.FloorDiv: "/",
+                ast.Mod: "%",
+            }
+            if isinstance(node.op, ast.Pow):
+                return f"pow({_render(node.left)}, {_render(node.right)})"
+            operator = operator_map.get(type(node.op))
+            if operator:
+                return f"({_render(node.left)} {operator} {_render(node.right)})"
+        if isinstance(node, ast.Compare):
+            compare_map = {
+                ast.Eq: "==",
+                ast.NotEq: "!=",
+                ast.Gt: ">",
+                ast.GtE: ">=",
+                ast.Lt: "<",
+                ast.LtE: "<=",
+                ast.Is: "==",
+                ast.IsNot: "!=",
+            }
+            left = _render(node.left)
+            parts: List[str] = []
+            for operator, comparator in zip(node.ops, node.comparators):
+                symbol = compare_map.get(type(operator))
+                if not symbol:
+                    raise ValueError("unsupported compare operator")
+                right = _render(comparator)
+                parts.append(f"({left} {symbol} {right})")
+                left = right
+            return parts[0] if len(parts) == 1 else f"({' && '.join(parts)})"
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            return f"{node.func.id}({', '.join(_render(arg) for arg in node.args)})"
+        if isinstance(node, ast.Attribute):
+            return f"{_render(node.value)}.{node.attr}"
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool):
+                return "1" if node.value else "0"
+            if node.value is None:
+                return "0"
+            return str(node.value)
+        raise ValueError(f"unsupported ast node: {type(node).__name__}")
+
+    try:
+        parsed = ast.parse(normalized, mode="eval")
+        return _render(parsed)
+    except Exception:
+        return normalized
+
+
+def _assignment_target_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    return None
+
+
+def _collapse_assignment_branch(
+    statements: List[ast.stmt],
+    expected_target: str | None,
+) -> Tuple[str | None, str | None]:
+    if len(statements) != 1:
+        return None, expected_target
+    statement = statements[0]
+    if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+        target_name = _assignment_target_name(statement.targets[0])
+        if not target_name:
+            return None, expected_target
+        if expected_target and target_name != expected_target:
+            return None, expected_target
+        return ast.unparse(statement.value).strip(), target_name
+    if isinstance(statement, ast.If):
+        return _collapse_assignment_if(statement, expected_target)
+    return None, expected_target
+
+
+def _collapse_assignment_if(
+    node: ast.If,
+    expected_target: str | None,
+) -> Tuple[str | None, str | None]:
+    then_expr, target_name = _collapse_assignment_branch(node.body, expected_target)
+    if not then_expr:
+        return None, expected_target
+    else_expr, target_name = _collapse_assignment_branch(node.orelse, target_name)
+    if not else_expr:
+        return None, expected_target
+    condition = ast.unparse(node.test).strip()
+    return f"({then_expr} if {condition} else {else_expr})", target_name
+
+
+def _normalize_assignment_python_block(formula: str) -> str:
+    normalized = str(formula or "").strip()
+    if not normalized or "\n" not in normalized:
+        return normalized
+    try:
+        parsed = ast.parse(normalized, mode="exec")
+    except SyntaxError:
+        return normalized
+    if len(parsed.body) != 1 or not isinstance(parsed.body[0], ast.If):
+        return normalized
+    collapsed, _target_name = _collapse_assignment_if(parsed.body[0], None)
+    return collapsed or normalized
+
+
+def _normalize_formula_for_generator(formula: str) -> str:
+    normalized = str(formula or "").strip()
+    normalized = _normalize_assignment_python_block(normalized)
+    assignment_lhs = None
+    single_line_assign = re.fullmatch(
+        r"[A-Za-z_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff.]*\s*=\s*(.+)",
+        normalized,
+    )
+    if single_line_assign and "\n" not in normalized:
+        assignment_lhs = normalized.split("=", 1)[0].strip()
+        normalized = single_line_assign.group(1).strip()
+    normalized = _strip_self_referential_target_guard(normalized, "__target__")
+    if assignment_lhs:
+        normalized = _strip_self_referential_target_guard(normalized, assignment_lhs)
+        escaped_lhs = re.escape(assignment_lhs)
+        same_value_then_zero_patterns = [
+            re.compile(
+                rf"^\(?\s*(?P<value>.+?)\s*==\s*{escaped_lhs}\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+            ),
+            re.compile(
+                rf"^\(?\s*{escaped_lhs}\s*==\s*(?P<value>.+?)\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+            ),
+        ]
+        for pattern in same_value_then_zero_patterns:
+            match = pattern.fullmatch(normalized)
+            if match:
+                normalized = match.group("value").strip()
+                break
+    if "//" in normalized:
+        return _convert_python_expr_to_generator(normalized)
+    if re.search(r"(==|!=|>=|<=|\?)", normalized):
+        return _convert_python_expr_to_generator(normalized)
+    mapping_pairs = list(_MAPPING_PAIR_PATTERN.finditer(normalized))
+    if mapping_pairs:
+        cursor = 0
+        pure_mapping_table = True
+        values: List[str] = []
+        for match in mapping_pairs:
+            if normalized[cursor:match.start()].strip(" \t,"):
+                pure_mapping_table = False
+                break
+            values.append(match.group(2).strip())
+            cursor = match.end()
+        if pure_mapping_table and not normalized[cursor:].strip(" \t,"):
+            unique_values = {value for value in values if value}
+            if len(unique_values) == 1:
+                normalized = values[0]
+    return _convert_python_expr_to_generator(normalized)
+
+
+def _build_conversion_source_alias_lookup(sources: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    lookup: Dict[str, List[str]] = {}
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        protocol = str(source.get("protocol") or "").strip()
+        alias = str(source.get("alias") or "").strip()
+        if not protocol or not alias:
+            continue
+        aliases = lookup.setdefault(protocol, [])
+        if alias not in aliases:
+            aliases.append(alias)
+    return lookup
+
+
+def _build_rule_field_ref_map(rule: Dict[str, Any], conversion_sources: List[Dict[str, Any]]) -> Dict[str, str]:
+    field_ref_candidates: Dict[str, List[str]] = {}
+    source_alias_lookup = _build_conversion_source_alias_lookup(conversion_sources)
+    for item in rule.get("source_fields") or []:
+        field_name = ""
+        field_ref = ""
+        if isinstance(item, str):
+            normalized = item.strip()
+            if "." not in normalized:
+                continue
+            alias_name, field_name = normalized.split(".", 1)
+            field_ref = f"{alias_name}.{field_name}"
+        elif isinstance(item, dict):
+            field_name = str(item.get("field") or "").strip()
+            alias_name = str(item.get("alias") or "").strip()
+            if not alias_name:
+                protocol_name = str(item.get("protocol") or "").strip()
+                aliases = source_alias_lookup.get(protocol_name, [])
+                if len(aliases) == 1:
+                    alias_name = aliases[0]
+            if alias_name and field_name:
+                field_ref = f"{alias_name}.{field_name}"
+        if not field_name or not field_ref:
+            continue
+        candidates = field_ref_candidates.setdefault(field_name, [])
+        if field_ref not in candidates:
+            candidates.append(field_ref)
+    return {
+        field_name: refs[0]
+        for field_name, refs in field_ref_candidates.items()
+        if len(refs) == 1
+    }
+
+
+def _resolve_protocol_field_name(
+    field_name: str,
+    protocol_name: Optional[str],
+    protocol_field_index: Dict[str, List[Tuple[str, str]]],
+) -> str:
+    normalized = str(field_name or "").strip()
+    if not normalized or not protocol_name:
+        return normalized
+
+    candidates = [normalized]
+    if normalized.startswith("namespace_"):
+        candidates.append(normalized[len("namespace_") :])
+
+    for candidate in candidates:
+        matches = [entry for entry in protocol_field_index.get(candidate.upper(), []) if entry[0] == protocol_name]
+        if matches:
+            return matches[0][1]
+    return normalized
+
+
+def _protocol_contains_field(
+    protocol_name: Optional[str],
+    actual_field: str,
+    protocol_field_index: Dict[str, List[Tuple[str, str]]],
+    actual_to_spec: Dict[str, Dict[str, Any]],
+) -> bool:
+    normalized_protocol = str(protocol_name or "").strip()
+    normalized_field = str(actual_field or "").strip()
+    if not normalized_protocol or not normalized_field:
+        return False
+    if normalized_field in actual_to_spec:
+        return True
+    matches = protocol_field_index.get(normalized_field.upper(), [])
+    return any(item_protocol == normalized_protocol and item_field == normalized_field for item_protocol, item_field in matches)
+
+
+def _formula_references_only_known_fields(
+    expression: Any,
+    alias_protocol_lookup: Dict[str, str],
+    protocol_field_index: Dict[str, List[Tuple[str, str]]],
+    source_spec_maps: Dict[str, Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]],
+) -> bool:
+    raw_expression = str(expression or "").strip()
+    if not raw_expression:
+        return True
+    for alias_name, field_name in _FIELD_REF_RE.findall(raw_expression):
+        protocol_name = alias_protocol_lookup.get(alias_name)
+        if not protocol_name:
+            return False
+        actual_to_spec, _ = source_spec_maps.get(protocol_name, ({}, {}))
+        if not _protocol_contains_field(protocol_name, field_name, protocol_field_index, actual_to_spec):
+            return False
+    return True
+
+
+def _normalize_conversion_rules_payload(
+    rules_payload: Dict[str, Any],
+    protocol_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
+    normalized_payload = copy.deepcopy(rules_payload)
+    conversions = normalized_payload.get("conversions")
+    if not isinstance(conversions, list):
+        return normalized_payload
+    protocol_field_index = _protocol_field_index(protocol_dir) if protocol_dir else {}
+    available_protocol_names = set(_normalize_protocol_names(protocol_dir)) if protocol_dir else set()
+    for conversion in conversions:
+        if not isinstance(conversion, dict):
+            continue
+        if available_protocol_names:
+            target_protocol_name = str((conversion.get("target") or {}).get("protocol") or "").strip()
+            conversion_sources = [source for source in (conversion.get("sources") or []) if isinstance(source, dict)]
+            valid_sources = [
+                source
+                for source in conversion_sources
+                if str(source.get("protocol") or "").strip() in available_protocol_names
+            ]
+            if target_protocol_name and target_protocol_name not in available_protocol_names:
+                conversion["_skip_for_generation"] = True
+                continue
+            if conversion_sources and not valid_sources:
+                conversion["_skip_for_generation"] = True
+                continue
+            if valid_sources and len(valid_sources) != len(conversion_sources):
+                conversion["sources"] = valid_sources
+        conversion_sources = conversion.get("sources") or []
+        alias_protocol_lookup = {
+            str(source.get("alias") or "").strip(): str(source.get("protocol") or "").strip()
+            for source in conversion_sources
+            if isinstance(source, dict)
+        }
+        target_protocol_name = None
+        target_payload = conversion.get("target")
+        if isinstance(target_payload, dict):
+            target_protocol_name = str(target_payload.get("protocol") or "").strip() or None
+        rules = conversion.get("rules")
+        if not isinstance(rules, list):
+            continue
+        valid_target_fields: set[str] = set()
+        target_field_lookup: Dict[str, str] = {}
+        if target_protocol_name:
+            valid_target_fields = {
+                actual_field
+                for key, entries in protocol_field_index.items()
+                for protocol_name, actual_field in entries
+                if protocol_name == target_protocol_name
+            }
+            try:
+                target_field_lookup, _actual_fields, _ambiguous_keys = _build_target_protocol_field_lookup(
+                    protocol_dir,
+                    target_protocol_name,
+                )
+            except ValueError:
+                target_field_lookup = {}
+        target_actual_to_spec, target_path_to_actual = _build_protocol_spec_maps(protocol_dir, target_protocol_name)
+        source_spec_maps: Dict[str, Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]] = {}
+
+        def _get_source_spec_maps(protocol_name: Optional[str]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+            normalized_name = str(protocol_name or "").strip()
+            if not normalized_name:
+                return {}, {}
+            cached = source_spec_maps.get(normalized_name)
+            if cached is not None:
+                return cached
+            cached = _build_protocol_spec_maps(protocol_dir, normalized_name)
+            source_spec_maps[normalized_name] = cached
+            return cached
+
+        normalized_rules: List[Dict[str, Any]] = []
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+            legacy_target_tokens = _build_legacy_target_formula_tokens(rule, target_protocol_name)
+            source_fields = rule.get("source_fields")
+            source_actual_fields = rule.get("source_actual_fields")
+            formula_field_ref_map: Dict[str, str] = {}
+            if isinstance(source_fields, list):
+                normalized_source_fields: List[Any] = []
+                normalized_source_actual_fields: List[str] = []
+                normalized_source_paths: List[str] = []
+                for index, item in enumerate(source_fields):
+                    explicit_actual = ""
+                    if isinstance(source_actual_fields, list) and index < len(source_actual_fields):
+                        explicit_actual = str(source_actual_fields[index] or "").strip()
+                    if isinstance(item, str):
+                        normalized_item = item.strip()
+                        if "." in normalized_item:
+                            alias_name, field_name = normalized_item.split(".", 1)
+                            source_protocol_name = alias_protocol_lookup.get(alias_name)
+                            if not source_protocol_name:
+                                continue
+                            actual_to_spec, path_to_actual = _get_source_spec_maps(source_protocol_name)
+                            actual_field = explicit_actual.split(".", 1)[1] if explicit_actual and "." in explicit_actual else explicit_actual
+                            explicit_source_path = ""
+                            if isinstance(rule.get("source_paths"), list) and index < len(rule.get("source_paths") or []):
+                                explicit_source_path = str((rule.get("source_paths") or [])[index] or "").strip()
+                            if actual_field and actual_field not in actual_to_spec:
+                                actual_field = ""
+                            if not actual_field and explicit_source_path:
+                                actual_field = path_to_actual.get(explicit_source_path.upper(), "")
+                            if not actual_field:
+                                actual_field = _resolve_protocol_field_name(
+                                    field_name,
+                                    source_protocol_name,
+                                    protocol_field_index,
+                                )
+                            if not _protocol_contains_field(
+                                source_protocol_name,
+                                actual_field,
+                                protocol_field_index,
+                                actual_to_spec,
+                            ):
+                                continue
+                            formula_field_ref_map[f"{alias_name}.{field_name}"] = f"{alias_name}.{actual_field}"
+                            formula_field_ref_map[field_name] = f"{alias_name}.{actual_field}"
+                            normalized_item = f"{alias_name}.{actual_field}"
+                            normalized_source_actual_fields.append(f"{alias_name}.{actual_field}")
+                            normalized_source_paths.append(explicit_source_path)
+                        normalized_source_fields.append(normalized_item)
+                    elif isinstance(item, dict):
+                        normalized_item = copy.deepcopy(item)
+                        protocol_name = str(normalized_item.get("protocol") or "").strip()
+                        field_name = str(normalized_item.get("field") or "").strip()
+                        alias_name = str(normalized_item.get("alias") or "").strip()
+                        resolved_protocol_name = protocol_name or alias_protocol_lookup.get(alias_name)
+                        if not resolved_protocol_name or not field_name:
+                            continue
+                        resolved_field_name = _resolve_protocol_field_name(
+                            field_name,
+                            resolved_protocol_name,
+                            protocol_field_index,
+                        )
+                        actual_to_spec, _ = _get_source_spec_maps(resolved_protocol_name)
+                        if not _protocol_contains_field(
+                            resolved_protocol_name,
+                            resolved_field_name,
+                            protocol_field_index,
+                            actual_to_spec,
+                        ):
+                            continue
+                        if alias_name and field_name:
+                            formula_field_ref_map[f"{alias_name}.{field_name}"] = f"{alias_name}.{resolved_field_name}"
+                            formula_field_ref_map[field_name] = f"{alias_name}.{resolved_field_name}"
+                        normalized_item["field"] = resolved_field_name
+                        normalized_source_actual_fields.append(
+                            f"{alias_name}.{resolved_field_name}" if alias_name else resolved_field_name
+                        )
+                        normalized_source_paths.append(str(normalized_item.get("source_path") or "").strip())
+                        normalized_source_fields.append(normalized_item)
+                    else:
+                        normalized_source_fields.append(item)
+                rule["source_fields"] = normalized_source_fields
+                if normalized_source_actual_fields:
+                    rule["source_actual_fields"] = normalized_source_actual_fields
+                elif "source_actual_fields" in rule:
+                    rule["source_actual_fields"] = []
+                if normalized_source_paths:
+                    rule["source_paths"] = normalized_source_paths
+                elif "source_paths" in rule:
+                    rule["source_paths"] = []
+
+            resolved_target_field = _resolve_target_field_with_fallback(
+                rule=rule,
+                target_protocol_name=target_protocol_name,
+                protocol_field_index=protocol_field_index,
+                target_field_lookup=target_field_lookup,
+                target_actual_to_spec=target_actual_to_spec,
+                target_path_to_actual=target_path_to_actual,
+            )
+            if not resolved_target_field:
+                continue
+            if valid_target_fields and resolved_target_field not in valid_target_fields:
+                continue
+            if target_protocol_name and not _protocol_contains_field(
+                target_protocol_name,
+                resolved_target_field,
+                protocol_field_index,
+                target_actual_to_spec,
+            ):
+                continue
+            rule["target_field"] = resolved_target_field
+            rule["target_actual_field"] = resolved_target_field
+            target_spec = target_actual_to_spec.get(resolved_target_field) or {}
+            if target_spec and not rule.get("target_path"):
+                rule["target_path"] = "/".join(
+                    str(part).strip() for part in (target_spec.get("path_parts") or []) if str(part).strip()
+                ) or None
+
+            field_ref_map = _build_rule_field_ref_map(rule, conversion_sources)
+            formula = _sanitize_legacy_target_formula(rule.get("formula") or "", legacy_target_tokens)
+            when_expression = _sanitize_legacy_target_formula(rule.get("when"), legacy_target_tokens)
+            combined_field_ref_map = dict(formula_field_ref_map)
+            combined_field_ref_map.update(field_ref_map)
+            if combined_field_ref_map:
+                formula = _rewrite_formula_with_alias_map(formula, combined_field_ref_map)
+                if when_expression is not None:
+                    when_expression = _rewrite_formula_with_alias_map(
+                        str(when_expression or ""),
+                        combined_field_ref_map,
+                    )
+            rule["formula"] = _normalize_formula_for_generator(formula)
+            if rule.get("when") is not None:
+                rule["when"] = _normalize_formula_for_generator(str(when_expression or ""))
+            if not _formula_references_only_known_fields(
+                rule.get("formula"),
+                alias_protocol_lookup=alias_protocol_lookup,
+                protocol_field_index=protocol_field_index,
+                source_spec_maps=source_spec_maps,
+            ):
+                continue
+            if not _formula_references_only_known_fields(
+                rule.get("when"),
+                alias_protocol_lookup=alias_protocol_lookup,
+                protocol_field_index=protocol_field_index,
+                source_spec_maps=source_spec_maps,
+            ):
+                continue
+            normalized_source_refs = [
+                str(item).strip()
+                for item in (rule.get("source_fields") or [])
+                if isinstance(item, str) and str(item).strip()
+            ]
+            rule["rule_type"] = str(rule.get("rule_type") or "").strip().lower() or _detect_rule_type(
+                str(rule.get("formula") or ""),
+                normalized_source_refs,
+            )
+            normalized_rules.append(rule)
+        conversion["rules"] = normalized_rules
+    if available_protocol_names:
+        normalized_payload["conversions"] = [
+            conversion
+            for conversion in normalized_payload.get("conversions") or []
+            if isinstance(conversion, dict) and not conversion.pop("_skip_for_generation", False)
+        ]
+    return normalized_payload
+
+
+def _validate_generated_cpp_syntax(output_path: Path, conversion_units: List[str]) -> Dict[str, Any]:
+    compiler = shutil.which("g++") or shutil.which("clang++")
+    if not compiler:
+        return {
+            "status": "skipped",
+            "compiler": None,
+            "checked_files": [],
+            "error_count": 0,
+        }
+
+    checked_files: List[str] = []
+    errors: List[Tuple[str, str]] = []
+    for file_name in conversion_units:
+        file_path = output_path / file_name
+        if not file_path.exists():
+            errors.append((file_name, "生成的转换单元文件不存在"))
+            continue
+        checked_files.append(file_name)
+        process = subprocess.run(
+            [compiler, "-std=c++17", "-fsyntax-only", "-I", str(output_path), str(file_path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if process.returncode != 0:
+            message = (process.stderr or process.stdout or "未知语法错误").strip()
+            errors.append((file_name, message))
+
+    if errors:
+        first_file, first_error = errors[0]
+        raise ValueError(f"生成后的 C++ 转换单元语法校验失败: {first_file}: {first_error}")
+
+    return {
+        "status": "passed",
+        "compiler": compiler,
+        "checked_files": checked_files,
+        "error_count": 0,
+    }
+
+
+def _convert_mapping_formula(formula: str, source_ref: str) -> str:
+    raw_formula = str(formula or "")
+    if re.search(r"^\s*result\s*=", raw_formula, flags=re.IGNORECASE):
+        return raw_formula
+    if any(token in raw_formula for token in ("==", "!=", ">=", "<=", "?", ":", "&&", "||")):
+        return raw_formula
+    pairs = list(_MAPPING_PAIR_PATTERN.finditer(str(formula or "")))
+    if not pairs:
+        return formula
+
+    fallback = "0"
+    expression = fallback
+    for match in reversed(pairs):
+        raw_key = match.group(1).strip()
+        raw_value = match.group(2).strip()
+        key = raw_key
+        value = raw_value
+        expression = f"({source_ref} == {key} ? {value} : {expression})"
+    return expression
+
+
+def _is_mapping_table_formula(rule: Dict[str, Any]) -> bool:
+    formula_kind = str(rule.get("formula_kind") or "").strip().lower()
+    if formula_kind:
+        return formula_kind == "mapping_table"
+
+    formula = str(rule.get("formula") or rule.get("rule") or "").strip()
+    if not formula or any(token in formula for token in ("==", "!=", ">=", "<=", "?", ":", "&&", "||")):
+        return False
+
+    pairs = list(_MAPPING_PAIR_PATTERN.finditer(formula))
+    if not pairs:
+        return False
+    if len(pairs) == 1 and "," not in formula:
+        return False
+
+    cursor = 0
+    for match in pairs:
+        if formula[cursor:match.start()].strip(" \t,"):
+            return False
+        if not match.group(1).strip() or not match.group(2).strip():
+            return False
+        cursor = match.end()
+    return not formula[cursor:].strip(" \t,")
+
+
+def _detect_rule_type(formula: str, source_fields: List[str]) -> str:
+    stripped = str(formula or "").strip()
+    single_line_assign = re.fullmatch(
+        r"[A-Za-z_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff.]*\s*=\s*(.+)",
+        stripped,
+    )
+    if single_line_assign and "\n" not in stripped:
+        stripped = single_line_assign.group(1).strip()
+    if not source_fields:
+        return "const"
+    if "?" in stripped and ":" in stripped:
+        return "conditional"
+    if len(source_fields) == 1 and stripped == source_fields[0]:
+        return "direct"
+    return "expression"
+
+
+def _contains_unresolved_result_placeholder(formula: str) -> bool:
+    return bool(re.search(r"\bresult\b", str(formula or "").strip(), flags=re.IGNORECASE))
+
+
+def _build_protocol_alias(protocol_name: str, used_aliases: set[str]) -> str:
+    base = re.sub(r"[^A-Za-z0-9]+", "_", str(protocol_name or "").strip()).strip("_").lower() or "src"
+    alias = base
+    suffix = 2
+    while alias in used_aliases:
+        alias = f"{base}_{suffix}"
+        suffix += 1
+    used_aliases.add(alias)
+    return alias
+
+
+def _to_relation_formula_token(value: Any) -> str:
+    token = re.sub(r"\W+", "_", str(value or "").strip(), flags=re.UNICODE).strip("_")
+    if not token:
+        return "field"
+    if token[0].isdigit():
+        token = f"f_{token}"
+    return token
+
+
+def _resolve_relation_source_protocol_token(
+    raw_token: str,
+    source_protocols: List[str],
+) -> Optional[str]:
+    normalized = _to_relation_formula_token(raw_token).lower()
+    if not normalized:
+        return None
+
+    best_candidate: Optional[str] = None
+    best_index = -1
+    best_length = -1
+    for candidate in source_protocols:
+        token = _to_relation_formula_token(candidate).lower()
+        if not token:
+            continue
+        if token == normalized:
+            return candidate
+        pattern = re.compile(rf"(^|_)({re.escape(token)})(?=_|$)")
+        for match in pattern.finditer(normalized):
+            start = match.start(2)
+            if start > best_index or (start == best_index and len(token) > best_length):
+                best_candidate = candidate
+                best_index = start
+                best_length = len(token)
+    return best_candidate
+
+
+def _split_relation_source_field(
+    source_field: str,
+    source_protocols: List[str],
+) -> Tuple[Optional[str], str]:
+    normalized = str(source_field or "").strip()
+    if not normalized:
+        return None, ""
+    if "." in normalized:
+        protocol_name, field_name = normalized.split(".", 1)
+        protocol_name = protocol_name.strip()
+        field_name = field_name.strip()
+        resolved_protocol = _resolve_relation_source_protocol_token(protocol_name, source_protocols)
+        if resolved_protocol:
+            return resolved_protocol, field_name
+        if len(source_protocols) == 1:
+            return source_protocols[0], field_name
+        return protocol_name, field_name
+
+    lowered = normalized.lower()
+    best_candidate: Optional[str] = None
+    best_field_name = ""
+    best_index = -1
+    best_token_length = -1
+    for candidate in source_protocols:
+        token = _to_relation_formula_token(candidate)
+        if not token:
+            continue
+        pattern = re.compile(rf"(^|_)({re.escape(token.lower())})_(.+)$")
+        match = pattern.search(lowered)
+        if not match:
+            continue
+        start = match.start(2)
+        if start > best_index or (start == best_index and len(token) > best_token_length):
+            best_candidate = candidate
+            best_field_name = normalized[match.start(3) :].strip()
+            best_index = start
+            best_token_length = len(token)
+    if best_candidate:
+        return best_candidate, best_field_name
+    if len(source_protocols) == 1:
+        return source_protocols[0], normalized
+    return None, normalized
+
+
+def _expand_source_protocol_candidates(
+    explicit_source_protocol: str,
+    available_source_protocols: List[str],
+) -> List[str]:
+    normalized = str(explicit_source_protocol or "").strip()
+    if not normalized:
+        return list(available_source_protocols)
+    if normalized in available_source_protocols:
+        return [normalized]
+
+    explicit_tokens = {
+        _to_relation_formula_token(part).lower()
+        for part in re.split(r"[^0-9A-Za-z_]+", normalized)
+        if str(part).strip()
+    }
+    if not explicit_tokens:
+        return [normalized]
+
+    expanded = [
+        candidate
+        for candidate in available_source_protocols
+        if _to_relation_formula_token(candidate).lower() in explicit_tokens
+    ]
+    return expanded or [normalized]
+
+
+def _strip_relation_protocol_prefix(field_name: str, protocol_name: Optional[str]) -> str:
+    normalized = str(field_name or "").strip()
+    if not normalized or not protocol_name:
+        return normalized
+
+    def _compact(value: str) -> str:
+        return re.sub(r"[^0-9A-Za-z]+", "", str(value or "").strip()).lower()
+
+    compact_protocol = _compact(str(protocol_name))
+    if not compact_protocol:
+        return normalized
+
+    if "." in normalized:
+        prefix, remainder = normalized.split(".", 1)
+        if _compact(prefix) == compact_protocol and remainder.strip():
+            return remainder.strip()
+
+    for index, char in enumerate(normalized):
+        if char != "_":
+            continue
+        prefix = normalized[:index]
+        remainder = normalized[index + 1 :]
+        if _compact(prefix) == compact_protocol and remainder.strip():
+            return remainder.strip()
+    return normalized
+
+
+def _normalize_relation_target_field(rule: Dict[str, Any], target_protocol: Optional[str]) -> str:
+    target_field = str(rule.get("target_field") or "").strip()
+    if target_field:
+        return _strip_relation_protocol_prefix(target_field, target_protocol)
+    target_var = str(rule.get("target_var") or "").strip()
+    if not target_var:
+        return ""
+    if target_protocol:
+        target_prefix = f"{_to_relation_formula_token(target_protocol)}_"
+        if target_var.lower().startswith(target_prefix.lower()):
+            return target_var[len(target_prefix) :].strip()
+    return target_var
+
+
+def _normalize_relations_rules_payload(rules_payload: Dict[str, Any]) -> Dict[str, Any]:
+    normalized_payload = {
+        "version": rules_payload.get("version") or "1.0",
+        "project_name": rules_payload.get("project_name") or "generated_project",
+        "conversions": [],
+    }
+    relations = rules_payload.get("relations") or []
+    if not isinstance(relations, list):
+        return normalized_payload
+
+    for relation in relations:
+        if not isinstance(relation, dict):
+            continue
+        relation_id = str(relation.get("relation_id") or relation.get("name") or "").strip() or "relation"
+        source_protocols = [
+            str(value).strip()
+            for value in (relation.get("source_protocols") or [])
+            if str(value).strip()
+        ]
+        target_protocol = str(relation.get("target_protocol") or "").strip() or None
+        used_aliases: set[str] = set()
+        source_alias_map = {
+            protocol_name: _build_protocol_alias(protocol_name, used_aliases)
+            for protocol_name in source_protocols
+        }
+        converted_rules: List[Dict[str, Any]] = []
+        for rule in relation.get("rules") or []:
+            if not isinstance(rule, dict):
+                continue
+            raw_source_fields = rule.get("source_fields")
+            if isinstance(raw_source_fields, list):
+                source_fields = [str(item).strip() for item in raw_source_fields if str(item).strip()]
+            elif isinstance(raw_source_fields, str):
+                source_fields = [raw_source_fields.strip()] if raw_source_fields.strip() else []
+            else:
+                source_fields = []
+
+            raw_source_vars = rule.get("source_vars")
+            if isinstance(raw_source_vars, list):
+                source_vars = [str(item).strip() for item in raw_source_vars if str(item).strip()]
+            elif isinstance(raw_source_vars, str):
+                source_vars = [raw_source_vars.strip()] if raw_source_vars.strip() else []
+            else:
+                source_vars = []
+            raw_source_actual_fields = rule.get("source_actual_fields")
+            if isinstance(raw_source_actual_fields, list):
+                source_actual_fields = [str(item).strip() for item in raw_source_actual_fields if str(item).strip()]
+            elif isinstance(raw_source_actual_fields, str):
+                source_actual_fields = [raw_source_actual_fields.strip()] if raw_source_actual_fields.strip() else []
+            else:
+                source_actual_fields = []
+            raw_source_paths = rule.get("source_paths")
+            if isinstance(raw_source_paths, list):
+                source_paths = [str(item).strip() for item in raw_source_paths if str(item).strip()]
+            elif isinstance(raw_source_paths, str):
+                source_paths = [raw_source_paths.strip()] if raw_source_paths.strip() else []
+            else:
+                source_paths = []
+
+            converted_source_fields: List[str] = []
+            converted_source_actual_fields: List[str] = []
+            converted_source_paths: List[str] = []
+            formula_map: Dict[str, str] = {}
+            for index, source_field in enumerate(source_fields):
+                protocol_name, field_name = _split_relation_source_field(source_field, source_protocols)
+                if not field_name:
+                    continue
+                protocol_name = protocol_name or (source_protocols[0] if len(source_protocols) == 1 else "")
+                alias_name = source_alias_map.setdefault(
+                    protocol_name,
+                    _build_protocol_alias(protocol_name or "src", used_aliases),
+                )
+                field_ref = f"{alias_name}.{field_name}"
+                converted_source_fields.append(field_ref)
+                explicit_actual = source_actual_fields[index] if index < len(source_actual_fields) else ""
+                if explicit_actual:
+                    actual_field = explicit_actual.split(".", 1)[1] if "." in explicit_actual else explicit_actual
+                    converted_source_actual_fields.append(f"{alias_name}.{actual_field}")
+                    formula_map[explicit_actual] = f"{alias_name}.{actual_field}"
+                    formula_map[actual_field] = f"{alias_name}.{actual_field}"
+                elif field_ref:
+                    converted_source_actual_fields.append(field_ref)
+                source_path = source_paths[index] if index < len(source_paths) else ""
+                if source_path:
+                    converted_source_paths.append(source_path)
+                formula_map[source_field] = field_ref
+                formula_map[field_name] = field_ref
+                if index < len(source_vars):
+                    formula_map[source_vars[index]] = field_ref
+
+            legacy_target_tokens = _build_legacy_target_formula_tokens(rule, target_protocol)
+            formula = _sanitize_legacy_target_formula(rule.get("formula") or "", legacy_target_tokens)
+            if formula_map:
+                formula = _rewrite_formula_with_alias_map(formula, formula_map)
+            formula = _normalize_formula_for_generator(formula)
+            target_field = _normalize_relation_target_field(rule, target_protocol)
+            converted_rules.append(
+                {
+                    "target_field": target_field,
+                    "target_actual_field": str(rule.get("target_actual_field") or "").strip() or None,
+                    "target_path": str(rule.get("target_path") or "").strip() or None,
+                    "formula": formula,
+                    "source_fields": converted_source_fields,
+                    "source_actual_fields": converted_source_actual_fields,
+                    "source_paths": converted_source_paths,
+                    "source_protocol_type": str(rule.get("source_protocol_type") or rule.get("source_protocol_name") or "").strip() or None,
+                    "source_protocol_name": str(rule.get("source_protocol_name") or rule.get("source_protocol_type") or "").strip() or None,
+                    "default_value": 0 if formula in {"0", "0.0"} else None,
+                    "description": target_field,
+                }
+            )
+
+        normalized_payload["conversions"].append(
+            {
+                "name": relation_id,
+                "mode": "joint" if len(source_protocols) > 1 else "simple",
+                "sources": [
+                    {
+                        "alias": source_alias_map[protocol_name],
+                        "protocol": protocol_name,
+                    }
+                    for protocol_name in source_protocols
+                ],
+                "target": {"protocol": target_protocol},
+                "rules": converted_rules,
+            }
+        )
+    return normalized_payload
+
+
+def _extract_normalized_rules(raw_rules: Any) -> List[Dict[str, Any]]:
+    if isinstance(raw_rules, dict):
+        if isinstance(raw_rules.get("normalized_rules"), list):
+            return raw_rules["normalized_rules"]
+        data = raw_rules.get("data")
+        if isinstance(data, dict) and isinstance(data.get("normalized_rules"), list):
+            return data["normalized_rules"]
+    if isinstance(raw_rules, list):
+        return raw_rules
+    raise ValueError("conversion_rules_json 不是可识别的规则结构")
+
+
+def _build_display_formula(
+    formula: str,
+    display_ref_map: Dict[str, str],
+) -> str:
+    if not display_ref_map:
+        return formula
+    return _rewrite_formula_with_alias_map(formula, display_ref_map)
+
+
+def _target_rule_identity(rule: Dict[str, Any], fallback_index: int) -> Tuple[str, str]:
+    actual_field = str(rule.get("target_actual_field") or "").strip()
+    if actual_field:
+        return ("actual", actual_field)
+    target_path = str(rule.get("target_path") or "").strip()
+    if target_path:
+        return ("path", target_path)
+    target_field = str(rule.get("target_field") or "").strip()
+    if target_field:
+        return ("field", target_field)
+    return ("index", str(fallback_index))
+
+
+def _target_rule_priority(rule: Dict[str, Any]) -> Tuple[int, int, int]:
+    formula = str(rule.get("formula") or rule.get("rule") or "").strip()
+    has_non_zero_formula = int(formula not in {"", "0", "0.0", "0U", "0L"})
+    has_source_fields = int(bool(rule.get("source_fields") or rule.get("source_actual_fields")))
+    has_description = int(bool(str(rule.get("description") or "").strip()))
+    return (has_non_zero_formula, has_source_fields, has_description)
+
+
+def _dedupe_rules_by_target_identity(rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    deduped: Dict[Tuple[str, str], Tuple[int, Dict[str, Any]]] = {}
+    order: List[Tuple[str, str]] = []
+    for index, rule in enumerate(rules):
+        identity = _target_rule_identity(rule, index)
+        existing = deduped.get(identity)
+        if existing is None:
+            deduped[identity] = (index, rule)
+            order.append(identity)
+            continue
+        existing_index, existing_rule = existing
+        if _target_rule_priority(rule) > _target_rule_priority(existing_rule):
+            deduped[identity] = (existing_index, rule)
+    return [deduped[identity][1] for identity in order]
+
+
+def _drop_empty_rule_conversions(rules_payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Removes conversions that no longer contain any usable mapping rules."""
+
+    conversions = rules_payload.get("conversions")
+    if not isinstance(conversions, list):
+        return rules_payload
+
+    filtered_conversions: List[Dict[str, Any]] = []
+    for conversion in conversions:
+        if not isinstance(conversion, dict):
+            continue
+        rules = conversion.get("rules")
+        if isinstance(rules, list) and rules:
+            filtered_conversions.append(conversion)
+    rules_payload["conversions"] = filtered_conversions
+    return rules_payload
+
+
+def build_generator_rules_payload(
+    raw_rules: Any,
+    protocol_dir: Optional[Path] = None,
+    target_protocol_name: Optional[str] = None,
+    source_protocol_name: Optional[str] = None,
+    project_name: Optional[str] = None,
+    preserve_display_names: bool = False,
+) -> Dict[str, Any]:
+    payload = _load_json_like(raw_rules, "conversion_rules_json")
+
+    if isinstance(payload, dict) and isinstance(payload.get("conversions"), list):
+        rules_payload = _normalize_conversion_rules_payload(payload, protocol_dir=protocol_dir)
+        rules_payload.setdefault("version", "1.0")
+        rules_payload.setdefault("project_name", project_name or "generated_project")
+        for conversion in rules_payload.get("conversions") or []:
+            rules = conversion.get("rules")
+            if isinstance(rules, list):
+                conversion["rules"] = _dedupe_rules_by_target_identity(rules)
+        rules_payload = _drop_empty_rule_conversions(rules_payload)
+    elif isinstance(payload, dict) and isinstance(payload.get("relations"), list):
+        relation_payload = _normalize_relations_rules_payload(payload)
+        rules_payload = _normalize_conversion_rules_payload(relation_payload, protocol_dir=protocol_dir)
+        rules_payload.setdefault("version", "1.0")
+        rules_payload.setdefault("project_name", project_name or payload.get("project_name") or "generated_project")
+        for conversion in rules_payload.get("conversions") or []:
+            rules = conversion.get("rules")
+            if isinstance(rules, list):
+                conversion["rules"] = _dedupe_rules_by_target_identity(rules)
+        rules_payload = _drop_empty_rule_conversions(rules_payload)
+    else:
+        normalized_rules = _extract_normalized_rules(payload)
+        protocol_names = _normalize_protocol_names(protocol_dir) if protocol_dir else []
+        resolved_target = _normalize_target_protocol_name(target_protocol_name, protocol_names, normalized_rules)
+        available_source_protocols = [name for name in protocol_names if name != resolved_target]
+        protocol_field_index = _protocol_field_index(protocol_dir) if protocol_dir else {}
+        protocol_display_index = _protocol_field_display_index(protocol_dir) if protocol_dir else {}
+        target_field_lookup, valid_target_fields, ambiguous_target_keys = _build_target_protocol_field_lookup(
+            protocol_dir,
+            resolved_target,
+        )
+        target_actual_to_spec, target_path_to_actual = _build_protocol_spec_maps(
+            protocol_dir,
+            resolved_target,
+        )
+        target_concept_spec_lookup = _build_target_concept_spec_lookup(
+            protocol_dir,
+            resolved_target,
+        )
+        single_source_protocol = None
+        if len(available_source_protocols) <= 1:
+            single_source_protocol = _normalize_source_protocol_name(
+                source_protocol_name,
+                protocol_names,
+                resolved_target,
+                normalized_rules,
+            )
+            available_source_protocols = [single_source_protocol]
+
+        protocol_aliases: Dict[str, str] = {}
+        used_aliases: set[str] = set()
+        converted_rules: List[Dict[str, Any]] = []
+        referenced_protocols: List[str] = []
+        source_spec_cache: Dict[str, Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]] = {}
+
+        def _get_source_spec_maps(protocol_name: str) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+            cached = source_spec_cache.get(protocol_name)
+            if cached is not None:
+                return cached
+            actual_to_spec, path_to_actual = _build_protocol_spec_maps(protocol_dir, protocol_name)
+            source_spec_cache[protocol_name] = (actual_to_spec, path_to_actual)
+            return actual_to_spec, path_to_actual
+
+        for rule in normalized_rules:
+            source_fields = [str(item).strip() for item in (rule.get("source_fields") or []) if str(item).strip()]
+            explicit_source_actual_fields = [
+                str(item).strip()
+                for item in (rule.get("source_actual_fields") or [])
+                if str(item).strip() and str(item).strip().lower() != "none"
+            ]
+            explicit_source_paths = [
+                str(item).strip()
+                for item in (rule.get("source_paths") or [])
+                if str(item).strip() and str(item).strip().lower() != "none"
+            ]
+            if not source_fields and rule.get("field_name"):
+                source_fields = [str(rule["field_name"]).strip()]
+            field_ref_map: Dict[str, str] = {}
+            field_refs: List[str] = []
+            display_field_refs: List[str] = []
+            display_ref_map: Dict[str, str] = {}
+            output_source_actual_fields: List[str] = []
+            output_source_paths: List[Optional[str]] = []
+            resolved_source_protocols: List[str] = []
+            explicit_source_protocol = str(
+                rule.get("source_protocol_type") or rule.get("source_protocol_name") or ""
+            ).strip()
+            formula_text = str(rule.get("formula") or rule.get("rule") or "")
+            for field in source_fields:
+                source_index = len(output_source_actual_fields)
+                preferred_actual_ref = explicit_source_actual_fields[source_index] if source_index < len(explicit_source_actual_fields) else ""
+                preferred_actual_field = preferred_actual_ref.split(".", 1)[1] if "." in preferred_actual_ref else preferred_actual_ref
+                preferred_source_path = explicit_source_paths[source_index] if source_index < len(explicit_source_paths) else ""
+                candidate_protocols = _expand_source_protocol_candidates(
+                    explicit_source_protocol,
+                    available_source_protocols,
+                )
+                inferred_protocol, lookup_field = _split_relation_source_field(field, candidate_protocols)
+                if inferred_protocol and inferred_protocol in candidate_protocols:
+                    candidate_protocols = [inferred_protocol]
+                lookup_field = lookup_field or field
+                matched_entries = [
+                    entry for entry in protocol_field_index.get(lookup_field.upper(), []) if entry[0] in candidate_protocols
+                ]
+                if preferred_source_path:
+                    path_matches = []
+                    for protocol_name in candidate_protocols:
+                        _actual_to_spec, path_to_actual = _get_source_spec_maps(protocol_name)
+                        actual_from_path = path_to_actual.get(preferred_source_path.upper())
+                        if actual_from_path:
+                            path_matches.append((protocol_name, actual_from_path))
+                    if path_matches:
+                        matched_entries = path_matches
+                if preferred_actual_field and matched_entries:
+                    exact_entries = [entry for entry in matched_entries if entry[1] == preferred_actual_field]
+                    if exact_entries:
+                        matched_entries = exact_entries
+                if len({entry[0] for entry in matched_entries}) > 1:
+                    if field not in formula_text and lookup_field not in formula_text:
+                        continue
+                    raise ValueError(f"字段 {field} 同时匹配多个源协议，无法自动推断来源")
+                if matched_entries:
+                    resolved_protocol, actual_field = matched_entries[0]
+                else:
+                    resolved_protocol = (
+                        inferred_protocol
+                        or (candidate_protocols[0] if len(candidate_protocols) == 1 else None)
+                        or explicit_source_protocol
+                        or single_source_protocol
+                        or None
+                    )
+                    actual_field = preferred_actual_field or lookup_field
+                if not resolved_protocol:
+                    if field not in formula_text and lookup_field not in formula_text:
+                        continue
+                    raise ValueError(f"字段 {field} 无法匹配到源协议")
+                if resolved_protocol not in protocol_aliases:
+                    protocol_aliases[resolved_protocol] = _build_protocol_alias(resolved_protocol, used_aliases)
+                alias = protocol_aliases[resolved_protocol]
+                field_ref = f"{alias}.{actual_field}"
+                display_name = _display_protocol_field_name(
+                    actual_field=actual_field,
+                    protocol_name=resolved_protocol,
+                    protocol_display_index=protocol_display_index,
+                )
+                display_field_ref = f"{alias}.{display_name}"
+                field_ref_map[field] = field_ref
+                if lookup_field != field:
+                    field_ref_map.setdefault(lookup_field, field_ref)
+                field_refs.append(field_ref)
+                display_field_refs.append(display_field_ref)
+                display_ref_map[field_ref] = display_field_ref
+                display_ref_map[actual_field] = display_name
+                actual_to_spec, _path_to_actual = _get_source_spec_maps(resolved_protocol)
+                source_spec = actual_to_spec.get(actual_field) or {}
+                resolved_source_path = preferred_source_path or "/".join(
+                    str(part).strip() for part in (source_spec.get("path_parts") or []) if str(part).strip()
+                ) or None
+                output_source_actual_fields.append(f"{alias}.{actual_field}")
+                output_source_paths.append(resolved_source_path)
+                resolved_source_protocols.append(resolved_protocol)
+                if resolved_protocol not in referenced_protocols:
+                    referenced_protocols.append(resolved_protocol)
+            if source_fields and _is_mapping_table_formula(rule):
+                formula = _rewrite_formula_with_alias_map(
+                    _convert_mapping_formula(
+                        str(rule.get("formula") or rule.get("rule") or ""),
+                        field_ref_map[source_fields[0]],
+                    ),
+                    field_ref_map,
+                )
+            else:
+                formula = _rewrite_formula_with_alias_map(str(rule.get("formula") or rule.get("rule") or ""), field_ref_map)
+            formula = _normalize_formula_for_generator(formula)
+            raw_target_field = str(rule.get("target_field") or "").strip()
+            normalized_target_key = raw_target_field.upper()
+            explicit_target_actual = str(rule.get("target_actual_field") or "").strip()
+            explicit_target_path = str(rule.get("target_path") or "").strip()
+            target_specs: List[Dict[str, Any]] = []
+            if explicit_target_actual or explicit_target_path:
+                resolved_target_field = _resolve_target_field_from_rule(
+                    rule=rule,
+                    target_protocol_name=resolved_target,
+                    protocol_field_index=protocol_field_index,
+                    target_field_lookup=target_field_lookup,
+                    target_actual_to_spec=target_actual_to_spec,
+                    target_path_to_actual=target_path_to_actual,
+                )
+                if valid_target_fields and resolved_target_field not in valid_target_fields:
+                    continue
+                target_spec = target_actual_to_spec.get(resolved_target_field)
+                if target_spec:
+                    target_specs = [target_spec]
+            else:
+                target_specs = list(target_concept_spec_lookup.get(normalized_target_key, []))
+                if not target_specs:
+                    resolved_target_field = _resolve_target_field_from_rule(
+                        rule=rule,
+                        target_protocol_name=resolved_target,
+                        protocol_field_index=protocol_field_index,
+                        target_field_lookup=target_field_lookup,
+                        target_actual_to_spec=target_actual_to_spec,
+                        target_path_to_actual=target_path_to_actual,
+                    )
+                    if valid_target_fields and resolved_target_field not in valid_target_fields:
+                        continue
+                    target_spec = target_actual_to_spec.get(resolved_target_field)
+                    if target_spec:
+                        target_specs = [target_spec]
+                elif valid_target_fields:
+                    target_specs = [
+                        spec for spec in target_specs
+                        if str(spec.get("actual_field") or spec.get("field_name") or "").strip() in valid_target_fields
+                    ]
+            if not target_specs:
+                continue
+            if _contains_unresolved_result_placeholder(formula):
+                formula = "0"
+            for target_spec in target_specs:
+                resolved_target_field = str(
+                    target_spec.get("actual_field") or target_spec.get("field_name") or ""
+                ).strip()
+                if not resolved_target_field:
+                    continue
+                target_field = resolved_target_field
+                output_source_fields = field_refs
+                output_formula = formula
+                if preserve_display_names:
+                    target_field = _display_protocol_field_name(
+                        actual_field=resolved_target_field,
+                        protocol_name=resolved_target,
+                        protocol_display_index=protocol_display_index,
+                    )
+                    output_source_fields = display_field_refs
+                    output_formula = _build_display_formula(formula, display_ref_map)
+                converted_rules.append(
+                    {
+                        "target_field": target_field,
+                        "target_actual_field": resolved_target_field,
+                        "target_path": "/".join(str(part).strip() for part in (target_spec.get("path_parts") or []) if str(part).strip()) or None,
+                        "source_protocol_type": resolved_source_protocols[0] if len(set(resolved_source_protocols)) == 1 else explicit_source_protocol or None,
+                        "source_protocol_name": resolved_source_protocols[0] if len(set(resolved_source_protocols)) == 1 else explicit_source_protocol or None,
+                        "formula": output_formula,
+                        "source_fields": output_source_fields,
+                        "source_actual_fields": output_source_actual_fields if output_source_fields else [],
+                        "source_paths": output_source_paths if output_source_fields else [],
+                        "rule_type": _detect_rule_type(output_formula, output_source_fields),
+                        "when": None,
+                        "default_value": 0 if rule.get("conversion_mode") == "mapping" else None,
+                        "description": str(rule.get("description") or rule.get("concept_name") or "").strip() or None,
+                    }
+                )
+        converted_rules = _dedupe_rules_by_target_identity(converted_rules)
+
+        if not referenced_protocols and single_source_protocol:
+            protocol_aliases[single_source_protocol] = protocol_aliases.get(
+                single_source_protocol,
+                _build_protocol_alias(single_source_protocol, used_aliases),
+            )
+            referenced_protocols.append(single_source_protocol)
+
+        conversion_sources = [
+            {"alias": protocol_aliases[protocol], "protocol": protocol}
+            for protocol in referenced_protocols
+        ]
+        conversion_mode = "joint" if len(conversion_sources) > 1 else "simple"
+        source_name_for_project = "_".join(protocol.lower() for protocol in referenced_protocols) or "source"
+        rules_payload = {
+            "version": "1.0",
+            "project_name": project_name or f"{source_name_for_project}_to_{resolved_target.lower()}",
+            "conversions": [
+                {
+                    "name": f"{'_'.join(referenced_protocols) or 'Source'}To{resolved_target}",
+                    "mode": conversion_mode,
+                    "sources": conversion_sources,
+                    "target": {"protocol": resolved_target},
+                    "rules": converted_rules,
+                }
+            ],
+        }
+        rules_payload = _drop_empty_rule_conversions(rules_payload)
+
+    if not isinstance(rules_payload.get("conversions"), list) or not (rules_payload.get("conversions") or []):
+        raise ValueError("conversion_rules_json 中没有与当前 source/target XML 匹配的可生成转换关系")
+
+    return rules_payload
+
+
+def build_runtime_mappings_payload(
+    conversion_rules_json: Any,
+    port_config_json: Any,
+    protocol_dir: Optional[Path] = None,
+    target_protocol_name: Optional[str] = None,
+    source_protocol_name: Optional[str] = None,
+    project_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    rules_payload = build_generator_rules_payload(
+        raw_rules=conversion_rules_json,
+        protocol_dir=protocol_dir,
+        target_protocol_name=target_protocol_name,
+        source_protocol_name=source_protocol_name,
+        project_name=project_name,
+    )
+    port_payload = _load_json_like(port_config_json, "port_config_json")
+    if not isinstance(port_payload, dict):
+        raise ValueError("port_config_json 必须是对象")
+
+    mappings_payload = copy.deepcopy(rules_payload)
+    runtime_payload = copy.deepcopy(mappings_payload.get("runtime") or {})
+    runtime_payload.setdefault("loop_sleep_ms", 2)
+    runtime_payload.setdefault("check_data_interval_ms", 5000)
+    normalized_port_payload = normalize_port_config(
+        port_payload,
+        conversions=mappings_payload.get("conversions") or [],
+    )
+    runtime_payload["endpoints"] = normalized_port_payload["endpoints"]
+    runtime_payload["transport"] = normalized_port_payload["transport"]
+    mappings_payload["runtime"] = runtime_payload
+    return mappings_payload
+
+
+def _validate_port(value: Any, field_name: str) -> int:
+    port = int(value)
+    if port < 1 or port > 65535:
+        raise ValueError(f"{field_name} 非法端口号: {port}")
+    return port
+
+
+def _normalize_endpoint_recv(value: Any, field_name: str) -> int:
+    if isinstance(value, bool):
+        return 1 if value else 0
+    if isinstance(value, (int, float)):
+        return 1 if int(value) else 0
+    text = str(value or "").strip().lower()
+    if text in {"1", "true", "yes", "y"}:
+        return 1
+    if text in {"0", "false", "no", "n"}:
+        return 0
+    raise ValueError(f"{field_name} 必须是布尔值、0/1 或 true/false")
+
+
+def _sanitize_identifier(value: Any, default: str) -> str:
+    text = re.sub(r"[^0-9A-Za-z_]+", "_", str(value or "").strip()).strip("_")
+    return text or default
+
+
+def _build_choreography_payload(
+    raw_payload: Any,
+    mappings_payload: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    choreography_payload = _load_json_like(raw_payload, "conversion_matrix_json")
+    if not isinstance(choreography_payload, dict) or not choreography_payload:
+        conversions = [item for item in (mappings_payload.get("conversions") or []) if isinstance(item, dict)]
+        joint_conversions = [
+            conversion
+            for conversion in conversions
+            if len([source for source in (conversion.get("sources") or []) if isinstance(source, dict)]) > 1
+            or str(conversion.get("mode") or "").strip().lower() == "joint"
+        ]
+        if not joint_conversions:
+            return None
+
+        sources: List[Dict[str, Any]] = []
+        targets: List[Dict[str, Any]] = []
+        joint_groups: List[Dict[str, Any]] = []
+        source_id_lookup: Dict[Tuple[str, str], str] = {}
+        used_source_ids: set[str] = set()
+        used_target_ids: set[str] = set()
+
+        def _unique_identifier(base_value: str, fallback: str, used: set[str]) -> str:
+            base = _sanitize_identifier(base_value, fallback)
+            candidate = base
+            suffix = 2
+            while candidate in used:
+                candidate = f"{base}_{suffix}"
+                suffix += 1
+            used.add(candidate)
+            return candidate
+
+        for index, conversion in enumerate(joint_conversions, start=1):
+            conversion_name = str(conversion.get("name") or f"joint_conversion_{index}").strip()
+            conversion_sources = [
+                source for source in (conversion.get("sources") or [])
+                if isinstance(source, dict)
+            ]
+            if len(conversion_sources) <= 1:
+                continue
+
+            group_source_ids: List[str] = []
+            for source_index, source in enumerate(conversion_sources, start=1):
+                protocol_name = str(source.get("protocol") or "").strip() or f"SRC_{index}_{source_index}"
+                alias_name = str(source.get("alias") or "").strip() or protocol_name
+                source_key = (protocol_name, alias_name)
+                source_id = source_id_lookup.get(source_key)
+                if source_id is None:
+                    source_id = _unique_identifier(alias_name or protocol_name, f"SRC_{index}_{source_index}", used_source_ids)
+                    source_id_lookup[source_key] = source_id
+                    sources.append(
+                        {
+                            "id": source_id,
+                            "protocol": protocol_name,
+                            "message_type": _normalize_runtime_name(protocol_name) or source_id.lower(),
+                            "cache_key": f"{source_id}_CACHE",
+                            "required": True,
+                        }
+                    )
+                group_source_ids.append(source_id)
+
+            target_protocol = str(((conversion.get("target") or {}).get("protocol")) or "").strip() or f"TARGET_{index}"
+            target_id = _unique_identifier(f"{conversion_name}_target", f"TARGET_{index}", used_target_ids)
+            targets.append(
+                {
+                    "id": target_id,
+                    "protocol": target_protocol,
+                    "message_type": _normalize_runtime_name(target_protocol) or target_id.lower(),
+                    "template_name": _sanitize_identifier(conversion_name, f"GeneratedTemplate_{index}"),
+                    "receive_window_ms": 1,
+                    "initial_status": "direct",
+                }
+            )
+            matrix_values = [
+                [0 if row_index == col_index else 1 for col_index in range(len(group_source_ids))]
+                for row_index in range(len(group_source_ids))
+            ]
+            joint_groups.append(
+                {
+                    "group_id": f"{target_id}_joint_group",
+                    "target_id": target_id,
+                    "sources": group_source_ids,
+                    "trigger_policy": "all_required",
+                    "matrix": {
+                        "unit": "ms",
+                        "rows": group_source_ids,
+                        "cols": group_source_ids,
+                        "values": matrix_values,
+                    },
+                }
+            )
+
+        if not joint_groups:
+            return None
+        return {
+            "version": "1.0",
+            "mode": "joint",
+            "project_name": mappings_payload.get("project_name") or "generated_project",
+            "sources": sources,
+            "targets": targets,
+            "joint_groups": joint_groups,
+        }
+    if "sources" in choreography_payload and "targets" in choreography_payload:
+        choreography_payload = copy.deepcopy(choreography_payload)
+        choreography_payload.setdefault("version", "1.0")
+        choreography_payload.setdefault("project_name", mappings_payload.get("project_name") or "generated_project")
+        if choreography_payload.get("joint_groups"):
+            choreography_payload.setdefault("mode", "joint")
+        return choreography_payload
+
+    raw_matrix = choreography_payload.get("matrix")
+    raw_headers = choreography_payload.get("headers")
+    if not isinstance(raw_matrix, list) or not isinstance(raw_headers, list):
+        choreography_payload = copy.deepcopy(choreography_payload)
+        choreography_payload.setdefault("version", "1.0")
+        choreography_payload.setdefault("project_name", mappings_payload.get("project_name") or "generated_project")
+        return choreography_payload
+
+    headers = [str(item or "").strip() for item in raw_headers if str(item or "").strip()]
+    if not headers:
+        return None
+    if len(raw_matrix) != len(headers):
+        raise ValueError("conversion_matrix_json.matrix 行数必须与 headers 数量一致")
+    normalized_values: List[List[Optional[int]]] = []
+    for row_index, row in enumerate(raw_matrix):
+        if not isinstance(row, list) or len(row) != len(headers):
+            raise ValueError("conversion_matrix_json.matrix 列数必须与 headers 数量一致")
+        normalized_row: List[Optional[int]] = []
+        for col_index, value in enumerate(row):
+            if value is None:
+                normalized_row.append(None)
+                continue
+            normalized_value = int(value)
+            if row_index == col_index:
+                normalized_value = 0
+            normalized_row.append(normalized_value)
+        normalized_values.append(normalized_row)
+
+    conversions = [item for item in (mappings_payload.get("conversions") or []) if isinstance(item, dict)]
+    source_protocol_lookup: Dict[str, Dict[str, Any]] = {}
+    for conversion in conversions:
+        for source in conversion.get("sources") or []:
+            if not isinstance(source, dict):
+                continue
+            protocol_name = str(source.get("protocol") or "").strip()
+            if protocol_name and protocol_name not in source_protocol_lookup:
+                source_protocol_lookup[protocol_name] = source
+    joint_conversion = next(
+        (
+            conversion
+            for conversion in conversions
+            if len([item for item in (conversion.get("sources") or []) if isinstance(item, dict)]) > 1
+        ),
+        None,
+    )
+    target_protocol = str(
+        ((joint_conversion or {}).get("target") or {}).get("protocol")
+        or (((conversions[0] if conversions else {}).get("target") or {}).get("protocol"))
+        or ""
+    ).strip()
+    target_message_type = _normalize_runtime_name(target_protocol) or "target_bundle"
+    target_id = _sanitize_identifier(target_protocol, "TARGET")
+
+    sources: List[Dict[str, Any]] = []
+    row_ids: List[str] = []
+    for header in headers:
+        source = source_protocol_lookup.get(header) or {}
+        alias = str(source.get("alias") or "").strip()
+        source_id = _sanitize_identifier(alias or header, f"SRC_{len(row_ids) + 1}")
+        row_ids.append(source_id)
+        sources.append(
+            {
+                "id": source_id,
+                "protocol": header,
+                "message_type": _normalize_runtime_name(header) or source_id.lower(),
+                "cache_key": f"{source_id}_CACHE",
+                "required": True,
+            }
+        )
+
+    max_window = max(
+        (
+            int(value)
+            for row in normalized_values
+            for value in row
+            if value is not None
+        ),
+        default=0,
+    )
+    receive_window_ms = max(max_window, 1)
+    return {
+        "version": "1.0",
+        "mode": "joint",
+        "project_name": mappings_payload.get("project_name") or "generated_project",
+        "sources": sources,
+        "targets": [
+            {
+                "id": target_id,
+                "protocol": target_protocol or "TARGET",
+                "message_type": target_message_type,
+                "template_name": _sanitize_identifier(
+                    (joint_conversion or {}).get("name") or f"{'_'.join(headers)}_to_{target_protocol or 'target'}",
+                    "GeneratedTemplate",
+                ),
+                "receive_window_ms": receive_window_ms,
+                "initial_status": "direct",
+            }
+        ],
+        "joint_groups": [
+            {
+                "group_id": f"{target_id}_joint_group",
+                "target_id": target_id,
+                "sources": row_ids,
+                "trigger_policy": "all_required",
+                "matrix": {
+                    "unit": "ms",
+                    "rows": row_ids,
+                    "cols": row_ids,
+                    "values": normalized_values,
+                },
+            }
+        ],
+    }
+
+
+def _normalize_endpoint_items(raw_endpoints: Any) -> List[Dict[str, Any]]:
+    if raw_endpoints in (None, ""):
+        return []
+    if not isinstance(raw_endpoints, list):
+        raise ValueError("port_config_json.endpoints 必须是数组")
+
+    normalized: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_endpoints):
+        if not isinstance(item, dict):
+            raise ValueError(f"endpoints[{index}] 必须是对象")
+        name = str(item.get("name") or "").strip()
+        if not name:
+            raise ValueError(f"endpoints[{index}].name 不能为空")
+        recv = _normalize_endpoint_recv(item.get("recv"), f"endpoints[{index}].recv")
+        port = _validate_port(item.get("port"), f"endpoints[{index}].port")
+        normalized.append(
+            {
+                "ip": str(item.get("ip") or "127.0.0.1").strip() or "127.0.0.1",
+                "port": port,
+                "type": str(item.get("type") or "udp").strip() or "udp",
+                "recv": recv,
+                "feedBackPort": _validate_port(
+                    item.get("feedBackPort", item.get("feedbackPort", item.get("feedback_port", port))),
+                    f"endpoints[{index}].feedBackPort",
+                ),
+                "name": name,
+            }
+        )
+    return _deduplicate_endpoint_items(normalized)
+
+
+def _deduplicate_endpoint_items(endpoints: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    deduplicated: List[Dict[str, Any]] = []
+    seen: Dict[Tuple[str, str, int, int], Dict[str, Any]] = {}
+    for item in endpoints:
+        key = (
+            str(item["name"]),
+            str(item["ip"]),
+            int(item["port"]),
+            int(item["recv"]),
+        )
+        existing = seen.get(key)
+        if existing is None:
+            seen[key] = item
+            deduplicated.append(item)
+            continue
+        same_type = str(existing.get("type")) == str(item.get("type"))
+        same_feedback_port = int(existing.get("feedBackPort")) == int(item.get("feedBackPort"))
+        if not same_type or not same_feedback_port:
+            raise ValueError(
+                "port_config_json.endpoints 存在重复端点但配置不一致: "
+                f"name={key[0]} ip={key[1]} port={key[2]} recv={key[3]}"
+            )
+    return deduplicated
+
+
+def _infer_endpoint_direction_from_name(name: Any) -> Optional[int]:
+    normalized_name = str(name or "").strip().lower()
+    if not normalized_name:
+        return None
+    if any(token in normalized_name for token in ("recv", "receive", "source", "input")):
+        return 1
+    if any(token in normalized_name for token in ("send", "target", "output")):
+        return 0
+    return None
+
+
+def _repair_endpoint_direction_candidates(
+    endpoints: List[Dict[str, Any]],
+    recv_endpoint_name: str,
+    send_endpoint_name: str,
+    port_payload: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    normalized = [dict(item) for item in endpoints]
+    recv_candidates = [item for item in normalized if int(item.get("recv") or 0) == 1]
+    send_candidates = [item for item in normalized if int(item.get("recv") or 0) == 0]
+
+    if not recv_candidates:
+        inferred_recv = [
+            item for item in normalized
+            if _infer_endpoint_direction_from_name(item.get("name")) == 1
+        ]
+        if inferred_recv:
+            for item in inferred_recv:
+                item["recv"] = 1
+    recv_candidates = [item for item in normalized if int(item.get("recv") or 0) == 1]
+    send_candidates = [item for item in normalized if int(item.get("recv") or 0) == 0]
+
+    if not send_candidates:
+        inferred_send = [
+            item for item in normalized
+            if _infer_endpoint_direction_from_name(item.get("name")) == 0
+        ]
+        if inferred_send:
+            for item in inferred_send:
+                item["recv"] = 0
+    recv_candidates = [item for item in normalized if int(item.get("recv") or 0) == 1]
+    send_candidates = [item for item in normalized if int(item.get("recv") or 0) == 0]
+
+    if not recv_candidates and port_payload.get("recvPort") not in (None, ""):
+        recv_port = _validate_port(port_payload.get("recvPort"), "recvPort")
+        normalized.append(
+            {
+                "ip": str(port_payload.get("recvIp") or "127.0.0.1").strip() or "127.0.0.1",
+                "port": recv_port,
+                "type": "udp",
+                "recv": 1,
+                "feedBackPort": recv_port,
+                "name": recv_endpoint_name,
+            }
+        )
+    recv_candidates = [item for item in normalized if int(item.get("recv") or 0) == 1]
+    send_candidates = [item for item in normalized if int(item.get("recv") or 0) == 0]
+
+    if not send_candidates and port_payload.get("sendPort") not in (None, ""):
+        send_port = _validate_port(port_payload.get("sendPort"), "sendPort")
+        feedback_port = _validate_port(
+            port_payload.get("recvPort", send_port),
+            "recvPort" if port_payload.get("recvPort") not in (None, "") else "sendPort",
+        )
+        normalized.append(
+            {
+                "ip": str(port_payload.get("sendIp") or "127.0.0.1").strip() or "127.0.0.1",
+                "port": send_port,
+                "type": "udp",
+                "recv": 0,
+                "feedBackPort": feedback_port,
+                "name": send_endpoint_name,
+            }
+        )
+    return normalized
+
+
+def _normalize_filter_config(raw_filter_config: Any) -> Dict[str, Any]:
+    if raw_filter_config in (None, "", {}):
+        raw_filter_config = {}
+    if isinstance(raw_filter_config, str):
+        text = raw_filter_config.strip()
+        raw_filter_config = json.loads(text) if text else {}
+    if not isinstance(raw_filter_config, dict):
+        raise ValueError("filterConfig 必须是对象、JSON 字符串或 null")
+
+    crc_check = raw_filter_config.get("crcCheck") or {}
+    aggregation = raw_filter_config.get("aggregation") or {}
+    aggregation_type = raw_filter_config.get("aggregationType") or {}
+    operator = str(aggregation.get("operator") or "").strip().upper() or None
+    allowed_operators = {"GT", "LT", "EQ", "GTE", "LTE", "NEQ"}
+    if operator and operator not in allowed_operators:
+        raise ValueError("aggregation.operator 仅支持 GT/LT/EQ/GTE/LTE/NEQ")
+
+    raw_value = aggregation.get("value")
+    if raw_value in (None, ""):
+        normalized_value = None
+    else:
+        normalized_value = str(raw_value).strip()
+        if not normalized_value:
+            normalized_value = None
+
+    normalized = {
+        "crcCheck": {
+            "enabled": bool(crc_check.get("enabled", False)),
+            "bindElement": str(crc_check.get("bindElement") or "").strip() or None,
+        },
+        "aggregation": {
+            "mode": str(aggregation.get("mode") or "SINGLE").strip().upper() or "SINGLE",
+            "count": None if aggregation.get("count") in (None, "") else int(aggregation.get("count")),
+            "timeMs": None if aggregation.get("timeMs") in (None, "") else int(aggregation.get("timeMs")),
+            "operator": operator,
+            "value": normalized_value,
+        },
+        "aggregationType": {
+            "type": str(aggregation_type.get("type") or "TIME").strip().upper() or "TIME",
+            "bindElement": str(aggregation_type.get("bindElement") or "").strip() or None,
+        },
+    }
+    if normalized["crcCheck"]["enabled"] and not normalized["crcCheck"]["bindElement"]:
+        raise ValueError("crcCheck.enabled=true 时必须提供 bindElement")
+    return normalized
+
+
+def normalize_port_config(
+    port_payload: Dict[str, Any],
+    conversions: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    rule_items = port_payload.get("messageRuleDetailList")
+    if not isinstance(rule_items, list) or not rule_items:
+        raise ValueError("port_config_json.messageRuleDetailList 不能为空，且必须是数组")
+
+    normalized_rules: List[Dict[str, Any]] = []
+    for index, item in enumerate(rule_items):
+        if not isinstance(item, dict):
+            raise ValueError(f"messageRuleDetailList[{index}] 必须是对象")
+        message_name = str(item.get("messageName") or "").strip()
+        if not message_name:
+            raise ValueError(f"messageRuleDetailList[{index}].messageName 不能为空")
+        normalized_rules.append(
+            {
+                "messageName": message_name,
+                "delayRequirement": int(item.get("delayRequirement") or 0),
+                "filterConfig": _normalize_filter_config(item.get("filterConfig")),
+            }
+        )
+
+    source_alias_names: List[str] = []
+    target_protocol_names: List[str] = []
+    if conversions:
+        for conversion in conversions:
+            for source in conversion.get("sources") or []:
+                alias_name = _normalize_runtime_name(source.get("alias") or source.get("protocol"))
+                if alias_name and alias_name not in source_alias_names:
+                    source_alias_names.append(alias_name)
+            target_name = _normalize_runtime_name((conversion.get("target") or {}).get("protocol"))
+            if target_name and target_name not in target_protocol_names:
+                target_protocol_names.append(target_name)
+
+    message_type = str(port_payload.get("messageType") or "").strip()
+    if not message_type:
+        if len(source_alias_names) > 1:
+            message_type = "joint_bundle"
+        elif len(target_protocol_names) == 1:
+            message_type = target_protocol_names[0]
+        elif len(source_alias_names) == 1:
+            message_type = source_alias_names[0]
+        else:
+            message_type = str(normalized_rules[0].get("messageName") or "bundle").strip() or "bundle"
+
+    recv_endpoint_name = _normalize_runtime_name(message_type) or "recv_message"
+    send_endpoint_name = f"{recv_endpoint_name}_send"
+    if len(source_alias_names) == 1:
+        recv_endpoint_name = source_alias_names[0]
+    if len(target_protocol_names) == 1:
+        send_endpoint_name = target_protocol_names[0]
+
+    normalized_endpoints = _normalize_endpoint_items(port_payload.get("endpoints"))
+    if normalized_endpoints:
+        normalized_endpoints = _repair_endpoint_direction_candidates(
+            normalized_endpoints,
+            recv_endpoint_name=recv_endpoint_name,
+            send_endpoint_name=send_endpoint_name,
+            port_payload=port_payload,
+        )
+        recv_candidates = [item for item in normalized_endpoints if int(item.get("recv") or 0) == 1]
+        send_candidates = [item for item in normalized_endpoints if int(item.get("recv") or 0) == 0]
+        if not recv_candidates:
+            raise ValueError("port_config_json.endpoints 至少需要一个 recv=1 的接收端口")
+        if not send_candidates:
+            raise ValueError("port_config_json.endpoints 至少需要一个 recv=0 的发送端口")
+        primary_recv = recv_candidates[0]
+        primary_send = send_candidates[0]
+        recv_ip = str(port_payload.get("recvIp") or primary_recv.get("ip") or "127.0.0.1").strip() or "127.0.0.1"
+        send_ip = str(port_payload.get("sendIp") or primary_send.get("ip") or "127.0.0.1").strip() or "127.0.0.1"
+        recv_port = _validate_port(port_payload.get("recvPort", primary_recv.get("port")), "recvPort")
+        send_port = _validate_port(port_payload.get("sendPort", primary_send.get("port")), "sendPort")
+    else:
+        recv_ip = str(port_payload.get("recvIp") or "127.0.0.1").strip() or "127.0.0.1"
+        send_ip = str(port_payload.get("sendIp") or "127.0.0.1").strip() or "127.0.0.1"
+        recv_port = _validate_port(port_payload.get("recvPort"), "recvPort")
+        send_port = _validate_port(port_payload.get("sendPort"), "sendPort")
+        normalized_endpoints = [{
+            "ip": recv_ip,
+            "port": recv_port,
+            "type": "udp",
+            "recv": 1,
+            "feedBackPort": recv_port,
+            "name": recv_endpoint_name,
+        }]
+        send_endpoint_names = target_protocol_names or [send_endpoint_name]
+        for index, endpoint_name in enumerate(send_endpoint_names):
+            normalized_endpoints.append(
+                {
+                    "ip": send_ip,
+                    "port": send_port + index,
+                    "type": "udp",
+                    "recv": 0,
+                    "feedBackPort": recv_port,
+                    "name": endpoint_name,
+                }
+            )
+
+    return {
+        "transport": {
+            "messageType": message_type,
+            "recvIp": recv_ip,
+            "recvPort": recv_port,
+            "sendIp": send_ip,
+            "sendPort": send_port,
+            "messageRuleDetailList": normalized_rules,
+        },
+        "endpoints": normalized_endpoints,
+    }
+
+
+def build_code_generation_payload(
+    source_protocol_dir: Any,
+    target_protocol_dir: Any,
+    conversion_rules_json: Any,
+    conversion_matrix_json: Any,
+    port_config_json: Any,
+    output_dir: Any,
+    target_protocol_name: Optional[str] = None,
+    project_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    generation_started = time.perf_counter()
+    output_dir_text = str(output_dir or "").strip()
+    if not output_dir_text:
+        raise ValueError("output_dir 不能为空")
+    output_path = Path(output_dir_text).resolve()
+
+    temp_workspace = Path(tempfile.mkdtemp(prefix="codegen_api_"))
+    protocol_dir, created_protocol_dir = _materialize_protocol_dirs(
+        source_protocol_dir=source_protocol_dir,
+        target_protocol_dir=target_protocol_dir,
+        workspace_root=temp_workspace,
+    )
+    mappings_payload = build_runtime_mappings_payload(
+        conversion_rules_json=conversion_rules_json,
+        port_config_json=port_config_json,
+        protocol_dir=protocol_dir,
+        target_protocol_name=target_protocol_name,
+        project_name=project_name,
+    )
+
+    choreography_payload = _build_choreography_payload(
+        conversion_matrix_json,
+        mappings_payload=mappings_payload,
+    )
+    if isinstance(choreography_payload, dict):
+        if not choreography_payload or (
+            set(choreography_payload.keys()) == {"joint_groups"}
+            and not (choreography_payload.get("joint_groups") or [])
+        ):
+            choreography_payload = None
+    mappings_path = temp_workspace / "mappings.json"
+    mappings_path.write_text(json.dumps(mappings_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    protocols = load_protocols(protocol_dir)
+    mappings = load_mappings(mappings_path)
+    choreography = None
+    if choreography_payload:
+        choreography_path = temp_workspace / "choreography.json"
+        choreography_path.write_text(json.dumps(choreography_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        choreography = load_choreography(choreography_path)
+    render_project(output_path, protocols, mappings, choreography)
+
+    generated_files = sorted(
+        str(path.relative_to(output_path)).replace(os.sep, "/")
+        for path in output_path.rglob("*")
+        if path.is_file()
+    )
+    conversion_units = [
+        file_name for file_name in generated_files if file_name.endswith(".cpp") and "_to_" in file_name
+    ]
+    syntax_validation = _validate_generated_cpp_syntax(output_path, conversion_units)
+    manifest_path = output_path / "protocol_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    generation_time_ms = round((time.perf_counter() - generation_started) * 1000.0, 4)
+    return {
+        "status": "success",
+        "project_name": mappings_payload.get("project_name"),
+        "mode": (mappings_payload.get("conversions") or [{}])[0].get("mode", "simple"),
+        "output": {
+            "project_dir": str(output_path),
+            "files": generated_files,
+            "conversion_units": conversion_units,
+        },
+        "warnings": [],
+        "summary": {
+            "protocol_count": len(protocols),
+            "conversion_count": len(mappings_payload.get("conversions") or []),
+            "joint_group_count": len((choreography_payload or {}).get("joint_groups") or []),
+            "qt_project_generation_time_ms": generation_time_ms,
+            "qt_project_generation_time_display": f"{generation_time_ms:.4f}ms",
+        },
+        "syntax_validation": syntax_validation,
+        "manifest": _normalize_manifest_for_response(manifest),
+        "temp_protocol_dir": str(created_protocol_dir) if created_protocol_dir else None,
+    }

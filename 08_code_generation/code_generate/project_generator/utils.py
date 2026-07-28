@@ -92,7 +92,7 @@ def write_text(path: Path, content: str) -> None:
     """
 
     ensure_directory(path.parent)
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
 def dump_json(path: Path, payload: object) -> None:
@@ -107,5 +107,5 @@ def dump_json(path: Path, payload: object) -> None:
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
+        newline="\n",
     )
-

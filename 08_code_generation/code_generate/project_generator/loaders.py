@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -54,6 +55,253 @@ _ALLOWED_FUNCTIONS = {
 _RESERVED_TOKENS = {"if", "for", "while", "return", "include"}
 
 
+def _strip_balanced_outer_parentheses(text: str) -> str:
+    normalized = str(text or "").strip()
+    while normalized.startswith("(") and normalized.endswith(")"):
+        depth = 0
+        balanced = True
+        quote = None
+        escape = False
+        for index, char in enumerate(normalized):
+            if quote:
+                if escape:
+                    escape = False
+                    continue
+                if char == "\\":
+                    escape = True
+                    continue
+                if char == quote:
+                    quote = None
+                continue
+            if char in {"'", '"'}:
+                quote = char
+                continue
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth < 0:
+                    balanced = False
+                    break
+                if depth == 0 and index != len(normalized) - 1:
+                    balanced = False
+                    break
+        if not balanced or depth != 0:
+            break
+        normalized = normalized[1:-1].strip()
+    return normalized
+
+
+def _strip_self_referential_target_guard(expression: str, target_token: str | None) -> str:
+    normalized_expression = str(expression or "").strip()
+    normalized_target = str(target_token or "").strip()
+    if not normalized_expression or not normalized_target:
+        return normalized_expression
+
+    def _split_top_level_ternary(text: str) -> tuple[str, str, str] | None:
+        candidate = _strip_balanced_outer_parentheses(text)
+        depth = 0
+        question_index = -1
+        nested_ternary_depth = 0
+        quote = None
+        escape = False
+        for index, char in enumerate(candidate):
+            if quote:
+                if escape:
+                    escape = False
+                    continue
+                if char == "\\":
+                    escape = True
+                    continue
+                if char == quote:
+                    quote = None
+                continue
+            if char in {"'", '"'}:
+                quote = char
+                continue
+            if char in "([{":
+                depth += 1
+                continue
+            if char in ")]}":
+                depth = max(depth - 1, 0)
+                continue
+            if depth != 0:
+                continue
+            if char == "?":
+                if question_index < 0:
+                    question_index = index
+                else:
+                    nested_ternary_depth += 1
+                continue
+            if char == ":" and question_index >= 0:
+                if nested_ternary_depth == 0:
+                    return (
+                        candidate[:question_index].strip(),
+                        candidate[question_index + 1:index].strip(),
+                        candidate[index + 1:].strip(),
+                    )
+                nested_ternary_depth -= 1
+        return None
+
+    def _true_branch_matches_compared_value(true_branch: str, compared_value: str) -> str | None:
+        true_unwrapped = _strip_balanced_outer_parentheses(true_branch)
+        compared_unwrapped = _strip_balanced_outer_parentheses(compared_value)
+        if true_unwrapped == compared_unwrapped or compared_unwrapped in true_unwrapped:
+            return true_unwrapped
+        return None
+
+    escaped_target = re.escape(normalized_target)
+    ternary_parts = _split_top_level_ternary(normalized_expression)
+    if ternary_parts is not None:
+        condition, when_true, when_false = ternary_parts
+        if re.fullmatch(r"0(?:\.0|U|L)?", _strip_balanced_outer_parentheses(when_false)):
+            condition_patterns = [
+                re.compile(rf"^(?P<left>.+?)\s*==\s*{escaped_target}$", flags=re.IGNORECASE),
+                re.compile(rf"^{escaped_target}\s*==\s*(?P<right>.+?)$", flags=re.IGNORECASE),
+            ]
+            for condition_pattern in condition_patterns:
+                condition_match = condition_pattern.fullmatch(_strip_balanced_outer_parentheses(condition))
+                if not condition_match:
+                    continue
+                compared_value = (
+                    condition_match.groupdict().get("left")
+                    or condition_match.groupdict().get("right")
+                    or ""
+                ).strip()
+                matched_true = _true_branch_matches_compared_value(when_true, compared_value)
+                if matched_true:
+                    return matched_true
+
+    same_value_then_zero_patterns = [
+        re.compile(
+            rf"^\(?\s*(?P<value>.+?)\s*==\s*{escaped_target}\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+        ),
+        re.compile(
+            rf"^\(?\s*{escaped_target}\s*==\s*(?P<value>.+?)\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+        ),
+    ]
+    for pattern in same_value_then_zero_patterns:
+        match = pattern.fullmatch(normalized_expression)
+        if match:
+            return match.group("value").strip()
+
+    python_same_value_then_zero_pattern = re.compile(
+        rf"^\(?\s*(?P<value>.+?)\s+if\s+(?P<condition>.+?)\s+else\s+0(?:\.0)?\s*\)?$",
+        flags=re.IGNORECASE,
+    )
+    match = python_same_value_then_zero_pattern.fullmatch(normalized_expression)
+    if not match:
+        return normalized_expression
+
+    value = match.group("value").strip()
+    condition = match.group("condition").strip()
+    condition_patterns = [
+        re.compile(rf"^(?P<left>.+?)\s*==\s*{escaped_target}$", flags=re.IGNORECASE),
+        re.compile(rf"^{escaped_target}\s*==\s*(?P<right>.+?)$", flags=re.IGNORECASE),
+    ]
+    for condition_pattern in condition_patterns:
+        condition_match = condition_pattern.fullmatch(condition)
+        if not condition_match:
+            continue
+        compared_value = (
+            condition_match.groupdict().get("left")
+            or condition_match.groupdict().get("right")
+            or ""
+        ).strip()
+        matched_true = _true_branch_matches_compared_value(value, compared_value)
+        if matched_true:
+            return matched_true
+    return normalized_expression
+
+
+def _normalize_legacy_expression(expression: str | None) -> str | None:
+    if expression is None:
+        return None
+    normalized = str(expression).strip()
+    normalized = _normalize_assignment_python_block(normalized)
+    assignment_lhs = None
+    single_line_assign = re.fullmatch(
+        r"[A-Za-z_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff.]*\s*=\s*(.+)",
+        normalized,
+    )
+    if single_line_assign and "\n" not in normalized:
+        assignment_lhs = normalized.split("=", 1)[0].strip()
+        normalized = single_line_assign.group(1).strip()
+    normalized = _strip_self_referential_target_guard(normalized, "__target__")
+    if assignment_lhs:
+        normalized = _strip_self_referential_target_guard(normalized, assignment_lhs)
+        escaped_lhs = re.escape(assignment_lhs)
+        same_value_then_zero_patterns = [
+            re.compile(
+                rf"^\(?\s*(?P<value>.+?)\s*==\s*{escaped_lhs}\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+            ),
+            re.compile(
+                rf"^\(?\s*{escaped_lhs}\s*==\s*(?P<value>.+?)\s*\?\s*(?P=value)\s*:\s*0(?:\.0|U|L)?\s*\)?$"
+            ),
+        ]
+        for pattern in same_value_then_zero_patterns:
+            match = pattern.fullmatch(normalized)
+            if match:
+                normalized = match.group("value").strip()
+                break
+    return normalized
+
+
+def _assignment_target_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    return None
+
+
+def _collapse_assignment_branch(
+    statements: list[ast.stmt],
+    expected_target: str | None,
+) -> tuple[str | None, str | None]:
+    if len(statements) != 1:
+        return None, expected_target
+    statement = statements[0]
+    if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+        target_name = _assignment_target_name(statement.targets[0])
+        if not target_name:
+            return None, expected_target
+        if expected_target and target_name != expected_target:
+            return None, expected_target
+        return ast.unparse(statement.value).strip(), target_name
+    if isinstance(statement, ast.If):
+        return _collapse_assignment_if(statement, expected_target)
+    return None, expected_target
+
+
+def _collapse_assignment_if(
+    node: ast.If,
+    expected_target: str | None,
+) -> tuple[str | None, str | None]:
+    then_expr, target_name = _collapse_assignment_branch(node.body, expected_target)
+    if not then_expr:
+        return None, expected_target
+    else_expr, target_name = _collapse_assignment_branch(node.orelse, target_name)
+    if not else_expr:
+        return None, expected_target
+    condition = ast.unparse(node.test).strip()
+    return f"({then_expr} if {condition} else {else_expr})", target_name
+
+
+def _normalize_assignment_python_block(expression: str | None) -> str | None:
+    if expression is None:
+        return None
+    normalized = str(expression).strip()
+    if not normalized or "\n" not in normalized:
+        return normalized
+    try:
+        parsed = ast.parse(normalized, mode="exec")
+    except SyntaxError:
+        return normalized
+    if len(parsed.body) != 1 or not isinstance(parsed.body[0], ast.If):
+        return normalized
+    collapsed, _target_name = _collapse_assignment_if(parsed.body[0], None)
+    return collapsed or normalized
+
+
 def _load_json(path: Path) -> dict:
     """Loads a JSON object from disk."""
 
@@ -63,6 +311,7 @@ def _load_json(path: Path) -> dict:
 def _validate_expression(expression: str | None, aliases: set[str]) -> None:
     """Validates one formula or condition expression."""
 
+    expression = _normalize_legacy_expression(expression)
     if expression is None:
         return
     if not _FORMULA_ALLOWED_RE.fullmatch(expression):
@@ -183,6 +432,13 @@ def _load_message_rule_detail(payload: dict) -> MessageRuleDetailSpec:
         or filter_payload.get("aggregationType")
         or {}
     )
+    compare_operator = str(aggregation_payload.get("operator") or "").strip().upper() or None
+    if compare_operator and compare_operator not in {"GT", "LT", "EQ", "GTE", "LTE", "NEQ"}:
+        raise ValueError("messageRuleDetailList[].filterConfig.aggregation.operator 非法")
+    compare_value = None if aggregation_payload.get("value") in (None, "") else str(aggregation_payload.get("value")).strip()
+    if compare_value == "":
+        compare_value = None
+
     return MessageRuleDetailSpec(
         message_name=message_name,
         delay_requirement=int(payload.get("delay_requirement", payload.get("delayRequirement", 0)) or 0),
@@ -197,6 +453,8 @@ def _load_message_rule_detail(payload: dict) -> MessageRuleDetailSpec:
             mode=str(aggregation_payload.get("mode") or "SINGLE").strip() or "SINGLE",
             count=(None if aggregation_payload.get("count") in (None, "") else int(aggregation_payload.get("count"))),
             time_ms=(None if aggregation_payload.get("time_ms", aggregation_payload.get("timeMs")) in (None, "") else int(aggregation_payload.get("time_ms", aggregation_payload.get("timeMs")))),
+            operator=compare_operator,
+            value=compare_value,
         ),
         aggregation_type=AggregationTypeSpec(
             type=str(aggregation_type_payload.get("type") or "TIME").strip() or "TIME",
@@ -287,6 +545,24 @@ def _load_protocol_verifies(payload: dict | None) -> list[ProtocolVerifySpec]:
     return result
 
 
+def _resolve_conversion_mode(raw_mode: Any, source_count: int) -> str:
+    """Normalizes conversion mode and falls back to source-count inference."""
+
+    mode = str(raw_mode or "").strip().lower()
+    if mode in {"joint", "simple"}:
+        return mode
+    return "joint" if int(source_count or 0) > 1 else "simple"
+
+
+def _resolve_choreography_mode(payload: dict) -> str:
+    """Normalizes choreography mode and falls back to joint-group inference."""
+
+    mode = str(payload.get("mode") or "").strip().lower()
+    if mode in {"joint", "simple"}:
+        return mode
+    return "joint" if payload.get("joint_groups") else "simple"
+
+
 def load_mappings(path: Path) -> MappingSpec:
     """Loads and validates mappings.json."""
 
@@ -312,15 +588,17 @@ def load_mappings(path: Path) -> MappingSpec:
             if target_field in seen_target_fields:
                 raise ValueError(f"转换 '{name}' 中重复赋值字段: {target_field}")
             seen_target_fields.add(target_field)
-            _validate_expression(rule["formula"], alias_names)
-            _validate_expression(rule.get("when"), alias_names)
+            normalized_formula = _normalize_legacy_expression(rule["formula"])
+            normalized_when = _normalize_legacy_expression(rule.get("when"))
+            _validate_expression(normalized_formula, alias_names)
+            _validate_expression(normalized_when, alias_names)
             rules.append(
                 MappingRule(
                     target_field=target_field,
-                    formula=rule["formula"],
+                    formula=normalized_formula or "",
                     source_fields=rule.get("source_fields", []),
                     rule_type=rule["rule_type"],
-                    when=rule.get("when"),
+                    when=normalized_when,
                     default_value=(
                         None if rule.get("default_value") is None else str(rule.get("default_value"))
                     ),
@@ -330,7 +608,7 @@ def load_mappings(path: Path) -> MappingSpec:
         conversions.append(
             ConversionSpec(
                 name=name,
-                mode=item["mode"],
+                mode=_resolve_conversion_mode(item.get("mode"), len(sources)),
                 sources=sources,
                 target_protocol=item["target"]["protocol"],
                 rules=rules,
@@ -349,7 +627,6 @@ def load_mappings(path: Path) -> MappingSpec:
             loop_sleep_ms=int(runtime_payload.get("loop_sleep_ms", 2)),
             check_data_interval_ms=int(runtime_payload.get("check_data_interval_ms", 5000)),
             protocol_verifies=_load_protocol_verifies(runtime_payload.get("protocol_verifies")),
-            reference_profile=runtime_payload.get("reference_profile"),
         ),
     )
 
@@ -419,7 +696,7 @@ def load_choreography(path: Path) -> ChoreographySpec:
         )
     return ChoreographySpec(
         version=payload.get("version", "1.0"),
-        mode=payload["mode"],
+        mode=_resolve_choreography_mode(payload),
         project_name=payload["project_name"],
         sources=sources,
         targets=targets,

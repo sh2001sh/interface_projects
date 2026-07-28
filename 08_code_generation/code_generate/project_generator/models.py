@@ -18,6 +18,9 @@ class FieldSpec:
     bit_offset: int
     default_value: str | None
     source_tag: str
+    source_field: str | None = None
+    declared_type: str | None = None
+    cpp_type: str = "long"
 
 
 @dataclass(slots=True)
@@ -40,6 +43,9 @@ class ScalarNode:
     bit_length: int | None
     default_value: str | None
     source_tag: str
+    source_field: str | None = None
+    declared_type: str | None = None
+    cpp_type: str = "long"
 
 
 @dataclass(slots=True)
@@ -100,6 +106,7 @@ class SectionSpec:
     cpp_name: str
     tag_name: str
     path: str
+    key: int | None = None
     nodes: list[ProtocolNode] = field(default_factory=list)
 
 
@@ -132,6 +139,7 @@ class ProtocolSpec:
     sequences: list[SequenceSpec] = field(default_factory=list)
     routes: list[RouteSpec] = field(default_factory=list)
     label_to_cpp: dict[str, str] = field(default_factory=dict)
+    xml_protocol_verify: "ProtocolVerifySpec | None" = None
 
     @property
     def endian(self) -> str:
@@ -171,6 +179,64 @@ class EndpointSpec:
     recv: bool
     feedback_port: int
     name: str
+
+
+@dataclass(slots=True)
+class CrcCheckSpec:
+    """Represents CRC calculation configuration for one message rule."""
+
+    enabled: bool = False
+    bind_element: str | None = None
+
+
+@dataclass(slots=True)
+class LoopConfigSpec:
+    """Represents loop handling metadata for one message rule."""
+
+    type: str = "NONE"
+
+
+@dataclass(slots=True)
+class AggregationSpec:
+    """Represents aggregation metadata for one message rule."""
+
+    mode: str = "SINGLE"
+    count: int | None = None
+    time_ms: int | None = None
+    operator: str | None = None
+    value: str | None = None
+
+
+@dataclass(slots=True)
+class AggregationTypeSpec:
+    """Represents aggregation ordering/deduplication metadata for one message rule."""
+
+    type: str = "TIME"
+    bind_element: str | None = None
+
+
+@dataclass(slots=True)
+class MessageRuleDetailSpec:
+    """Represents one runtime message forwarding/filter rule."""
+
+    message_name: str
+    delay_requirement: int = 0
+    crc_check: CrcCheckSpec = field(default_factory=CrcCheckSpec)
+    loop_config: LoopConfigSpec = field(default_factory=LoopConfigSpec)
+    aggregation: AggregationSpec = field(default_factory=AggregationSpec)
+    aggregation_type: AggregationTypeSpec = field(default_factory=AggregationTypeSpec)
+
+
+@dataclass(slots=True)
+class TransportSpec:
+    """Represents top-level runtime transport settings."""
+
+    message_type: str
+    recv_ip: str
+    recv_port: int
+    send_ip: str
+    send_port: int
+    message_rules: list[MessageRuleDetailSpec] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -269,10 +335,10 @@ class RuntimeSpec:
     """Represents top-level runtime project settings."""
 
     endpoints: list[EndpointSpec] = field(default_factory=list)
+    transport: TransportSpec | None = None
     loop_sleep_ms: int = 2
     check_data_interval_ms: int = 5000
     protocol_verifies: list[ProtocolVerifySpec] = field(default_factory=list)
-    reference_profile: str | None = None
 
 
 @dataclass(slots=True)

@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 import re
+import shutil
+from collections import Counter
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from project_generator.models import BranchNode, ChoreographySpec, GroupNode, MappingSpec, ProtocolSpec, ScalarNode
-from project_generator.reference_profiles import render_reference_project
+from project_generator.models import (
+    BranchNode,
+    ChoreographySpec,
+    GroupNode,
+    MappingSpec,
+    ProtocolSpec,
+    ProtocolVerifySpec,
+    ScalarNode,
+)
 from project_generator.templates import (
     mapping_file_base,
     render_choreography_cpp,
@@ -27,6 +37,8 @@ from project_generator.utils import dump_json, ensure_directory, to_snake_name, 
 
 
 _FIELD_REF_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b")
+_HEADER_FIELD_RE = re.compile(r"\b(?:long|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=")
+_VALUE_FIELD_RE = re.compile(r"\bvalue\.([A-Za-z_][A-Za-z0-9_]*)\b")
 
 
 def _resolve_field_name(field_name: str, valid_fields: set[str]) -> str:
@@ -100,39 +112,112 @@ def _mapping_signature(
     return f"{target_type} convert_{to_snake_name(conversion_name)}({arguments})"
 
 
+def _mapping_target_var_name(target_type: str) -> str:
+    """Builds one readable target variable name for generated mapping code."""
+
+    return f"{to_snake_name(target_type)}Target"
+
+
 def _process_method_name(conversion) -> str:
     """Builds one process method name with newB-style defaults."""
 
     if conversion.runtime.process_method:
         return conversion.runtime.process_method
     if len(conversion.sources) == 1:
-        return f"{conversion.sources[0].protocol}dataPro"
+        return f"{conversion.sources[0].protocol}_to_{conversion.target_protocol}dataPro"
     source_part = "_".join(source.protocol for source in conversion.sources)
-    return f"{source_part}dataPro"
+    return f"{source_part}_to_{conversion.target_protocol}dataPro"
 
 
-def _mapping_body(conversion, target_protocol: ProtocolSpec, alias_fields: dict[str, set[str]]) -> str:
+def _typed_default_literal(field) -> str:
+    """Builds one typed default literal for mapping initialization."""
+
+    default_value = field.default_value
+    if default_value is None or not str(default_value).strip():
+        if field.cpp_type == "float":
+            return "0.0f"
+        if field.cpp_type == "double":
+            return "0.0"
+        if field.cpp_type == "char":
+            return "static_cast<char>(0)"
+        return "0"
+    raw = str(default_value).strip()
+    if field.cpp_type == "char":
+        return f"static_cast<char>({raw})"
+    if field.cpp_type in {"float", "double"}:
+        try:
+            decimal_value = Decimal(raw)
+            rendered = format(decimal_value, "f").rstrip("0").rstrip(".")
+            if not rendered:
+                rendered = "0"
+        except InvalidOperation:
+            rendered = raw
+        if field.cpp_type == "float" and "." not in rendered and "e" not in rendered.lower():
+            rendered = f"{rendered}.0"
+        if field.cpp_type == "double" and "." not in rendered and "e" not in rendered.lower():
+            rendered = f"{rendered}.0"
+        return f"{rendered}f" if field.cpp_type == "float" else rendered
+    return raw
+
+
+def _typed_zero_literal(field) -> str:
+    """Builds one zero literal for unmapped target-field initialization."""
+
+    if field.cpp_type == "float":
+        return "0.0f"
+    if field.cpp_type == "double":
+        return "0.0"
+    if field.cpp_type == "char":
+        return "static_cast<char>(0)"
+    return "0"
+
+
+def _is_redundant_zero_rule(rule) -> bool:
+    """Checks whether one explicit rule only repeats the zero-initialization."""
+
+    if rule.when is not None:
+        return False
+    if rule.source_fields:
+        return False
+    formula = str(rule.formula or "").strip()
+    if formula not in {"0", "0.0", "0U", "0L"}:
+        return False
+    default_value = rule.default_value
+    if default_value is None:
+        return True
+    return str(default_value).strip() in {"0", "0.0", "0U", "0L"}
+
+
+def _mapping_body(
+    conversion,
+    target_protocol: ProtocolSpec,
+    alias_fields: dict[str, set[str]],
+    target_var_name: str,
+) -> str:
     """Renders assignment statements for one conversion."""
 
     valid_fields = {field.cpp_name for field in target_protocol.fields}
-    lines = []
+    lines: list[str] = []
+    initialized_fields: set[str] = set()
+    for field in target_protocol.fields:
+        if field.cpp_name in initialized_fields:
+            continue
+        initialized_fields.add(field.cpp_name)
+        lines.append(f"    {target_var_name}.{field.cpp_name} = {_typed_zero_literal(field)};")
+
     for rule in conversion.rules:
+        if _is_redundant_zero_rule(rule):
+            continue
         target_field = _resolve_field_name(rule.target_field, valid_fields)
         formula = _rewrite_expression(rule.formula, alias_fields)
         when_expression = _rewrite_expression(rule.when, alias_fields)
-        assignment = (
-            f"    target.{target_field} = "
-            f"static_cast<decltype(target.{target_field})>({formula});"
-        )
+        assignment = f"    {target_var_name}.{target_field} = {formula};"
         if when_expression:
             lines.append(f"    if ({when_expression}) {{")
             lines.append(assignment)
             if rule.default_value is not None:
                 lines.append("    } else {")
-                lines.append(
-                    f"        target.{target_field} = "
-                    f"static_cast<decltype(target.{target_field})>({rule.default_value});"
-                )
+                lines.append(f"        {target_var_name}.{target_field} = {rule.default_value};")
             lines.append("    }")
         else:
             lines.append(assignment)
@@ -296,6 +381,21 @@ def _serialize_nodes(nodes):
     return payload
 
 
+def _merge_protocol_verifies(
+    protocols: list[ProtocolSpec],
+    mappings: MappingSpec,
+) -> list[ProtocolVerifySpec]:
+    """Uses XML-derived verify settings as the only protocol-level source."""
+
+    del mappings
+    merged: dict[str, ProtocolVerifySpec] = {}
+    for protocol in protocols:
+        if protocol.xml_protocol_verify is None:
+            continue
+        merged[protocol.type_name] = protocol.xml_protocol_verify
+    return list(merged.values())
+
+
 def _build_manifest(
     protocols: list[ProtocolSpec],
     mappings: MappingSpec,
@@ -303,6 +403,7 @@ def _build_manifest(
 ) -> dict:
     """Builds protocol_manifest.json content."""
 
+    merged_protocol_verifies = _merge_protocol_verifies(protocols, mappings)
     payload = {
         "version": mappings.version,
         "project_name": mappings.project_name,
@@ -310,7 +411,39 @@ def _build_manifest(
         "runtime": {
             "loop_sleep_ms": mappings.runtime.loop_sleep_ms,
             "check_data_interval_ms": mappings.runtime.check_data_interval_ms,
-            "reference_profile": mappings.runtime.reference_profile,
+            "transport": (
+                {
+                    "message_type": mappings.runtime.transport.message_type,
+                    "recv_ip": mappings.runtime.transport.recv_ip,
+                    "recv_port": mappings.runtime.transport.recv_port,
+                    "send_ip": mappings.runtime.transport.send_ip,
+                    "send_port": mappings.runtime.transport.send_port,
+                    "message_rules": [
+                        {
+                            "message_name": rule.message_name,
+                            "delay_requirement": rule.delay_requirement,
+                            "crc_check": {
+                                "enabled": rule.crc_check.enabled,
+                                "bind_element": rule.crc_check.bind_element,
+                            },
+                            "aggregation": {
+                                "mode": rule.aggregation.mode,
+                                "count": rule.aggregation.count,
+                                "time_ms": rule.aggregation.time_ms,
+                                "operator": rule.aggregation.operator,
+                                "value": rule.aggregation.value,
+                            },
+                            "aggregation_type": {
+                                "type": rule.aggregation_type.type,
+                                "bind_element": rule.aggregation_type.bind_element,
+                            },
+                        }
+                        for rule in mappings.runtime.transport.message_rules
+                    ],
+                }
+                if mappings.runtime.transport is not None
+                else None
+            ),
             "protocol_verifies": [
                 {
                     "protocol": item.protocol,
@@ -345,7 +478,7 @@ def _build_manifest(
                     "default_verify": item.default_verify,
                     "default_return_code": item.default_return_code,
                 }
-                for item in mappings.runtime.protocol_verifies
+                for item in merged_protocol_verifies
             ],
             "endpoints": [
                 {
@@ -377,7 +510,6 @@ def _build_manifest(
                 "total_bits": protocol.total_bits,
                 "structure_kind": protocol.structure_kind,
                 "codec_supported": protocol.codec_supported,
-                "unsupported_features": protocol.unsupported_features,
                 "fields": [
                     {
                         "label": field.label,
@@ -414,18 +546,9 @@ def _build_manifest(
                             }
                             for member in seq.members
                         ],
-                    }
-                    for seq in protocol.sequences
-                ],
-                "routes": [
-                    {
-                        "corr": route.corr,
-                        "value": route.value,
-                        "target_protocol": route.target_protocol,
-                        "control_fields": list(route.control_fields),
-                    }
-                    for route in protocol.routes
-                ],
+                        }
+                        for seq in protocol.sequences
+                    ],
             }
         )
     for conversion in mappings.conversions:
@@ -533,6 +656,174 @@ def _validate_project_inputs(
         _validate_field_references(conversion, protocol_lookup)
 
 
+def _validate_ascii_file(file_name: str, content: str) -> None:
+    """Ensures generated C++ project text stays ASCII-only."""
+
+    if not content.isascii():
+        raise ValueError(f"生成文件包含非 ASCII 字符，Windows/MSVC 兼容性不可靠: {file_name}")
+
+
+def _validate_protocol_header_content(protocol: ProtocolSpec, file_name: str, content: str) -> None:
+    """Validates one rendered protocol header."""
+
+    _validate_ascii_file(file_name, content)
+    declared_fields: list[str] = []
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        if not any(token in line for token in ("long ", "float ", "double ", "char ")):
+            continue
+        matches = _HEADER_FIELD_RE.findall(line)
+        type_hits = sum(line.count(token) for token in ("long ", "float ", "double ", "char "))
+        if len(matches) != 1 or type_hits != 1 or not line.strip().endswith(";"):
+            raise ValueError(f"{file_name}:{lineno} 字段声明格式异常，可能发生了字段拼接")
+        declared_fields.append(matches[0])
+
+    expected_fields: list[str] = []
+    seen_expected_fields: set[str] = set()
+    for field in protocol.fields:
+        if field.cpp_name in seen_expected_fields:
+            continue
+        seen_expected_fields.add(field.cpp_name)
+        expected_fields.append(field.cpp_name)
+    duplicates = [name for name, count in Counter(declared_fields).items() if count > 1]
+    if duplicates:
+        raise ValueError(f"{file_name} 存在重复字段声明: {', '.join(sorted(duplicates))}")
+    if declared_fields != expected_fields:
+        missing = [name for name in expected_fields if name not in declared_fields]
+        extras = [name for name in declared_fields if name not in expected_fields]
+        details: list[str] = []
+        if missing:
+            details.append(f"缺少字段: {', '.join(missing[:10])}")
+        if extras:
+            details.append(f"多出字段: {', '.join(extras[:10])}")
+        raise ValueError(f"{file_name} 字段清单与协议解析结果不一致；{'；'.join(details)}")
+
+
+def _count_call_arguments(argument_text: str) -> int:
+    """Counts top-level function-call arguments for one single-line call."""
+
+    if not argument_text.strip():
+        return 0
+    paren_depth = 0
+    angle_depth = 0
+    brace_depth = 0
+    count = 1
+    for char in argument_text:
+        if char == "(":
+            paren_depth += 1
+        elif char == ")":
+            paren_depth = max(0, paren_depth - 1)
+        elif char == "<":
+            angle_depth += 1
+        elif char == ">":
+            angle_depth = max(0, angle_depth - 1)
+        elif char == "{":
+            brace_depth += 1
+        elif char == "}":
+            brace_depth = max(0, brace_depth - 1)
+        elif char == "," and paren_depth == 0 and angle_depth == 0 and brace_depth == 0:
+            count += 1
+    return count
+
+
+def _validate_append_calls(codec_text: str, file_name: str) -> None:
+    """Validates appendBits/appendBitsLE call arity."""
+
+    for lineno, line in enumerate(codec_text.splitlines(), start=1):
+        stripped = line.strip()
+        for func_name in ("appendBits", "appendBitsLE"):
+            marker = f"{func_name}("
+            if marker not in stripped:
+                continue
+            if stripped.startswith(f"void {func_name}("):
+                continue
+            start = stripped.find(marker) + len(marker)
+            end = stripped.rfind(")")
+            if end <= start:
+                raise ValueError(f"{file_name}:{lineno} {func_name} 调用格式异常")
+            argument_count = _count_call_arguments(stripped[start:end])
+            if argument_count != 4:
+                raise ValueError(
+                    f"{file_name}:{lineno} {func_name} 参数数量异常，期望 4 个，实际 {argument_count} 个"
+                )
+
+
+def _collect_codec_field_refs(codec_text: str, protocols: list[ProtocolSpec]) -> dict[str, set[str]]:
+    """Collects per-protocol field references from rendered codec.cpp."""
+
+    protocol_names = {protocol.type_name for protocol in protocols}
+    refs: dict[str, set[str]] = {protocol.type_name: set() for protocol in protocols}
+    current_protocol: str | None = None
+    brace_depth = 0
+    seen_open = False
+
+    for line in codec_text.splitlines():
+        if current_protocol is None:
+            for protocol_name in protocol_names:
+                if re.search(rf"\b{re.escape(protocol_name)}\s*&\s*value\b", line):
+                    current_protocol = protocol_name
+                    brace_depth = 0
+                    seen_open = False
+                    break
+        if current_protocol is None:
+            continue
+        refs[current_protocol].update(_VALUE_FIELD_RE.findall(line))
+        brace_depth += line.count("{")
+        brace_depth -= line.count("}")
+        if line.count("{") > 0:
+            seen_open = True
+        if seen_open and brace_depth <= 0:
+            current_protocol = None
+            brace_depth = 0
+            seen_open = False
+    return refs
+
+
+def _validate_codec_content(protocols: list[ProtocolSpec], file_name: str, content: str) -> None:
+    """Validates rendered codec.cpp against protocol headers."""
+
+    _validate_ascii_file(file_name, content)
+    _validate_append_calls(content, file_name)
+
+    protocol_fields = {
+        protocol.type_name: {field.cpp_name for field in protocol.fields}
+        for protocol in protocols
+    }
+    for protocol_name, refs in _collect_codec_field_refs(content, protocols).items():
+        missing_fields = sorted(refs - protocol_fields[protocol_name])
+        if missing_fields:
+            raise ValueError(
+                f"{file_name} 中 {protocol_name} 引用了未声明字段: {', '.join(missing_fields[:10])}"
+            )
+
+
+def _validate_rendered_project(protocols: list[ProtocolSpec], rendered_files: dict[str, str]) -> None:
+    """Runs post-render static validation before files are written."""
+
+    protocol_by_header = {
+        f"{protocol.file_stem}_def.h": protocol
+        for protocol in protocols
+    }
+    for file_name, content in rendered_files.items():
+        if file_name in protocol_by_header:
+            _validate_protocol_header_content(protocol_by_header[file_name], file_name, content)
+        if file_name == "codec.cpp":
+            _validate_codec_content(protocols, file_name, content)
+        if file_name.endswith((".cpp", ".h", ".pro")):
+            _validate_ascii_file(file_name, content)
+
+
+def _reset_output_dir(output_dir: Path) -> None:
+    """Removes stale generated artifacts before writing a new project."""
+
+    if not output_dir.exists():
+        return
+    for path in output_dir.iterdir():
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+
+
 def render_project(
     output_dir: Path,
     protocols: list[ProtocolSpec],
@@ -542,32 +833,25 @@ def render_project(
     """Renders a complete Qt/C++ protocol conversion project."""
 
     ensure_directory(output_dir)
+    _reset_output_dir(output_dir)
     joint = choreography is not None
-    requested_profile = mappings.runtime.reference_profile
-    selected_profile = requested_profile
     protocol_lookup = _build_protocol_lookup(protocols)
+    merged_protocol_verifies = _merge_protocol_verifies(protocols, mappings)
     protocol_verify_lookup = {
         item.protocol: item
-        for item in mappings.runtime.protocol_verifies
+        for item in merged_protocol_verifies
     }
-    if selected_profile is not None:
-        render_reference_project(output_dir, selected_profile)
-        write_text(output_dir / "README_GENERATOR.md", render_generator_readme())
-        dump_json(
-            output_dir / "protocol_manifest.json",
-            _build_manifest(protocols=protocols, mappings=mappings, choreography=choreography),
-        )
-        return
 
     _validate_project_inputs(protocol_lookup, mappings, choreography)
     source_cache_keys, source_protocol_names, target_protocol_names = _build_runtime_maps(choreography)
     endpoints = _build_default_endpoints(mappings, source_cache_keys, target_protocol_names)
 
+    rendered_files: dict[str, str] = {}
     protocol_header_names = []
     for protocol in protocols:
         header_name = f"{protocol.file_stem}_def.h"
         protocol_header_names.append(header_name)
-        write_text(output_dir / header_name, render_protocol_header(protocol))
+        rendered_files[header_name] = render_protocol_header(protocol)
 
     mapping_header_names: list[str] = []
     mapping_source_names: list[str] = []
@@ -575,6 +859,7 @@ def render_project(
     for conversion in mappings.conversions:
         target_protocol = protocol_lookup[conversion.target_protocol]
         alias_fields = _build_alias_field_lookup(conversion, protocol_lookup)
+        target_var_name = _mapping_target_var_name(target_protocol.type_name)
         base_name = mapping_file_base(conversion)
         header_name = f"{base_name}.h"
         source_name = f"{base_name}.cpp"
@@ -591,59 +876,54 @@ def render_project(
             f"{target_protocol.file_stem}_def.h",
         ]
         unique_includes = list(dict.fromkeys(include_names))
-        write_text(
-            output_dir / header_name,
-            render_mapping_header(
-                file_guard=f"{base_name.upper()}_H",
-                function_signature=signature,
-                includes=unique_includes,
-            ),
+        rendered_files[header_name] = render_mapping_header(
+            file_guard=f"{base_name.upper()}_H",
+            function_signature=signature,
+            includes=unique_includes,
         )
-        write_text(
-            output_dir / source_name,
-            render_mapping_cpp(
-                header_name=header_name,
-                function_signature=signature,
-                target_protocol=target_protocol.type_name,
-                body=_mapping_body(conversion, target_protocol, alias_fields),
-            ),
+        rendered_files[source_name] = render_mapping_cpp(
+            header_name=header_name,
+            function_signature=signature,
+            target_protocol=target_protocol.type_name,
+            target_var_name=target_var_name,
+            body=_mapping_body(conversion, target_protocol, alias_fields, target_var_name),
         )
 
-    write_text(output_dir / "main.cpp", render_main_cpp())
-    write_text(output_dir / "config.xml", render_config_xml(endpoints))
-    write_text(output_dir / "codec.h", render_codec_header(protocols=protocols, mapping_headers=mapping_header_names))
-    write_text(output_dir / "codec.cpp", render_codec_cpp(protocols, protocol_verifies=protocol_verify_lookup))
-    write_text(
-        output_dir / "messageconvert.h",
-        render_messageconvert_header(process_methods=process_methods, joint=joint),
+    rendered_files["main.cpp"] = render_main_cpp()
+    rendered_files["config.xml"] = render_config_xml(endpoints, mappings.runtime.transport)
+    rendered_files["codec.h"] = render_codec_header(protocols=protocols, mapping_headers=mapping_header_names)
+    rendered_files["codec.cpp"] = render_codec_cpp(protocols, protocol_verifies=protocol_verify_lookup)
+    rendered_files["messageconvert.h"] = render_messageconvert_header(
+        process_methods=process_methods,
+        joint=joint,
     )
-    write_text(
-        output_dir / "messageconvert.cpp",
-        render_messageconvert_cpp(
-            conversions=mappings.conversions,
-            protocol_lookup=protocol_lookup,
-            source_cache_keys=source_cache_keys,
-            source_protocol_names=source_protocol_names,
-            target_protocol_names=target_protocol_names,
-            joint=joint,
-            loop_sleep_ms=mappings.runtime.loop_sleep_ms,
-            check_data_interval_ms=mappings.runtime.check_data_interval_ms,
-        ),
+    rendered_files["messageconvert.cpp"] = render_messageconvert_cpp(
+        conversions=mappings.conversions,
+        protocol_lookup=protocol_lookup,
+        source_cache_keys=source_cache_keys,
+        source_protocol_names=source_protocol_names,
+        target_protocol_names=target_protocol_names,
+        joint=joint,
+        loop_sleep_ms=mappings.runtime.loop_sleep_ms,
+        check_data_interval_ms=mappings.runtime.check_data_interval_ms,
+        transport=mappings.runtime.transport,
     )
     if choreography is not None:
-        write_text(output_dir / "to_code_Choreography.h", render_choreography_header())
-        write_text(output_dir / "to_code_Choreography.cpp", render_choreography_cpp(choreography))
+        rendered_files["to_code_Choreography.h"] = render_choreography_header()
+        rendered_files["to_code_Choreography.cpp"] = render_choreography_cpp(choreography)
 
-    write_text(
-        output_dir / "peach.pro",
-        render_pro_file(
-            project_name=mappings.project_name,
-            headers=[*protocol_header_names, *mapping_header_names],
-            sources=mapping_source_names,
-            joint=joint,
-        ),
+    rendered_files["peach.pro"] = render_pro_file(
+        project_name=mappings.project_name,
+        headers=[*protocol_header_names, *mapping_header_names],
+        sources=mapping_source_names,
+        joint=joint,
     )
-    write_text(output_dir / "README_GENERATOR.md", render_generator_readme())
+    rendered_files["README_GENERATOR.md"] = render_generator_readme()
+
+    _validate_rendered_project(protocols, rendered_files)
+
+    for file_name, content in rendered_files.items():
+        write_text(output_dir / file_name, content)
     dump_json(
         output_dir / "protocol_manifest.json",
         _build_manifest(protocols=protocols, mappings=mappings, choreography=choreography),
