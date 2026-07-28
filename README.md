@@ -91,6 +91,7 @@ python3 scripts/generate_interface_configs.py
 ## 部署与测试
 
 - 新机器全新环境部署：[NEW_MACHINE_DEPLOYMENT.md](NEW_MACHINE_DEPLOYMENT.md)
+- 麒麟 + 海光 DCU 专用部署：[KYLIN_HYGON_DCU_DEPLOYMENT.md](KYLIN_HYGON_DCU_DEPLOYMENT.md)
 - 总部署文档：[DEPLOYMENT.md](DEPLOYMENT.md)
 - 统一接口文档：[接口文档.md](接口文档.md)
 - 统一测试目录：[test](test)

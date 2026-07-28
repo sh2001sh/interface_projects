@@ -23,9 +23,11 @@
 - Ubuntu 22.04 或 24.04
 - Python 3.10
 - Docker Engine 和 Docker Compose v2
-- NVIDIA GPU、兼容驱动和 CUDA（启动 vLLM、Embedding、Reranker 和微调功能时需要）
+- NVIDIA CUDA 或海光 DCU/DTK 等与目标硬件匹配的计算栈
 - 至少 16 GB 内存；模型和批处理负载建议 32 GB 以上
 - `/srv/interface_projects` 存放代码，`/srv/model_cache` 存放模型
+
+麒麟操作系统和海光 DCU 不能直接执行下面的 Ubuntu/NVIDIA 命令，请改用 [KYLIN_HYGON_DCU_DEPLOYMENT.md](KYLIN_HYGON_DCU_DEPLOYMENT.md)。
 
 先安装基础软件：
 
