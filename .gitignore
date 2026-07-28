@@ -21,6 +21,7 @@ models/
 tmp/
 vendor/
 .index/
+*_tests_test_*/
 */data/checkpoints/
 */data/models/
 */data/datasets/
